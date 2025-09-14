@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="jlwuhV" name="Pitchblade" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" displaySplashScreen="1">
   <MAINGROUP id="dtbq97" name="Pitchblade">
     <GROUP id="{BAFF7510-63ED-F3CD-8458-474511DA70B1}" name="Source">
       <FILE id="KjUYvf" name="PluginProcessor.cpp" compile="1" resource="0"
