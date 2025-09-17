@@ -1,0 +1,42 @@
+# Specify minimum CMake version supported. Project tested on 4.1.1
+cmake_minimum_required(VERSION 3.22)
+
+# Project name
+project(Pitchblade)
+
+set(CMAKE_CXX_STANDARD 23)
+
+# Enable caching to make repeat builds run faster. Remove for complete rebuild.
+# set(CPM_SOURCE_CACHE "${CMAKE_BINARY_DIR}/cpm_cache")
+# set(ENV{CPM_SOURCE_CACHE} "${CMAKE_BINARY_DIR}/cpm_cache")
+
+# Store Juce lib files in /libs
+set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+file(MAKE_DIRECTORY ${LIB_DIR}) 
+
+# Try to find Juce locally
+find_package(JUCE 8.0.9 QUIET)
+
+if(NOT JUCE_FOUND)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cpm.cmake)
+
+    # Connect Juce
+    CPMAddPackage(
+        NAME JUCE 
+        GITHUB_REPOSITORY juce-framework/JUCE 
+        GIT_TAG 8.0.9
+        VERSION v8.0.9
+        SOURCE_DIR ${LIB_DIR}/juce
+    )
+endif()
+
+# Report all warnings as errors
+if(MSVC)
+    #add_compile_options(/Wall /WX)
+    add_compile_options(/wd4514)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Link /plugin and run its CMake file
+add_subdirectory(plugin)
