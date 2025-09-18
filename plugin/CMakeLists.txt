@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
+        source/GainProcessor.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
