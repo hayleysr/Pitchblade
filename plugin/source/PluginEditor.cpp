@@ -45,5 +45,3 @@ void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
         processorRef.gainDB = (float)gainSlider.getValue();
     }
 }
-
-//
