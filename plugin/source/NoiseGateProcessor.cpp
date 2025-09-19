@@ -4,8 +4,8 @@
 NoiseGateProcessor::NoiseGateProcessor(){}
 
 //Function called before processing to prepare the gate with the sample rate being used
-void NoiseGateProcessor::prepare(const juce::dsp::ProcessSpec& spec){
-    sampleRate = spec.sampleRate;
+void NoiseGateProcessor::prepare(const double sRate){
+    sampleRate = sRate;
     updateAttackAndRelease();
 }
 

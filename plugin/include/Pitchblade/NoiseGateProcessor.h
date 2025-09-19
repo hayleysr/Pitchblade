@@ -30,7 +30,7 @@ public:
     NoiseGateProcessor();
 
     //Function called before processing to prepare the gate with the sample rate being used
-    void prepare(const juce::dsp::ProcessSpec& spec);
+    void prepare(const double sRate);
 
     //Setters
     void setThreshold(float thresholdInDB);
