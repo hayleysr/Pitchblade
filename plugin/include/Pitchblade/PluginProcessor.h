@@ -52,10 +52,18 @@ public:
     float gateAttack = 25.0f;
     float gateRelease = 100.0f;
 
+    //UI STUFF====================================================================
+    //bypass on/off
+    bool isBypassed() const { return bypassed; }
+    void setBypassed(bool newState) { bypassed = newState; }
+
 private:
     //==============================================================================
     GainProcessor gainProcessor;
     NoiseGateProcessor noiseGateProcessor;
+    bool bypassed = false;
+    
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
