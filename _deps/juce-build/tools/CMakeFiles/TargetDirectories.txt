@@ -1,7 +1,0 @@
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/CMakeFiles/INSTALL.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/CMakeFiles/ALL_BUILD.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/CMakeFiles/ZERO_CHECK.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/modules/CMakeFiles/INSTALL.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/extras/Build/CMakeFiles/INSTALL.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/extras/Build/juceaide/CMakeFiles/juceaide.dir
-C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/tools/extras/Build/juceaide/CMakeFiles/INSTALL.dir
