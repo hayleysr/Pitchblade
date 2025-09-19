@@ -86,7 +86,7 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    //Sending the sample rate to the noise gate processor
+    //Sending the sample rate to the noise gate processor AUSTIN HILLS
     noiseGateProcessor.prepare(sampleRate);
 
     //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
@@ -132,19 +132,19 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-    //I ordered stuff based on how they normally are set up. This is only temporary until we do daisy chaining
+    //I ordered stuff based on how they normally are set up. This is only temporary until we do daisy chaining AUSTIN HILLS
                 //Noise gate first
-    //Update noise gate parameters from public variables
+    //Update noise gate parameters from public variables  AUSTIN HILLS
     noiseGateProcessor.setThreshold(gateThresholdDb);
     noiseGateProcessor.setAttack(gateAttack);
     noiseGateProcessor.setRelease(gateRelease);
-    //Call the noise gate's processor process
+    //Call the noise gate's processor process AUSTIN HILLS
     noiseGateProcessor.process(buffer);
 
                 //Gain second
-    //Update the gain processor with the latest value
+    //Update the gain processor with the latest value AUSTIN HILLS
     gainProcessor.setGain(gainDB);
-    //Call the gain processor's process
+    //Call the gain processor's process AUSTIN HILLS
     gainProcessor.process(buffer);
 
 

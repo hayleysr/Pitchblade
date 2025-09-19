@@ -10,7 +10,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // editor's size to whatever you need it to be.
     setSize (800, 600);
 
-    // GAIN SECTION
+    // GAIN SECTION AUSTIN HILLS
     //gain slider
     gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
@@ -23,7 +23,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     gainLabel.setText("Gain", juce::dontSendNotification);
     addAndMakeVisible(gainLabel);
 
-    //NOISE GATE SECTION
+    //NOISE GATE SECTION AUSTIN HILLS
     //threshold slider
     noiseGateThresholdSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     noiseGateThresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
@@ -90,22 +90,22 @@ void AudioPluginAudioProcessorEditor::resized()
 //This function checks to see if any slider's value has changed
 void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 {
-    //This part checks the gain slider
+    //This part checks the gain slider AUSTIN HILLS
     if (slider == &gainSlider)
     {
         processorRef.gainDB = (float)gainSlider.getValue();
     }
-    //This part checks the noise gate threshold slider
+    //This part checks the noise gate threshold slider AUSTIN HILLS
     if (slider == &noiseGateThresholdSlider)
     {
         processorRef.gateThresholdDb = (float)noiseGateThresholdSlider.getValue();
     }
-    //This part checks the noise gate attack slider
+    //This part checks the noise gate attack slider AUSTIN HILLS
     if (slider == &noiseGateAttackSlider)
     {
         processorRef.gateAttack = (float)noiseGateAttackSlider.getValue();
     }
-    //This part checks the noise gate release slider
+    //This part checks the noise gate release slider AUSTIN HILLS
     if (slider == &noiseGateReleaseSlider)
     {
         processorRef.gateRelease = (float)noiseGateReleaseSlider.getValue();

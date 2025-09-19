@@ -1,3 +1,5 @@
+//Written by Austin Hills
+
 #include "Pitchblade/NoiseGateProcessor.h"
 
 //Constructor
