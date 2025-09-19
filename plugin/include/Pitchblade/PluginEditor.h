@@ -1,6 +1,15 @@
 #pragma once
-
 #include "PluginProcessor.h"
+
+//ui
+#include <JuceHeader.h>
+#include "ui/TopBar.h"
+#include "ui/DaisyChain.h"
+#include "ui/EffectPanel.h"
+#include "ui/VisualizerPanel.h"
+
+#include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/GainProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
@@ -22,7 +31,11 @@ private:
 
     juce::Slider gainSlider;
 
-    
+    //ui declaration, defined in indiv classes
+    TopBar topBar;
+    DaisyChain daisyChain;
+    EffectPanel effectPanel;
+    VisualizerPanel visualizer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

@@ -1,6 +1,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
 
+
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
      : AudioProcessor (BusesProperties()
@@ -17,6 +18,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
 }
+
 
 //==============================================================================
 const juce::String AudioPluginAudioProcessor::getName() const
@@ -129,8 +131,9 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
-    
-    //Update the gain processor with the latest value
+    //ui/////////////////////////////////////////////////
+    //connecting gainprocessor to gainpanel value gainDB
+    //Update the gain processor with the latest value from gainpanel
     gainProcessor.setGain(gainDB);
     //Call the gain processor's process
     gainProcessor.process(buffer);

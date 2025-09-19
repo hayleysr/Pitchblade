@@ -46,9 +46,17 @@ public:
     //GAIN STUFF====================================================================
     float gainDB;
 
+    //UI STUFF====================================================================
+    //bypass on/off
+    bool isBypassed() const { return bypassed; }
+    void setBypassed(bool newState) { bypassed = newState; }
+
 private:
     //==============================================================================
     GainProcessor gainProcessor;
+    bool bypassed = false;
+    
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
