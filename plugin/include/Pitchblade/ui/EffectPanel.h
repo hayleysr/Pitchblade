@@ -1,12 +1,14 @@
+// reyna macabebe
 #pragma once
 #include <JuceHeader.h>
+#include "Pitchblade/ui/EffectRegistry.h"
 
 
 //tabs for each effect
 class EffectPanel : public juce::Component
 {
 public:
-    EffectPanel();
+    explicit EffectPanel(AudioPluginAudioProcessor& proc);
 
     void resized() override;
     void showEffect(int index);

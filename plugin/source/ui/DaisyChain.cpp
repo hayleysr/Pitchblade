@@ -1,12 +1,13 @@
+// reyna macabebe
+
 #include "Pitchblade/ui/DaisyChain.h"
 
 DaisyChain::DaisyChain()
 {
-    //create buttons
-    for (auto name : { "Pitch", "Formant", "Equalizer", "Compressor", "Gate/Gain" })
+    //creates new buttons based off of effects list in effectpanel.cpp
+    for (auto& e : effects)
     {
-        //makes new one for each effect
-        auto* btn = new juce::TextButton(name);
+        auto* btn = new juce::TextButton(e.name);
         effectButtons.add(btn);
         addAndMakeVisible(btn);
     }

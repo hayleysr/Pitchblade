@@ -40,6 +40,7 @@ target_sources(${PROJECT_NAME}
         source/ui/DaisyChain.cpp
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
+        source/panels/GainPanel.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

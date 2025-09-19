@@ -9,20 +9,12 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor (&p), processorRef (p)
+    : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
 {
     juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);
-
-    ////gain
-    //gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
-    //gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 100, 25);
-    //gainSlider.setRange(-48.0, 48.0);
-    //gainSlider.setValue(0.0);
-    //gainSlider.addListener(this);
-    //addAndMakeVisible(gainSlider);
 
     //ui//////////////////////////////////
     // all classes making the ui navigator
@@ -30,6 +22,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+
     //connects daisychain to effectspanel tabs
     for (int i = 0; i < daisyChain.effectButtons.size(); ++i) {
         daisyChain.effectButtons[i]->onClick = [this, i]() {

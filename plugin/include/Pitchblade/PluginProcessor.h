@@ -47,13 +47,13 @@ public:
     float gainDB;
 
     //UI STUFF====================================================================
+    //bypass on/off
     bool isBypassed() const { return bypassed; }
     void setBypassed(bool newState) { bypassed = newState; }
 
 private:
     //==============================================================================
     GainProcessor gainProcessor;
-
     bool bypassed = false;
     
 

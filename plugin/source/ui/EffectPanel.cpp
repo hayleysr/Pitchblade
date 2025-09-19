@@ -1,20 +1,23 @@
-#include "Pitchblade/ui/EffectPanel.h"
+// reyna macabebe
 
-EffectPanel::EffectPanel()
+#include "Pitchblade/ui/EffectPanel.h"
+#include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/GainProcessor.h"
+
+#include "Pitchblade/panels/GainPanel.h"
+//effects panel section
+EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
 {
-    //adds tabs to panel
-    tabs.addTab("Pitch", juce::Colours::darkgrey, new juce::Label({}, "Pitch Panel"), true);
-    tabs.addTab("Formant", juce::Colours::darkgrey, new juce::Label({}, "Formant Panel"), true);
-    tabs.addTab("Equalizer", juce::Colours::darkgrey, new juce::Label({}, "EQ Panel"), true);
-    tabs.addTab("Compressor", juce::Colours::darkgrey, new juce::Label({}, "Comp Panel"), true);
-    tabs.addTab("Gate/Gain", juce::Colours::darkgrey, new juce::Label({}, "Noise/Gain Panel"), true);
-    //hides top tabs
+    for (auto& e : effects)
+        tabs.addTab(e.name, juce::Colours::darkgrey, e.createPanel(proc), true);
+    //hide top tab buttons
     tabs.setTabBarDepth(0);
     addAndMakeVisible(tabs);
 }
 
 void EffectPanel::resized()
 {
+    //get bends of panel and sets
     tabs.setBounds(getLocalBounds());
 }
 

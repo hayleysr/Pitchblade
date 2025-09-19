@@ -8,6 +8,9 @@
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
 
+#include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/GainProcessor.h"
+
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                               public juce::Slider::Listener
