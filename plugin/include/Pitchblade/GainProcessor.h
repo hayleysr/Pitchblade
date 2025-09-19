@@ -1,3 +1,5 @@
+//Written by Austin Hills
+
 #pragma once
 #include <juce_audio_basics/juce_audio_basics.h>
 
@@ -13,11 +15,9 @@ public:
     GainProcessor();
 
     //Sets the gain value from the main processor using a user defined value
-    void setGain(float gainInDecibels);
+    void setGain(float gainInDB);
 
     //Function to process the audio buffer
     void process(juce::AudioBuffer<float>& buffer);
 
 };
-
-//

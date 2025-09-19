@@ -41,6 +41,8 @@ target_sources(${PROJECT_NAME}
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
         source/panels/GainPanel.cpp
+        source/NoiseGateProcessor.cpp
+        source/panels/NoiseGatePanel.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

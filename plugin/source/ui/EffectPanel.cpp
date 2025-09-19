@@ -3,8 +3,8 @@
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/EffectRegistry.h"
 #include "Pitchblade/GainProcessor.h"
-
 #include "Pitchblade/panels/GainPanel.h"
+
 //effects panel section
 EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
 {
@@ -17,7 +17,7 @@ EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
 
 void EffectPanel::resized()
 {
-    //get bends of panel and sets
+    //get bounds of panel and sets
     tabs.setBounds(getLocalBounds());
 }
 

@@ -1,7 +1,8 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
 #include <JuceHeader.h>
-//ui
+
+// ui
 #include "Pitchblade/ui/TopBar.h"
 #include "Pitchblade/ui/DaisyChain.h"
 #include "Pitchblade/ui/EffectPanel.h"
@@ -14,28 +15,26 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (800, 600);
 
-    //ui//////////////////////////////////
-    // all classes making the ui navigator
     addAndMakeVisible(topBar);
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
 
-    //connects daisychain to effectspanel tabs
+    // connect DaisyChain buttons to EffectPanel
     for (int i = 0; i < daisyChain.effectButtons.size(); ++i) {
         daisyChain.effectButtons[i]->onClick = [this, i]() {
             effectPanel.showEffect(i);
             };
     }
-    //bypass button (on/off)
+
+    // bypass button
     topBar.bypassButton.onClick = [this]() {
         processorRef.setBypassed(!processorRef.isBypassed());
         topBar.bypassButton.setToggleState(processorRef.isBypassed(), juce::dontSendNotification);
         };
-    //final size
-    setSize(800, 600);
+
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
@@ -51,12 +50,6 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 
 void AudioPluginAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
-
-    //gain
-    gainSlider.setBounds(getLocalBounds());
-
     //ui//////////////////////////////////////////
     auto area = getLocalBounds();
     //topbar height
@@ -71,11 +64,4 @@ void AudioPluginAudioProcessorEditor::resized()
     //visualizer
     visualizer.setBounds(area);
 }
-
-void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
-{
-    if (slider == &gainSlider)
-    {
-        processorRef.gainDB = (float)gainSlider.getValue();
-    }
-}
+//This function checks to see if any slider's value has changed
