@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Pitchblade/GainProcessor.h"
+#include "Pitchblade/NoiseGateProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -44,7 +45,12 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     //GAIN STUFF====================================================================
-    float gainDB;
+    float gainDB = 0.0f;
+
+    //NOISE GATE STUFF==============================================================
+    float gateThresholdDb = -48.0f;
+    float gateAttack = 25.0f;
+    float gateRelease = 100.0f;
 
     //UI STUFF====================================================================
     //bypass on/off
@@ -54,11 +60,10 @@ public:
 private:
     //==============================================================================
     GainProcessor gainProcessor;
+    NoiseGateProcessor noiseGateProcessor;
     bool bypassed = false;
     
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
-
-//
