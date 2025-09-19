@@ -2,6 +2,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Pitchblade/GainProcessor.h"
+#include "Pitchblade/FormantDetector.h" //huda
+
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -46,9 +48,15 @@ public:
     //GAIN STUFF====================================================================
     float gainDB;
 
+    // Formant Detector stuff ===================================================
+    bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
+    FormantDetector& getFormantDetector() { return formantDetector; }
+    
 private:
     //==============================================================================
     GainProcessor gainProcessor;
+    FormantDetector formantDetector; // To handle detection - huda
+    std::vector<float> latestFormants;// Vector to store formants - huda
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

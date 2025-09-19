@@ -89,6 +89,11 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
+
+    //gainProcessor.SetGain(gainDB);
+    
+    //Initialization for FormantDetector for real-time processing - huda
+    formantDetector.prepare(sampleRate);
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -135,6 +140,23 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //Call the gain processor's process
     gainProcessor.process(buffer);
 
+    // This is the place where you'd normally do the guts of your plugin's
+    // audio processing...
+    // Make sure to reset the state if your inner loop is processing
+    // the samples and the outer loop is handling the channels.
+    // Alternatively, you can process the samples with the channels
+    // interleaved by keeping the same state.
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        float* channelData = buffer.getWritePointer (channel);
+        juce::AudioBuffer<float> tempBuffer(&channelData, 1, buffer.getNumSamples()); // Apply detection for formant per channel - huda
+
+        // Process the buffer with your formant detector - huda
+        formantDetector.processBlock(tempBuffer);
+    }
+
+    //Store the latest formants for GUI display - huda
+    latestFormants = formantDetector.getFormants();
 
     // In case we have more outputs than inputs, this code clears any output
     // channels that didn't contain input data, (because these aren't
@@ -145,18 +167,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
-    }
 }
 
 //==============================================================================

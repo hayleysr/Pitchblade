@@ -28,6 +28,7 @@ target_sources(${PROJECT_NAME}
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
         source/GainProcessor.cpp
+        source/FormantDetector.cpp # huda
 )
 
 target_include_directories(${PROJECT_NAME}
