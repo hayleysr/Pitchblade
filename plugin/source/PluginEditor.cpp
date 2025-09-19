@@ -35,7 +35,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     //attack slider
     noiseGateAttackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     noiseGateAttackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
-    noiseGateAttackSlider.setRange(0.1, 2000.0);
+    noiseGateAttackSlider.setRange(0.1, 300);
     noiseGateAttackSlider.setValue(processorRef.gateAttack);
     noiseGateAttackSlider.addListener(this);
     addAndMakeVisible(noiseGateAttackSlider);
@@ -43,7 +43,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     //attack slider
     noiseGateReleaseSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
     noiseGateReleaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
-    noiseGateReleaseSlider.setRange(0.1, 2000.0);
+    noiseGateReleaseSlider.setRange(0.1, 300);
     noiseGateReleaseSlider.setValue(processorRef.gateRelease);
     noiseGateReleaseSlider.addListener(this);
     addAndMakeVisible(noiseGateReleaseSlider);
