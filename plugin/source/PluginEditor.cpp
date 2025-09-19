@@ -1,5 +1,12 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
+#include <JuceHeader.h>
+
+// ui
+#include "Pitchblade/ui/TopBar.h"
+#include "Pitchblade/ui/DaisyChain.h"
+#include "Pitchblade/ui/EffectPanel.h"
+#include "Pitchblade/ui/VisualizerPanel.h"
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
@@ -58,7 +65,3 @@ void AudioPluginAudioProcessorEditor::resized()
     visualizer.setBounds(area);
 }
 //This function checks to see if any slider's value has changed
-void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
-{
-    
-}

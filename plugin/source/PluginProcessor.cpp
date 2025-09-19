@@ -12,7 +12,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        )
-{
+    {
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -134,8 +134,10 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-    //I ordered stuff based on how they normally are set up. This is only temporary until we do daisy chaining AUSTIN HILLS
-                //Noise gate first
+
+    
+// connects processors to the panels inputs////////////////////////////////////////
+    //Noise gate
     //Update noise gate parameters from public variables  AUSTIN HILLS
     noiseGateProcessor.setThreshold(gateThresholdDb);
     noiseGateProcessor.setAttack(gateAttack);
@@ -143,7 +145,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //Call the noise gate's processor process AUSTIN HILLS
     noiseGateProcessor.process(buffer);
 
-                //Gain second
+    //Gain second
     //Update the gain processor with the latest value AUSTIN HILLS
     gainProcessor.setGain(gainDB);
     //Call the gain processor's process AUSTIN HILLS
