@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_config_flags     # Config flags
         juce::juce_recommended_lto_flags        # Link time optimization flags
         juce::juce_recommended_warning_flags    # Warning flags
+        juce::juce_dsp #dsp files
 )
 
 target_compile_definitions(${PROJECT_NAME}
