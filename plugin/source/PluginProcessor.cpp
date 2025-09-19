@@ -1,6 +1,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
 
+
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
      : AudioProcessor (BusesProperties()
@@ -17,6 +18,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
 }
+
 
 //==============================================================================
 const juce::String AudioPluginAudioProcessor::getName() const

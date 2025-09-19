@@ -4,12 +4,17 @@ cmake_minimum_required(VERSION 3.22)
 # Project name
 project(Pitchblade VERSION 0.1.0)
 
+find_package(JUCE CONFIG REQUIRED)
+
 # Plugin configurtion data
 juce_add_plugin(${PROJECT_NAME}
+    
+
     # VERSION ...                               # Set this if the plugin version is different to the project version
     # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
     # ICON_SMALL ...
     COMPANY_NAME "WSU PITCHBLADE TEAM"          # Specify the name of the plugin's author
+    BUNDLE_ID "com.WSUPitchbladeTeam.Pitchblade"    #for mac functionality, ios hosts will reject bundle IDs with spaces
     IS_SYNTH FALSE                              # Is this a synth or an effect?
     NEEDS_MIDI_INPUT FALSE                      # Does the plugin need midi input?
     NEEDS_MIDI_OUTPUT FALSE                     # Does the plugin need midi output?
@@ -20,19 +25,27 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_CODE Pbld                            # A unique four-character plugin id with exactly one upper-case character
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
     FORMATS AU VST3 Standalone                  # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
-    PRODUCT_NAME "Pitchblade"                  # The name of the final executable, which can differ from the target name
+    PRODUCT_NAME "Pitchblade"                   # The name of the final executable, which can differ from the target name
 )
+juce_generate_juce_header(${PROJECT_NAME})  #will generate JuceHeader.h automatically in the JuceLibraryCode folder
 
 target_sources(${PROJECT_NAME}
     PRIVATE
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
+
         source/GainProcessor.cpp
+        #ui
+        source/ui/TopBar.cpp
+        source/ui/DaisyChain.cpp
+        source/ui/EffectPanel.cpp
+        source/ui/VisualizerPanel.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
-        include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/Pitchblade_artefacts/JuceLibraryCode
 )
 
 #Include these libraries in build

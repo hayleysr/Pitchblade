@@ -1,0 +1,3 @@
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-subbuild/CMakeFiles/juce-populate.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-subbuild/CMakeFiles/ALL_BUILD.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-subbuild/CMakeFiles/ZERO_CHECK.dir

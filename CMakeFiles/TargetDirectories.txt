@@ -1,0 +1,15 @@
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/CMakeFiles/INSTALL.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/CMakeFiles/ALL_BUILD.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/CMakeFiles/ZERO_CHECK.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/CMakeFiles/INSTALL.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/modules/CMakeFiles/INSTALL.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/extras/Build/CMakeFiles/INSTALL.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/_deps/juce-build/extras/Build/juceaide/CMakeFiles/INSTALL.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade_All.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade_Standalone.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade_rc_lib.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade_VST3.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/Pitchblade_vst3_helper.dir
+C:/Users/Rat/Documents/School/CSC 4990 Capstone/Pitchblade/plugin/CMakeFiles/INSTALL.dir
