@@ -2,8 +2,7 @@
 
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/EffectRegistry.h"
-#include "Pitchblade/GainProcessor.h"
-#include "Pitchblade/panels/GainPanel.h"
+
 
 //effects panel section
 EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
