@@ -14,6 +14,6 @@ public:
     void showEffect(int index);
 
 private:
-    //top tab buttons
+    // tab buttons; side + top tabs
     juce::TabbedComponent tabs{ juce::TabbedButtonBar::TabsAtTop };
 };
