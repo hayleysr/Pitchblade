@@ -146,17 +146,23 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        float* channelData = buffer.getWritePointer (channel);
-        juce::AudioBuffer<float> tempBuffer(&channelData, 1, buffer.getNumSamples()); // Apply detection for formant per channel - huda
 
-        // Process the buffer with your formant detector - huda
-        formantDetector.processBlock(tempBuffer);
+
+    if (buffer.getNumChannels() > 0) {
+        auto* channelData = buffer.getReadPointer(0);
+        juce::AudioBuffer<float> monoBuffer(const_cast<float**>(&channelData), 1, buffer.getNumSamples());
+        formantDetector.processBlock(monoBuffer);
+        latestFormants = formantDetector.getFormants();
     }
 
     //Store the latest formants for GUI display - huda
-    latestFormants = formantDetector.getFormants();
+    auto freqs = formantDetector.getFormantFrequencies();
+    if (freqs.size() > 3) {
+        freqs.resize(3); // Only keep top 3 frequencies for now
+    }
+
+    latestFormants = freqs;
+
 
     // In case we have more outputs than inputs, this code clears any output
     // channels that didn't contain input data, (because these aren't
