@@ -35,6 +35,7 @@ target_sources(${PROJECT_NAME}
         source/PluginProcessor.cpp
 
         source/GainProcessor.cpp
+        source/PitchDetector.cpp
         #ui
         source/ui/TopBar.cpp
         source/ui/DaisyChain.cpp
@@ -59,6 +60,8 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_config_flags     # Config flags
         juce::juce_recommended_lto_flags        # Link time optimization flags
         juce::juce_recommended_warning_flags    # Warning flags
+        juce::juce_dsp
+        juce::juce_core
 )
 
 target_compile_definitions(${PROJECT_NAME}

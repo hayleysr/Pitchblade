@@ -91,6 +91,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     noiseGateProcessor.prepare(sampleRate);
 
+    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);
+
     //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
     //I just didn't want to push for something more complex than needed this early on
 }
@@ -136,7 +138,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     
 
     
-// connects processors to the panels inputs////////////////////////////////////////
+    // connects processors to the panels inputs////////////////////////////////////////
     //Noise gate
     //Update noise gate parameters from public variables  AUSTIN HILLS
     noiseGateProcessor.setThreshold(gateThresholdDb);
@@ -150,6 +152,9 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     gainProcessor.setGain(gainDB);
     //Call the gain processor's process AUSTIN HILLS
     gainProcessor.process(buffer);
+
+    pitchProcessor.processBlock(buffer); //Pass current audio buffer to PitchDetector
+    pitchProcessor.getCurrentPitch();
 
 
     // In case we have more outputs than inputs, this code clears any output
@@ -170,6 +175,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
+
         juce::ignoreUnused (channelData);
         // ..do something to the data...
     }

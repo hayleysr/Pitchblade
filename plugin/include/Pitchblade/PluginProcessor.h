@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Pitchblade/GainProcessor.h"
 #include "Pitchblade/NoiseGateProcessor.h"
+#include "Pitchblade/PitchDetector.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -57,10 +58,14 @@ public:
     bool isBypassed() const { return bypassed; }
     void setBypassed(bool newState) { bypassed = newState; }
 
+    //====
+    PitchDetector& getPitchDetector() { return pitchProcessor; }
+
 private:
     //==============================================================================
     GainProcessor gainProcessor;
     NoiseGateProcessor noiseGateProcessor;
+    PitchDetector pitchProcessor;
     bool bypassed = false;
     
 
