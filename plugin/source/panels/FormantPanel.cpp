@@ -31,7 +31,7 @@ void FormantPanel::paint(juce::Graphics& g) {
     {
         g.setColour(juce::Colours::white);
         g.setFont(18.0f);
-        g.drawText("Formant Detector Output", getLocalBounds().withHeight(30), juce::Justification::centredTop);
+        g.drawText("Formant Detector Output", 0,50, getWidth(), 50, juce::Justification::centredTop);
 
         // Get formants from processor
         //std::vector<float> formants = processorRef.getFormantDetector().getFormants();
