@@ -1,6 +1,6 @@
 #pragma once
 #include "PluginProcessor.h"
-#include "Pitchblade/FormantDetector.h"
+#include "Pitchblade/effects/FormantDetector.h"
 
 //ui
 #include <JuceHeader.h>
@@ -13,23 +13,13 @@
 //add your effect processors here
 #include "effects/GainProcessor.h"
 #include "effects/NoiseGateProcessor.h"
-
-
-//ui
-#include <JuceHeader.h>
-#include "ui/TopBar.h"
-#include "ui/DaisyChain.h"
-#include "ui/EffectPanel.h"
-#include "ui/VisualizerPanel.h"
-
-#include "Pitchblade/ui/EffectRegistry.h"
-#include "Pitchblade/effects/GainProcessor.h"
+#include "effects/FormantDetector.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
-                                              public juce::Slider::Listener,
-                                              public juce::Button::Listener,  //To handle button clicks - huda
-                                              private juce::Timer //adding a timer to update formants - huda
+class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
+                                              //public juce::Slider::Listener,
+                                              //public juce::Button::Listener,  //To handle button clicks - huda
+                                              //private juce::Timer //adding a timer to update formants - huda
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -39,9 +29,9 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
                                                 
-    void sliderValueChanged(juce::Slider* slider) override;
-    void buttonClicked(juce::Button* button) override; // Handle toggle button clicks - huda
-    void timerCallback() override; //huda
+    //void sliderValueChanged(juce::Slider* slider) override;
+    //void buttonClicked(juce::Button* button) override; // Handle toggle button clicks - huda
+    //void timerCallback() override; //huda
 
     //void sliderValueChanged(juce::Slider* slider) override;
 
@@ -55,8 +45,8 @@ private:
 
                                                 
     // For formant display - huda
-    juce::TextButton toggleViewButton { "Show Formants" }; // Button to switch views - huda
-    bool showingFormants = false;// True if formant UI is active - huda
+    //juce::TextButton toggleViewButton { "Show Formants" }; // Button to switch views - huda
+    //bool showingFormants = false;// True if formant UI is active - huda
                                                 
     TopBar topBar;
     DaisyChain daisyChain;

@@ -2,7 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Pitchblade/effects/GainProcessor.h"
-#include "Pitchblade/FormantDetector.h" //huda
+#include "Pitchblade/effects/FormantDetector.h" //huda
 
 #include "Pitchblade/effects/NoiseGateProcessor.h"
 

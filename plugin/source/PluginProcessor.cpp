@@ -145,11 +145,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-
-
-/////////////////////////////////////////////////////////////////////////////////// 
-// connects processors to the panels inputs////////////////////////////////////////
-
     
 // connects processors to the panels inputs////////////////////////////////////////
     //Noise gate
@@ -169,6 +164,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //Call the gain processor's process AUSTIN HILLS
     gainProcessor.process(buffer);
 
+    formantDetector.processBlock(buffer);   //huda
+
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -184,6 +181,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         latestFormants = formantDetector.getFormants();
     }
 
+    //
     //Store the latest formants for GUI display - huda
     auto freqs = formantDetector.getFormantFrequencies();
     if (freqs.size() > 3) {
