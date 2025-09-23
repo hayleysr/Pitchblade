@@ -4,14 +4,6 @@
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
-
-   /* gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
-    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 100, 25);
-    gainSlider.setRange(-48.0, 48.0);
-    gainSlider.setValue(0.0);
-    gainSlider.addListener(this);
-    addAndMakeVisible(gainSlider);*/
-
     // Formant toggle button - huda
     toggleViewButton.onClick = [this]()
         {

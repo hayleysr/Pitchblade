@@ -86,5 +86,3 @@ std::vector<float> FormantDetector::getFormantFrequencies() const
     return freqs;
 }
 
-
-//
