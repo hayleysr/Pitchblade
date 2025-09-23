@@ -134,7 +134,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-
+    //Added bypass functionality so that raw audio can be toggled on or off - Austin
     if(isBypassed()==false){
         // connects processors to the panels inputs////////////////////////////////////////
         //Noise gate
