@@ -95,7 +95,7 @@
     r[0] = sumSquares;
 
     // from DF(tau) = r_{\tau}(0) + r_{t + \tau}(0) - 2r_t(\tau)
-    for(int tau = 0; tau < dYinBufferSize; ++tau){
+    for(int tau = 1; tau < dYinBufferSize; ++tau){
         // Calculate ACF sum for this lag
         float acf = 0.0f;
         for(int j = 0; j < dWindowSize - tau; ++j){
@@ -135,7 +135,7 @@
  {
     const float thresh = 0.15f;
     int tau = 2;
-    int minTau = 0;
+    int minTau = -1;
     float minVal = std::numeric_limits<float>::max(); // Initialize min to max float
     
     while (tau < dYinBufferSize)
@@ -163,7 +163,7 @@
     
     // No good pitch found
     if (minTau > 0)
-        return -convertLagToPitch(static_cast<int>(minTau));
+        return convertLagToPitch(static_cast<int>(minTau));
     
     return 0.0f; // No pitch found
  }
