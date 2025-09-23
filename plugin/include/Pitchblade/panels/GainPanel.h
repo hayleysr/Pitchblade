@@ -16,4 +16,7 @@ private:
     //declaring slider n processor
     AudioPluginAudioProcessor& processor;
     juce::Slider gainSlider;
+
+    //Label - Austin
+    juce::Label gainLabel;
 };
