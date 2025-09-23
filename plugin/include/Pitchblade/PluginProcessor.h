@@ -51,6 +51,7 @@ public:
     // Formant Detector stuff ===================================================
     bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
     FormantDetector& getFormantDetector() { return formantDetector; }
+    const std::vector<float>&getLatestFormants() const {return latestFormants;}
     
 private:
     //==============================

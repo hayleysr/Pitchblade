@@ -19,7 +19,8 @@
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                               public juce::Slider::Listener,
-                                              public juce::Button::Listener  //To handle button clicks - huda
+                                              public juce::Button::Listener,  //To handle button clicks - huda
+                                              private juce::Timer //adding a timer to update formants - huda
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -30,6 +31,7 @@ public:
     void resized() override;
     void sliderValueChanged(juce::Slider* slider) override;
     void buttonClicked(juce::Button* button) override; // Handle toggle button clicks - huda
+    void timerCallback() override; //huda
 
 private:
     // This reference is provided as a quick way for your editor to

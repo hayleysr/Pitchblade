@@ -13,12 +13,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // editor's size to whatever you need it to be.
     setSize (400, 300);
 
-//    // gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
-//     //gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 100, 25);
-//     gainSlider.setRange(-48.0, 48.0);
-//     gainSlider.setValue(0.0);
-//     gainSlider.addListener(this);
-//     addAndMakeVisible(gainSlider);
+     gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
+     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 100, 25);
+     gainSlider.setRange(-48.0, 48.0);
+     gainSlider.setValue(0.0);
+     gainSlider.addListener(this);
+     addAndMakeVisible(gainSlider);
+
+     startTimerHz(30); // repaint timer 30 times per second - huda
 
     // Formant toggle button - huda
     toggleViewButton.addListener(this);
@@ -50,20 +52,22 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
             g.setColour(juce::Colours::red);
             auto width = getWidth();
             auto height = getHeight();
-            for (float f : formants)
-            {
-                float x = juce::jmap(f, 0.0f, 5000.0f, 0.0f, static_cast<float>(width));
-                g.drawLine(x, 40.0f, x, height - 20.0f, 2.0f);
-            }
+            for (size_t i = 0; i < processorRef.getLatestFormants().size(); ++i) {
+                float freqHz = processorRef.getLatestFormants()[i];
 
-            // Hello world message (for now)
-            g.setColour(juce::Colours::yellow);
-            g.setFont(14.0f);
-            g.drawText("Hello World, here are the dominant frequencies!",
-                    getLocalBounds().withHeight(20).translated(0, height - 30),
-                    juce::Justification::centredBottom);
-        }
-    
+
+                float x = juce::jmap(freqHz, 0.0f, 1500.0f, 0.0f, static_cast<float>(width));
+
+                g.drawLine(x, 40.0f, x, height - 20.0f, 2.0f);
+
+                g.setColour(juce::Colours::white);
+                g.setFont(12.0f);
+                g.drawText(juce::String::String(freqHz, 0, false) + "Hz", juce::Rectangle<int>(int(x) - 30, height -35, 60, 20), juce::Justification::centred);
+                g.setColour(juce::Colours::red);
+
+            }
+        
+        }   
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -98,6 +102,13 @@ void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         showingFormants = !showingFormants;
         toggleViewButton.setButtonText(showingFormants ? "Show Gain" : "Show Formants");
+        resized();
+        repaint();
+    }
+}
+
+void AudioPluginAudioProcessorEditor::timerCallback() {
+    if (showingFormants) { // refresh if formants are visible
         repaint();
     }
 }
