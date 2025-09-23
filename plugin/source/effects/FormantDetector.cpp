@@ -1,4 +1,4 @@
-#include "Pitchblade/FormantDetector.h"
+#include "Pitchblade/effects/FormantDetector.h"
 #include <algorithm>
 #include <cmath>
 #include <juce_dsp/juce_dsp.h>
@@ -86,5 +86,3 @@ std::vector<float> FormantDetector::getFormantFrequencies() const
     return freqs;
 }
 
-
-//

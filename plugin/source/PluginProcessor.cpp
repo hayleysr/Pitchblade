@@ -145,6 +145,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
+
     //Added bypass functionality so that raw audio can be toggled on or off - Austin
     if(isBypassed()==false){
         // connects processors to the panels inputs////////////////////////////////////////
@@ -161,7 +162,23 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         gainProcessor.setGain(gainDB);
         //Call the gain processor's process AUSTIN HILLS
         gainProcessor.process(buffer);
+      
+        formantDetector.processBlock(buffer);   //huda
+        if (buffer.getNumChannels() > 0) {
+        auto* channelData = buffer.getReadPointer(0);
+        juce::AudioBuffer<float> monoBuffer(const_cast<float**>(&channelData), 1, buffer.getNumSamples());
+        formantDetector.processBlock(monoBuffer);
+        latestFormants = formantDetector.getFormants();
+        }
 
+        //
+        //Store the latest formants for GUI display - huda
+        auto freqs = formantDetector.getFormantFrequencies();
+        if (freqs.size() > 3) {
+            freqs.resize(3); // Only keep top 3 frequencies for now
+        }
+
+        latestFormants = freqs;
 
         // In case we have more outputs than inputs, this code clears any output
         // channels that didn't contain input data, (because these aren't
@@ -185,6 +202,9 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             // ..do something to the data...
         }
     }
+
+    // when they first compile a plugin, but obviously you don't need to keep
+    // this code if your algorithm always overwrites all the output channels.
 }
 
 //==============================================================================
