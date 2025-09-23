@@ -34,7 +34,7 @@ inline std::vector<EffectDefinition> effects = {                           // ad
     } },
 
     //test secondary gain, shows how each one is an individial item
-    { "test", [](AudioPluginAudioProcessor& proc) -> juce::Component* {
-        return new GainPanel(proc); //gain for testing duplicates
-    }}
+    //{ "test", [](AudioPluginAudioProcessor& proc) -> juce::Component* {
+    //    return new GainPanel(proc); //gain for testing duplicates
+    //}}
 };
