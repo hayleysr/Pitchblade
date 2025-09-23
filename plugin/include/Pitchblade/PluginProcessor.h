@@ -54,8 +54,8 @@ public:
 
     //UI STUFF====================================================================
     //bypass on/off
-    bool isBypassed() const { return bypassed; }
-    void setBypassed(bool newState) { bypassed = newState; }
+    bool isBypassed();
+    void setBypassed(bool newState);
 
 private:
     //==============================================================================
