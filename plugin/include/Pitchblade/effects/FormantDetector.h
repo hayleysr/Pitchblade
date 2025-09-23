@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <juce_dsp/juce_dsp.h>
+#include <JuceHeader.h>
 
 /*
   FormantDetector class

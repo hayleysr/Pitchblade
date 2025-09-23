@@ -1,10 +1,10 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "Pitchblade/GainProcessor.h"
-#include "Pitchblade/FormantDetector.h" //huda
+#include "Pitchblade/effects/GainProcessor.h"
+#include "Pitchblade/effects/FormantDetector.h" //huda
 
-#include "Pitchblade/NoiseGateProcessor.h"
+#include "Pitchblade/effects/NoiseGateProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor

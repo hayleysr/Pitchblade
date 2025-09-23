@@ -35,7 +35,7 @@ target_sources(${PROJECT_NAME}
         source/PluginProcessor.cpp
 
 
-        source/GainProcessor.cpp
+        
         #ui
         source/ui/TopBar.cpp
         source/ui/DaisyChain.cpp
@@ -45,10 +45,11 @@ target_sources(${PROJECT_NAME}
         #remember to add your panel and processors here
         source/panels/GainPanel.cpp
         source/panels/NoiseGatePanel.cpp
+        source/panels/FormantPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
-        
+        source/effects/FormantDetector.cpp
 
 )
 
