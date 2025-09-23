@@ -27,8 +27,20 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
-        source/GainProcessor.cpp
-        source/FormantDetector.cpp # huda
+
+        #ui
+        source/ui/TopBar.cpp
+        source/ui/DaisyChain.cpp
+        source/ui/EffectPanel.cpp
+        source/ui/VisualizerPanel.cpp
+
+        #remember to add your panel and processors here
+        source/panels/GainPanel.cpp
+        source/panels/NoiseGatePanel.cpp
+
+        source/effects/GainProcessor.cpp
+        source/effects/NoiseGateProcessor.cpp
+        
 )
 
 target_include_directories(${PROJECT_NAME}

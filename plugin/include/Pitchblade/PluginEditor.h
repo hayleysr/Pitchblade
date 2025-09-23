@@ -3,6 +3,19 @@
 #include "PluginProcessor.h"
 #include "Pitchblade/FormantDetector.h"
 
+//ui
+#include <JuceHeader.h>
+#include "ui/TopBar.h"
+#include "ui/DaisyChain.h"
+#include "ui/EffectPanel.h"
+#include "ui/VisualizerPanel.h"
+#include "ui/EffectRegistry.h"
+
+//add your effect processors here
+#include "effects/GainProcessor.h"
+#include "effects/NoiseGateProcessor.h"
+
+
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                               public juce::Slider::Listener,
