@@ -1,5 +1,19 @@
 #pragma once
 #include "PluginProcessor.h"
+#include "Pitchblade/FormantDetector.h"
+
+//ui
+#include <JuceHeader.h>
+#include "ui/TopBar.h"
+#include "ui/DaisyChain.h"
+#include "ui/EffectPanel.h"
+#include "ui/VisualizerPanel.h"
+#include "ui/EffectRegistry.h"
+
+//add your effect processors here
+#include "effects/GainProcessor.h"
+#include "effects/NoiseGateProcessor.h"
+
 
 //ui
 #include <JuceHeader.h>
@@ -12,7 +26,10 @@
 #include "Pitchblade/GainProcessor.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor              
+class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
+                                              public juce::Slider::Listener,
+                                              public juce::Button::Listener,  //To handle button clicks - huda
+                                              private juce::Timer //adding a timer to update formants - huda
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -21,6 +38,11 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+                                                
+    void sliderValueChanged(juce::Slider* slider) override;
+    void buttonClicked(juce::Button* button) override; // Handle toggle button clicks - huda
+    void timerCallback() override; //huda
+
     //void sliderValueChanged(juce::Slider* slider) override;
 
 private:
@@ -30,6 +52,12 @@ private:
 
     //Slider for the gain
     juce::Slider gainSlider;
+
+                                                
+    // For formant display - huda
+    juce::TextButton toggleViewButton { "Show Formants" }; // Button to switch views - huda
+    bool showingFormants = false;// True if formant UI is active - huda
+                                                
     TopBar topBar;
     DaisyChain daisyChain;
     EffectPanel effectPanel;

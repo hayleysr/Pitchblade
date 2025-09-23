@@ -88,11 +88,22 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+
+    // Use this method as the place to do any pre-playback
+    // initialisation that you need..
+    juce::ignoreUnused (sampleRate, samplesPerBlock);
+
+    //gainProcessor.SetGain(gainDB);
+    
+    //Initialization for FormantDetector for real-time processing - huda
+    formantDetector.prepare(sampleRate);
+
     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     noiseGateProcessor.prepare(sampleRate);
 
     //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
     //I just didn't want to push for something more complex than needed this early on
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -174,7 +185,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             // ..do something to the data...
         }
     }
-
 }
 
 //==============================================================================
