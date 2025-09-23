@@ -34,15 +34,22 @@ target_sources(${PROJECT_NAME}
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
 
+
         source/GainProcessor.cpp
         #ui
         source/ui/TopBar.cpp
         source/ui/DaisyChain.cpp
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
+
+        #remember to add your panel and processors here
         source/panels/GainPanel.cpp
-        source/NoiseGateProcessor.cpp
         source/panels/NoiseGatePanel.cpp
+
+        source/effects/GainProcessor.cpp
+        source/effects/NoiseGateProcessor.cpp
+        
+
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -59,6 +66,7 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_config_flags     # Config flags
         juce::juce_recommended_lto_flags        # Link time optimization flags
         juce::juce_recommended_warning_flags    # Warning flags
+        juce::juce_dsp #dsp files
 )
 
 target_compile_definitions(${PROJECT_NAME}
