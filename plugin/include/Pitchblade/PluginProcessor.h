@@ -4,6 +4,7 @@
 #include "Pitchblade/GainProcessor.h"
 #include "Pitchblade/FormantDetector.h" //huda
 
+#include "Pitchblade/NoiseGateProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -46,7 +47,17 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     //GAIN STUFF====================================================================
-    float gainDB;
+    float gainDB = 0.0f;
+
+    //NOISE GATE STUFF==============================================================
+    float gateThresholdDb = -48.0f;
+    float gateAttack = 25.0f;
+    float gateRelease = 100.0f;
+
+    //UI STUFF====================================================================
+    //bypass on/off
+    bool isBypassed() const { return bypassed; }
+    void setBypassed(bool newState) { bypassed = newState; }
 
     // Formant Detector stuff ===================================================
     bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
@@ -60,7 +71,10 @@ private:
     FormantDetector formantDetector; // To handle detection - huda
     std::vector<float> latestFormants;// Vector to store formants - huda
 
+    NoiseGateProcessor noiseGateProcessor;
+    bool bypassed = false;
+    
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
-
-//

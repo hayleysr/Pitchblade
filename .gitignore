@@ -1,3 +1,11 @@
+# cmake / juce
+CMakeFiles/
+_deps/
+cmake_install.cmake
+plugins/cmake_install.cmake
+plugin/CMakeFiles/
+plugin/Pitchblade_artefacts/
+
 # CMake Excludes
 build/
 libs/

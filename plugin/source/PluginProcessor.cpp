@@ -1,6 +1,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
 
+
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
      : AudioProcessor (BusesProperties()
@@ -11,12 +12,13 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        )
-{
+    {
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
 }
+
 
 //==============================================================================
 const juce::String AudioPluginAudioProcessor::getName() const
@@ -86,6 +88,7 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
@@ -94,6 +97,13 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     
     //Initialization for FormantDetector for real-time processing - huda
     formantDetector.prepare(sampleRate);
+
+    //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    noiseGateProcessor.prepare(sampleRate);
+
+    //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
+    //I just didn't want to push for something more complex than needed this early on
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -136,14 +146,23 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
 
+
 /////////////////////////////////////////////////////////////////////////////////// 
 // connects processors to the panels inputs////////////////////////////////////////
+
+    
+// connects processors to the panels inputs////////////////////////////////////////
+    //Noise gate
+
     //Update noise gate parameters from public variables  AUSTIN HILLS
     noiseGateProcessor.setThreshold(gateThresholdDb);
     noiseGateProcessor.setAttack(gateAttack);
     noiseGateProcessor.setRelease(gateRelease);
     //Call the noise gate's processor process AUSTIN HILLS
     noiseGateProcessor.process(buffer);
+
+
+    //Gain second
 
     //Update the gain processor with the latest value AUSTIN HILLS
     gainProcessor.setGain(gainDB);
@@ -219,6 +238,3 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new AudioPluginAudioProcessor();
 }
-
-
-//

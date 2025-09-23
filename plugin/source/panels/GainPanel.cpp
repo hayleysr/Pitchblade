@@ -1,6 +1,7 @@
 // reyna macabebe
 // austin
 
+
 #include "Pitchblade/panels/GainPanel.h"
 //gain panel display
 GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
