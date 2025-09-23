@@ -168,13 +168,14 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     gainProcessor.setGain(gainDB);
     //Call the gain processor's process AUSTIN HILLS
     gainProcessor.process(buffer);
+
+
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
     // Make sure to reset the state if your inner loop is processing
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-
 
     if (buffer.getNumChannels() > 0) {
         auto* channelData = buffer.getReadPointer(0);

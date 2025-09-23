@@ -23,7 +23,7 @@
 #include "ui/VisualizerPanel.h"
 
 #include "Pitchblade/ui/EffectRegistry.h"
-#include "Pitchblade/GainProcessor.h"
+#include "Pitchblade/effects/GainProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,

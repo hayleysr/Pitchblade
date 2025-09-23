@@ -116,8 +116,25 @@ void AudioPluginAudioProcessorEditor::resized()
     {
         gainSlider.setVisible(false);
     }
+
+    //ui//////////////////////////////////////////
+    auto area = getLocalBounds();
+    //topbar height
+    auto top = area.removeFromTop(40);
+    topBar.setBounds(top);
+    //daisychain width
+    auto left = area.removeFromLeft(150);
+    daisyChain.setBounds(left);
+    //effects panel
+    auto center = area.removeFromTop(area.getHeight() / 2);
+    effectPanel.setBounds(center);
+    //visualizer
+    visualizer.setBounds(area);
 }
 
+
+
+//This function checks to see if any slider's value has changed
 void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 {
     if (slider == &gainSlider)
@@ -143,19 +160,3 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
         repaint();
     }
 }
-
-    //ui//////////////////////////////////////////
-    auto area = getLocalBounds();
-    //topbar height
-    auto top = area.removeFromTop(40);
-    topBar.setBounds(top);
-    //daisychain width
-    auto left = area.removeFromLeft(150);
-    daisyChain.setBounds(left);
-    //effects panel
-    auto center = area.removeFromTop(area.getHeight() / 2);
-    effectPanel.setBounds(center);
-    //visualizer
-    visualizer.setBounds(area);
-}
-//This function checks to see if any slider's value has changed
