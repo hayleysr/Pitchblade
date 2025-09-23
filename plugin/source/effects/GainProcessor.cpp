@@ -1,6 +1,6 @@
 //Written by Austin Hills
 
-#include "Pitchblade/effects/GainProcessor.h"
+#include "Pitchblade/GainProcessor.h"
 
 //Constructor
 GainProcessor::GainProcessor(){}
