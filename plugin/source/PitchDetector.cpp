@@ -11,8 +11,8 @@
     // Constructor
  }
 
- PitchDetector::PitchDetector(){
-    PitchDetector::PitchDetector(1024);
+ PitchDetector::PitchDetector() : PitchDetector(1024) {
+
  }
 
  PitchDetector::~PitchDetector()
@@ -37,6 +37,9 @@
         dYinBuffer.push_back(0.0f);
 
     // Define Hann window
+    for(int i = 0; i < dWindowSize; ++i)
+        dWindowFunction.push_back(0.0f);
+        
     for (int i = 0; i < dWindowSize; ++i) {
         dWindowFunction[i] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * i / (dWindowSize - 1)));
     }
