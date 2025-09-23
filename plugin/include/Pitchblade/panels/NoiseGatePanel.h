@@ -22,6 +22,9 @@ private:
     juce::Slider attackSlider;
     juce::Slider releaseSlider;
 
-    // Label
+    // Labels
     juce::Label noiseGateLabel;
+    juce::Label thresholdLabel;
+    juce::Label attackLabel;
+    juce::Label releaseLabel;
 };

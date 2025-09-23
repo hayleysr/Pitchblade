@@ -4,13 +4,13 @@
 #include <JuceHeader.h>
 #include "Pitchblade/panels/GainPanel.h"
 #include "Pitchblade/panels/NoiseGatePanel.h"
-
+#include "Pitchblade/panels/FormantPanel.h"
 
 // declare effect panels here
 
 class AudioPluginAudioProcessor;                                            //declare your effect here
 //class PitchPanel;
-//class FormantPanel;
+class FormantPanel;
 //class EqualizerPanel;
 //class CompressorPanel;
 class GainPanel;
@@ -30,8 +30,11 @@ inline std::vector<EffectDefinition> effects = {                           // ad
     { "Noise Gate",[](AudioPluginAudioProcessor& proc) -> juce::Component* {
         return new NoiseGatePanel(proc);
     } },
+    { "Formant", [](auto& proc) { return new FormantPanel(proc); 
+    } },
+
     //test secondary gain, shows how each one is an individial item
-    { "test", [](AudioPluginAudioProcessor& proc) -> juce::Component* {
-        return new GainPanel(proc); //gain for testing duplicates
-    }}
+    //{ "test", [](AudioPluginAudioProcessor& proc) -> juce::Component* {
+    //    return new GainPanel(proc); //gain for testing duplicates
+    //}}
 };
