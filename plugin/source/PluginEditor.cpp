@@ -2,6 +2,7 @@
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
+#include "Pitchblade/ui/ColorPalette.h"
 
 
 // ui
@@ -20,6 +21,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // editor's size to whatever you need it to be.
 
     setSize (800, 600);
+	setLookAndFeel(&customLF);  //apply custom look and feel globally
+
+    // panels (EffectPanel, Visualizer, DaisyChain, etc.)
+    /*lf.setColour(juce::GroupComponent::backgroundColourId, Colors::panel);
+    lf.setColour(juce::GroupComponent::outlineColourId, Colors::accent);*/
+
+    //// buttons
+    //lf.setColour(juce::TextButton::buttonColourId, Colors::button);
+    //lf.setColour(juce::TextButton::buttonOnColourId, Colors::button);
+    ////lf.setColour(juce::TextButton::outlineColourId, Colors::accent);
+    //lf.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+    //lf.setColour(juce::TextButton::textColourOnId, Colors::buttonActive);
 
     addAndMakeVisible(topBar);
     addAndMakeVisible(daisyChain);
@@ -42,7 +55,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() = default;
+AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
+	setLookAndFeel(nullptr); //reset look and feel
+}
 
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)

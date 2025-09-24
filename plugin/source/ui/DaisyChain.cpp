@@ -1,6 +1,8 @@
 // reyna macabebe
 
 #include "Pitchblade/ui/DaisyChain.h"
+#include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 DaisyChain::DaisyChain()
 {
@@ -35,4 +37,10 @@ void DaisyChain::resized()
         effectButtons[i]->setBounds(row.removeFromLeft(row.getWidth() - 25)); // left side
         bypassButtons[i]->setBounds(row);  // right side (80px wide)
     }
+}
+
+void DaisyChain::paint(juce::Graphics& g)
+{
+    g.fillAll(Colors::panel);
+    g.drawRect(getLocalBounds(), 2);
 }

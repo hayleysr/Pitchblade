@@ -59,15 +59,23 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}/Pitchblade_artefacts/JuceLibraryCode
 )
 
+# for adding pictures and assets
+juce_add_binary_data(BinaryData
+    SOURCES
+        assets/pitchblade_logo.png
+        assets/pb_logo.png
+)
+
 #Include these libraries in build
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
+        BinaryData
         juce::juce_audio_utils
     PUBLIC
         juce::juce_recommended_config_flags     # Config flags
         juce::juce_recommended_lto_flags        # Link time optimization flags
         juce::juce_recommended_warning_flags    # Warning flags
-        juce::juce_dsp #dsp files
+        juce::juce_dsp                          # dsp files
 )
 
 target_compile_definitions(${PROJECT_NAME}

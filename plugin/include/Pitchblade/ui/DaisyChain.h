@@ -14,6 +14,7 @@ public:
 
     bool isBypassed();
     void setBypassed(bool newState);
+    void paint(juce::Graphics&) override;
 
     //  all effect buttons 
     juce::OwnedArray<juce::TextButton> effectButtons;

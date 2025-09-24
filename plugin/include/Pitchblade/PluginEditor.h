@@ -4,7 +4,9 @@
 
 ////ui
 #include <JuceHeader.h>
-#include "Pitchblade/PluginProcessor.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
+#include "Pitchblade/ui/ColorPalette.h"
+
 #include "ui/TopBar.h"
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
@@ -15,6 +17,7 @@
 #include "effects/GainProcessor.h"
 #include "effects/NoiseGateProcessor.h"
 #include "effects/FormantDetector.h"
+
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
@@ -31,6 +34,8 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
+
+	CustomLookAndFeel customLF;     //custom colorpallet using juce lookandfeel
 
     //Slider for the gain
     juce::Slider gainSlider;

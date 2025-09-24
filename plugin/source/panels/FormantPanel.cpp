@@ -1,5 +1,6 @@
 //hudas code
 #include "Pitchblade/panels/FormantPanel.h"
+#include "Pitchblade/ui/ColorPalette.h"
 
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
@@ -29,6 +30,7 @@ void FormantPanel::resized()
 void FormantPanel::paint(juce::Graphics& g) {
     if (showingFormants) //huda
     {
+        g.fillAll(Colors::background);
         g.setColour(juce::Colours::white);
         g.setFont(18.0f);
         g.drawText("Formant Detector Output", 0,50, getWidth(), 50, juce::Justification::centredTop);
