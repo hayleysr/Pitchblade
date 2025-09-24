@@ -3,6 +3,7 @@
 #pragma once
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_dsp/juce_dsp.h>
+#include <JuceHeader.h>
 
 //Defining the class that handles the simple noise gate
 class NoiseGateProcessor
@@ -41,4 +42,7 @@ public:
 
     //Processes the input buffer
     void process(juce::AudioBuffer<float>& buffer);
+
+   
+
 };

@@ -2,6 +2,8 @@
 #pragma once
 #include <JuceHeader.h>
 #include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/PluginProcessor.h"
+
 
 
 //tabs for each effect

@@ -12,6 +12,11 @@ public:
     DaisyChain();
     void resized() override;
 
+    bool isBypassed();
+    void setBypassed(bool newState);
+
     //  all effect buttons 
     juce::OwnedArray<juce::TextButton> effectButtons;
+    //bypass buttons
+    juce::OwnedArray<juce::ToggleButton> bypassButtons;
 };
