@@ -13,7 +13,7 @@ void PitchPanel::resized()
 
 void PitchPanel::paint(juce::Graphics& g)
 {
-    g.drawText(std::to_string(processor.getPitchDetector().getCurrentPitch()), 0, 50, getWidth(), 50, juce::Justification::centred);
+    g.drawText(processor.getPitchDetector().getCurrentNoteName(), 0, 50, getWidth(), 50, juce::Justification::centred);
 }
 
 void PitchPanel::timerCallback() {

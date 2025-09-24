@@ -4,14 +4,19 @@
 
  #include "Pitchblade/effects/PitchDetector.h"
 
- PitchDetector::PitchDetector(int windowSize):
+ PitchDetector::PitchDetector(int windowSize, float referencePitch):
     dWindowSize(windowSize),
-    dYinBufferSize(windowSize / 2)
+    dYinBufferSize(windowSize / 2),
+    dReferencePitch(referencePitch)
  {
     // Constructor
  }
 
- PitchDetector::PitchDetector() : PitchDetector(1024) {
+ PitchDetector::PitchDetector(int windowSize) : PitchDetector(windowSize, 440) {
+
+ }
+
+ PitchDetector::PitchDetector() : PitchDetector(1024, 440) {
 
  }
 
@@ -177,4 +182,21 @@
  float PitchDetector::getCurrentPitch()
  {
     return dCurrentPitch;
+ }
+
+ /**
+  * Returns number of semitones above or below reference pitch
+  * f = f₀ * 2^(n/12)
+  * n = 12log_2(f / f₀)
+  */
+ float PitchDetector::getCurrentNote()
+ {
+    return 12 * std::log2(dCurrentPitch / dReferencePitch);
+ }
+
+ std::string PitchDetector::getCurrentNoteName()
+ {
+    int index = (int)getCurrentNote() % 12;
+    if (index < 0) index += 12;
+    return cNoteNames[index];
  }
