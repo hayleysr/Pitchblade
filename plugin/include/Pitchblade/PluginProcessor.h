@@ -1,10 +1,10 @@
 #pragma once
-
+#include <vector>
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "Pitchblade/effects/GainProcessor.h"
-#include "Pitchblade/effects/FormantDetector.h" //huda
+#include "Pitchblade/effects/GainProcessor.h"       //Austin
+#include "Pitchblade/effects/FormantDetector.h"     //huda
+#include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
 
-#include "Pitchblade/effects/NoiseGateProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -54,16 +54,21 @@ public:
     float gateAttack = 25.0f;
     float gateRelease = 100.0f;
 
+    // Formant Detector stuff ===================================================
+    bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
+    FormantDetector& getFormantDetector() { return formantDetector; }
+    const std::vector<float>&getLatestFormants() const {return latestFormants;}
+
     //UI STUFF====================================================================
     //bypass on/off
     bool isBypassed();
     void setBypassed(bool newState);
 
-    // Formant Detector stuff ===================================================
-    bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
-    FormantDetector& getFormantDetector() { return formantDetector; }
-    const std::vector<float>&getLatestFormants() const {return latestFormants;}
-    
+    GainProcessor& getGainProcessor() { return gainProcessor; }
+    NoiseGateProcessor& getNoiseGateProcessor() { return noiseGateProcessor; }
+    //FormantDetector& getFormantDetector() { return formantDetector; }
+    std::vector<float>& getLatestFormants() { return latestFormants; }
+
 private:
     //==============================
     //declare here
@@ -74,7 +79,7 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     bool bypassed = false;
     
-
+ 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

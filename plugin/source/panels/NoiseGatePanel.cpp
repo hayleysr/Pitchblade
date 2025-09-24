@@ -1,6 +1,12 @@
 // austin
 
 #include "Pitchblade/panels/NoiseGatePanel.h"
+#include <JuceHeader.h>
+#include "Pitchblade/PluginProcessor.h"
+#include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
+#include "BinaryData.h"
+
 //noise gate panel display
 NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc) : processor(proc)
 {
@@ -98,4 +104,11 @@ void NoiseGatePanel::sliderValueChanged(juce::Slider* s)
         processor.gateAttack = (float)attackSlider.getValue();
     else if (s == &releaseSlider)
         processor.gateRelease = (float)releaseSlider.getValue();
+}
+
+void NoiseGatePanel::paint(juce::Graphics& g)
+{
+    g.fillAll(Colors::background);
+    //g.setColour(Colors::accent);
+    g.drawRect(getLocalBounds(), 2);
 }

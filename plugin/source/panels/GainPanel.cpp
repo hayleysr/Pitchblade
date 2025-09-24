@@ -1,11 +1,16 @@
 // reyna macabebe
 // austin
 
-
 #include "Pitchblade/panels/GainPanel.h"
+#include <JuceHeader.h>
+#include "Pitchblade/ui/ColorPalette.h"
+#include "BinaryData.h"
+
+
 //gain panel display
 GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
 {
+
     // //add slider and set
     // addAndMakeVisible(gainSlider);
     // gainSlider.setRange(-48.0, 48.0);
@@ -27,6 +32,12 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
     gainSlider.addListener(this);
     addAndMakeVisible(gainSlider);
 
+}
+void GainPanel::paint(juce::Graphics& g)
+{
+    g.fillAll(Colors::background);
+    //g.setColour(Colors::accent);
+    g.drawRect(getLocalBounds(), 2);
 }
 
 void GainPanel::resized()

@@ -11,6 +11,7 @@ class NoiseGatePanel : public juce::Component,
 public:
     explicit NoiseGatePanel(AudioPluginAudioProcessor& proc);
     void resized() override;
+    void paint(juce::Graphics&) override;
 
 private:
     void sliderValueChanged(juce::Slider* slider) override;

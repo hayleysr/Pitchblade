@@ -13,6 +13,7 @@ class GainPanel : public juce::Component,
 public:
     explicit GainPanel(AudioPluginAudioProcessor& proc);
     void resized() override;
+    void paint(juce::Graphics&) override; 
 
 private:
     void sliderValueChanged(juce::Slider* slider) override;
