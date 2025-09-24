@@ -36,8 +36,39 @@ inline std::vector<EffectDefinition> effects = {                           // ad
     { "Pitch", [](auto& proc) { return new PitchPanel(proc);
     } },
 
-    //test secondary gain, shows how each one is an individial item
-    //{ "test", [](AudioPluginAudioProcessor& proc) -> juce::Component* {
-    //    return new GainPanel(proc); //gain for testing duplicates
-    //}}
+    { "Noise Gate",
+      [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new NoiseGatePanel(proc); },
+      [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) {
+          proc.getNoiseGateProcessor().setThreshold(proc.gateThresholdDb);
+          proc.getNoiseGateProcessor().setAttack(proc.gateAttack);
+          proc.getNoiseGateProcessor().setRelease(proc.gateRelease);
+          proc.getNoiseGateProcessor().process(buffer);
+      }
+    },
+
+    { "Formant",
+      [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new FormantPanel(proc); },
+      [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) {
+          proc.getFormantDetector().processBlock(buffer);
+          if (buffer.getNumChannels() > 0) {
+              auto* channelData = buffer.getReadPointer(0);
+              juce::AudioBuffer<float> monoBuffer(const_cast<float**>(&channelData), 1, buffer.getNumSamples());
+              proc.getFormantDetector().processBlock(monoBuffer);
+              proc.getLatestFormants() = proc.getFormantDetector().getFormants();
+          }
+          auto freqs = proc.getFormantDetector().getFormantFrequencies();
+          if (freqs.size() > 3) freqs.resize(3);
+          proc.getLatestFormants() = freqs;
+      }
+    },
+
+    { "Pitch",
+        [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new PitchPanel(proc); },
+        [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer){
+            proc.getPitchDetector().processBlock(buffer);
+            proc.getPitchDetector().getCurrentPitch();
+        }
+
+    }
+
 };

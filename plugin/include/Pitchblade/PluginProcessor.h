@@ -1,10 +1,10 @@
 #pragma once
-
+#include <vector>
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "Pitchblade/effects/GainProcessor.h"
-#include "Pitchblade/effects/FormantDetector.h" //huda
-#include "Pitchblade/effects/NoiseGateProcessor.h"
-#include "Pitchblade/effects/PitchDetector.h"   //hayley
+#include "Pitchblade/effects/GainProcessor.h"       //Austin
+#include "Pitchblade/effects/FormantDetector.h"     //huda
+#include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
+#include "Pitchblade/effects/PitchDetector.h"       //hayley
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -59,7 +59,10 @@ public:
     bool isBypassed();
     void setBypassed(bool newState);
 
-    //====
+    GainProcessor& getGainProcessor() { return gainProcessor; }
+    NoiseGateProcessor& getNoiseGateProcessor() { return noiseGateProcessor; }
+    //FormantDetector& getFormantDetector() { return formantDetector; }
+    std::vector<float>& getLatestFormants() { return latestFormants; }
     PitchDetector& getPitchDetector() { return pitchProcessor; }
 
     // Formant Detector stuff ===================================================

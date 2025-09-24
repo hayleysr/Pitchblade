@@ -1,4 +1,5 @@
 #include "Pitchblade/panels/PitchPanel.h"
+#include "Pitchblade/ui/ColorPalette.h"
 
 PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
@@ -13,6 +14,8 @@ void PitchPanel::resized()
 
 void PitchPanel::paint(juce::Graphics& g)
 {
+    g.setFont(50.0f); 
+    g.setColour(Colors::accent);
     g.drawText(processor.getPitchDetector().getCurrentNoteName(), 0, 50, getWidth(), 50, juce::Justification::centred);
 }
 

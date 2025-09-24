@@ -18,4 +18,6 @@ private:
     void timerCallback() override;
 
     AudioPluginAudioProcessor& processor;
+
+    juce::Label pitchName;
 };
