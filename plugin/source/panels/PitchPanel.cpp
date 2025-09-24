@@ -3,7 +3,7 @@
 PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
-    startTimerHz(4);    // Update 4x/second
+    startTimerHz(8);    // Update 4x/second
 }
 
 void PitchPanel::resized()
