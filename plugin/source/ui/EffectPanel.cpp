@@ -5,6 +5,7 @@
 #include "Pitchblade/effects/GainProcessor.h"
 #include "Pitchblade/panels/GainPanel.h"
 
+
 //effects panel section
 EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
 {
