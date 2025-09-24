@@ -5,6 +5,7 @@
 #include "Pitchblade/panels/GainPanel.h"
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
+#include "Pitchblade/panels/PitchPanel.h"
 
 // declare effect panels here
 
@@ -31,6 +32,8 @@ inline std::vector<EffectDefinition> effects = {                           // ad
         return new NoiseGatePanel(proc);
     } },
     { "Formant", [](auto& proc) { return new FormantPanel(proc); 
+    } },
+    { "Pitch", [](auto& proc) { return new PitchPanel(proc);
     } },
 
     //test secondary gain, shows how each one is an individial item

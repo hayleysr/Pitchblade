@@ -2,7 +2,7 @@
  * Author: Hayley Spellicy-Ryan
  */
 
- #include "Pitchblade/PitchDetector.h"
+ #include "Pitchblade/effects/PitchDetector.h"
 
  PitchDetector::PitchDetector(int windowSize):
     dWindowSize(windowSize),

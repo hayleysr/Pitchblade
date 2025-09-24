@@ -67,7 +67,6 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour) default background
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));  
-    g.drawText(std::to_string(processorRef.getPitchDetector().getCurrentPitch()), 50, 50, 50, 50, juce::Justification::centred);
 }
 
 void AudioPluginAudioProcessorEditor::resized()

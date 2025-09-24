@@ -3,7 +3,7 @@
  * PitchDetector class
  * -------------------
  * Fundamental frequency detector for monophonic audio. 
- * Uses the pYIN algorithm.
+ * Uses the YIN algorithm.
  */
 
  #pragma once

@@ -4,7 +4,7 @@
 #include "Pitchblade/effects/GainProcessor.h"
 #include "Pitchblade/effects/FormantDetector.h" //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"
-#include "Pitchblade/PitchDetector.h"
+#include "Pitchblade/effects/PitchDetector.h"   //hayley
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor

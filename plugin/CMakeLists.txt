@@ -33,8 +33,6 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
-
-        source/PitchDetector.cpp
         
         #ui
         source/ui/TopBar.cpp
@@ -46,10 +44,12 @@ target_sources(${PROJECT_NAME}
         source/panels/GainPanel.cpp
         source/panels/NoiseGatePanel.cpp
         source/panels/FormantPanel.cpp
+        source/panels/PitchPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
         source/effects/FormantDetector.cpp
+        source/effects/PitchDetector.cpp
 
 )
 
