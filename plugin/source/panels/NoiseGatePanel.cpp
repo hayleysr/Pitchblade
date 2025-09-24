@@ -108,6 +108,7 @@ void NoiseGatePanel::sliderValueChanged(juce::Slider* s)
 
 void NoiseGatePanel::paint(juce::Graphics& g)
 {
-    if (auto* lf = dynamic_cast<CustomLookAndFeel*>(&getLookAndFeel()))
-        lf->drawPanelBackground(g, *this);
+    g.fillAll(Colors::background);
+    //g.setColour(Colors::accent);
+    g.drawRect(getLocalBounds(), 2);
 }
