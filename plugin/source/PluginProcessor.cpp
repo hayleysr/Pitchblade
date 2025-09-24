@@ -99,6 +99,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     noiseGateProcessor.prepare(sampleRate);
 
+    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);
+
     //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
     //I just didn't want to push for something more complex than needed this early on
 

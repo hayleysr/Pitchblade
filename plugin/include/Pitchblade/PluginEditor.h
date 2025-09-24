@@ -1,6 +1,5 @@
 #pragma once
 #include "PluginProcessor.h"
-#include "Pitchblade/effects/FormantDetector.h"
 
 ////ui
 #include <JuceHeader.h>
@@ -17,6 +16,7 @@
 #include "effects/GainProcessor.h"
 #include "effects/NoiseGateProcessor.h"
 #include "effects/FormantDetector.h"
+#include "effects/PitchDetector.h"
 
 
 //==============================================================================
