@@ -1,6 +1,6 @@
 //Written by Austin Hills
 
-#include "Pitchblade/NoiseGateProcessor.h"
+#include "Pitchblade/effects/NoiseGateProcessor.h"
 
 //Constructor
 NoiseGateProcessor::NoiseGateProcessor(){}

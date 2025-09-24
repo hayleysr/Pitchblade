@@ -1,18 +1,20 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "Pitchblade/GainProcessor.h"
-#include "Pitchblade/NoiseGateProcessor.h"
+#include "Pitchblade/effects/GainProcessor.h"
+#include "Pitchblade/effects/FormantDetector.h" //huda
+
+#include "Pitchblade/effects/NoiseGateProcessor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
 {
 public:
-    //==============================================================================
+    //==============================
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;
 
-    //==============================================================================
+    //==============================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
@@ -21,11 +23,11 @@ public:
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     using AudioProcessor::processBlock;
 
-    //==============================================================================
+    //==============================
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
 
-    //==============================================================================
+    //==============================
     const juce::String getName() const override;
 
     bool acceptsMidi() const override;
@@ -33,14 +35,14 @@ public:
     bool isMidiEffect() const override;
     double getTailLengthSeconds() const override;
 
-    //==============================================================================
+    //==============================
     int getNumPrograms() override;
     int getCurrentProgram() override;
     void setCurrentProgram (int index) override;
     const juce::String getProgramName (int index) override;
     void changeProgramName (int index, const juce::String& newName) override;
 
-    //==============================================================================
+    //==============================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
@@ -54,12 +56,21 @@ public:
 
     //UI STUFF====================================================================
     //bypass on/off
-    bool isBypassed() const { return bypassed; }
-    void setBypassed(bool newState) { bypassed = newState; }
+    bool isBypassed();
+    void setBypassed(bool newState);
 
+    // Formant Detector stuff ===================================================
+    bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
+    FormantDetector& getFormantDetector() { return formantDetector; }
+    const std::vector<float>&getLatestFormants() const {return latestFormants;}
+    
 private:
-    //==============================================================================
+    //==============================
+    //declare here
     GainProcessor gainProcessor;
+    FormantDetector formantDetector; // To handle detection - huda
+    std::vector<float> latestFormants;// Vector to store formants - huda
+
     NoiseGateProcessor noiseGateProcessor;
     bool bypassed = false;
     

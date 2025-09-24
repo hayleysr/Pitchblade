@@ -2,6 +2,8 @@
 
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/effects/GainProcessor.h"
+#include "Pitchblade/panels/GainPanel.h"
 
 
 //effects panel section

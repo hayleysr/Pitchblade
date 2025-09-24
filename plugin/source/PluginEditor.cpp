@@ -1,3 +1,5 @@
+#include <juce_core/juce_core.h>  // Or just include juce/juce.h
+
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
 #include <JuceHeader.h>
@@ -8,19 +10,36 @@
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
 
+
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
 {
-    juce::ignoreUnused (processorRef);
+    //juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
+    setSize (400, 300);
+
+     /*gainSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
+     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 100, 25);
+     gainSlider.setRange(-48.0, 48.0);
+     gainSlider.setValue(0.0);
+     gainSlider.addListener(this);
+     addAndMakeVisible(gainSlider);*/
+
+    // startTimerHz(30); // repaint timer 30 times per second - huda
+
+    //// Formant toggle button - huda
+    //toggleViewButton.addListener(this);
+    //addAndMakeVisible(toggleViewButton);
+
     setSize (800, 600);
 
     addAndMakeVisible(topBar);
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+
 
     // connect DaisyChain buttons to EffectPanel
     for (int i = 0; i < daisyChain.effectButtons.size(); ++i) {
@@ -39,17 +58,66 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 {
+    //toggleViewButton.removeListener(this);
+    //gainSlider.removeListener(this);
 }
 
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour) default background
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));  
+    // (Our component is opaque, so we must completely fill the background with a solid colour)
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+
+    //if (showingFormants) //huda
+    //    {
+    //        g.setColour(juce::Colours::white);
+    //        g.setFont(18.0f);
+    //        g.drawText("Formant Detector Output", getLocalBounds().withHeight(30), juce::Justification::centredTop);
+
+    //        // Get formants from processor
+    //        std::vector<float> formants = processorRef.getFormantDetector().getFormants();
+
+    //        // Draw red lines
+    //        g.setColour(juce::Colours::red);
+    //        auto width = getWidth();
+    //        auto height = getHeight();
+    //        for (size_t i = 0; i < processorRef.getLatestFormants().size(); ++i) {
+    //            float freqHz = processorRef.getLatestFormants()[i];
+
+
+    //            float x = juce::jmap(freqHz, 0.0f, 1500.0f, 0.0f, static_cast<float>(width));
+
+    //            g.drawLine(x, 40.0f, x, height - 20.0f, 2.0f);
+
+    //            g.setColour(juce::Colours::white);
+    //            g.setFont(12.0f);
+    //            g.drawText(juce::String::String(freqHz, 0, false) + "Hz", juce::Rectangle<int>(int(x) - 30, height -35, 60, 20), juce::Justification::centred);
+    //            g.setColour(juce::Colours::red);
+
+    //        }
+    //    
+    //    }   
+
+      
 }
 
 void AudioPluginAudioProcessorEditor::resized()
 {
+    // This is generally where you'll want to lay out the positions of any
+    // subcomponents in your editor..
+    
+    //toggleViewButton.setBounds(10, 10, 120, 30);// huda
+
+    //if (!showingFormants) // So that gain GUI isn't affected much - huda
+    //{
+    //    gainSlider.setBounds(getLocalBounds().reduced(50));
+    //    gainSlider.setVisible(true);
+    //}
+    //else
+    //{
+    //    gainSlider.setVisible(false);
+    //}
+
     //ui//////////////////////////////////////////
     auto area = getLocalBounds();
     //topbar height
@@ -63,5 +131,35 @@ void AudioPluginAudioProcessorEditor::resized()
     effectPanel.setBounds(center);
     //visualizer
     visualizer.setBounds(area);
+
+
 }
+
+
+
 //This function checks to see if any slider's value has changed
+//void AudioPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
+//{
+//    if (slider == &gainSlider)
+//    {
+//        processorRef.gainDB = (float)gainSlider.getValue();
+//    }
+//}
+
+////Button to show formants vs gain - huda
+//void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button)
+//{
+//    if (button == &toggleViewButton)
+//    {
+//        showingFormants = !showingFormants;
+//        toggleViewButton.setButtonText(showingFormants ? "Show Gain" : "Show Formants");
+//        resized();
+//        repaint();
+//    }
+//}
+
+//void AudioPluginAudioProcessorEditor::timerCallback() {
+//    if (showingFormants) { // refresh if formants are visible
+//        repaint();
+//    }
+//}

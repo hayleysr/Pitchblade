@@ -19,5 +19,5 @@ void DaisyChain::resized()
     auto area = getLocalBounds().reduced(10);
     int y = 0;
     for (auto* btn : effectButtons)
-        btn->setBounds(0, y += 40, area.getWidth(), 30);
+        btn->setBounds(8, y += 40, area.getWidth(), 30);
 }
