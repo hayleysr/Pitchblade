@@ -1,6 +1,6 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
-
+#include "Pitchblade/ui/EffectRegistry.h"
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
