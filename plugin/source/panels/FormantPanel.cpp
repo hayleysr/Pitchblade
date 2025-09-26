@@ -15,7 +15,10 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
     addAndMakeVisible(toggleViewButton);
 
-    startTimerHz(10); // repaint timer 10 times per second - huda
+    startTimerHz(4); // repaint timer 4 times per second - huda
+
+    //startTimerHz(10); // repaint timer 10 times per second - huda
+
 }
 
 
