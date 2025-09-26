@@ -33,8 +33,6 @@ target_sources(${PROJECT_NAME}
     PRIVATE
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
-
-
         
         #ui
         source/ui/TopBar.cpp
@@ -46,10 +44,12 @@ target_sources(${PROJECT_NAME}
         source/panels/GainPanel.cpp
         source/panels/NoiseGatePanel.cpp
         source/panels/FormantPanel.cpp
+        source/panels/PitchPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
         source/effects/FormantDetector.cpp
+        source/effects/PitchDetector.cpp
 
 )
 
@@ -75,7 +75,8 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_config_flags     # Config flags
         juce::juce_recommended_lto_flags        # Link time optimization flags
         juce::juce_recommended_warning_flags    # Warning flags
-        juce::juce_dsp                          # dsp files
+        juce::juce_core
+        juce::juce_dsp                          #dsp files
 )
 
 target_compile_definitions(${PROJECT_NAME}

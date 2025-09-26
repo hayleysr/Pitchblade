@@ -4,6 +4,7 @@
 #include "Pitchblade/effects/GainProcessor.h"       //Austin
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
+#include "Pitchblade/effects/PitchDetector.h"       //hayley
 
 
 //==============================================================================
@@ -74,6 +75,7 @@ public:
     NoiseGateProcessor& getNoiseGateProcessor() { return noiseGateProcessor; }
     //FormantDetector& getFormantDetector() { return formantDetector; }
     std::vector<float>& getLatestFormants() { return latestFormants; }
+    PitchDetector& getPitchDetector() { return pitchProcessor; }
 
 private:
     //==============================
@@ -83,6 +85,7 @@ private:
     std::vector<float> latestFormants;// Vector to store formants - huda
 
     NoiseGateProcessor noiseGateProcessor;
+    PitchDetector pitchProcessor;
     bool bypassed = false;
     
  

@@ -6,6 +6,7 @@
 #include "Pitchblade/panels/GainPanel.h"
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
+#include "Pitchblade/panels/PitchPanel.h"
 
 
 class AudioPluginAudioProcessor;   
@@ -69,6 +70,15 @@ inline std::vector<EffectDefinition> effects = {
           if (freqs.size() > 3) freqs.resize(3);
           proc.getLatestFormants() = freqs;
       }
+    },
+
+    { "Pitch",
+        [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new PitchPanel(proc); },
+        [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer){
+            proc.getPitchDetector().processBlock(buffer);
+            proc.getPitchDetector().getCurrentPitch();
+        }
+
     }
 
 };

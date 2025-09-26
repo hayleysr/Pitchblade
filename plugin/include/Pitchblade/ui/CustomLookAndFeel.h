@@ -23,6 +23,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         setColour(juce::Slider::textBoxTextColourId, Colors::buttonText); // text
         setColour(juce::Slider::textBoxBackgroundColourId, Colors::panel);// textbox bg
         setColour(juce::Slider::textBoxOutlineColourId, Colors::accent);  // textbox outline
+        
     }
 
     void drawPanelBackground(juce::Graphics& g, juce::Component& comp)
