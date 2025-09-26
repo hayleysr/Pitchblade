@@ -15,7 +15,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
     addAndMakeVisible(toggleViewButton);
 
-    startTimerHz(30); // repaint timer 30 times per second - huda
+    startTimerHz(10); // repaint timer 10 times per second - huda
 }
 
 
@@ -24,7 +24,6 @@ void FormantPanel::resized()
 {
     auto area = getLocalBounds().reduced(10);
     toggleViewButton.setBounds(area.removeFromTop(30));
-    //gainSlider.setBounds(area.removeFromTop(40));
 }
 
 void FormantPanel::paint(juce::Graphics& g) {
@@ -35,15 +34,16 @@ void FormantPanel::paint(juce::Graphics& g) {
         g.setFont(18.0f);
         g.drawText("Formant Detector Output", 0,50, getWidth(), 50, juce::Justification::centredTop);
 
-        // Get formants from processor
-        //std::vector<float> formants = processorRef.getFormantDetector().getFormants();
-        auto formants = processor.getFormantDetector().getFormants();
+        // Copy formants from processor 
+        std::vector<float> formantsCopy = processor.getLatestFormants();
 
         // Draw red lines
         g.setColour(juce::Colours::red);
         auto width = getWidth();
         auto height = getHeight();
-        for (float freqHz : processor.getLatestFormants()) {
+
+        for (float freqHz : formantsCopy) { // Read formants from copy to avoid crashes 
+            
             float x = juce::jmap(freqHz, 0.0f, 1500.0f, 0.0f, (float)width);
 
             g.drawLine(x, 40.0f, x, height - 20.0f, 2.0f);
