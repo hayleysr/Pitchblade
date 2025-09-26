@@ -15,24 +15,13 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
+                                                                : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
 {   // gui frontend / ui
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
 
     setSize (800, 600);
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
-
-    // panels (EffectPanel, Visualizer, DaisyChain, etc.)
-    /*lf.setColour(juce::GroupComponent::backgroundColourId, Colors::panel);
-    lf.setColour(juce::GroupComponent::outlineColourId, Colors::accent);*/
-
-    //// buttons
-    //lf.setColour(juce::TextButton::buttonColourId, Colors::button);
-    //lf.setColour(juce::TextButton::buttonOnColourId, Colors::button);
-    ////lf.setColour(juce::TextButton::outlineColourId, Colors::accent);
-    //lf.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
-    //lf.setColour(juce::TextButton::textColourOnId, Colors::buttonActive);
 
     addAndMakeVisible(topBar);
     addAndMakeVisible(daisyChain);

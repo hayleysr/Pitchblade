@@ -30,17 +30,27 @@ inline std::vector<EffectDefinition> effects = {
     { "Gain",
       [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new GainPanel(proc); },
       [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) {
-          proc.getGainProcessor().setGain(proc.gainDB);
-          proc.getGainProcessor().process(buffer);
+        // Fetch parameter from APVTS
+        auto* val = proc.apvts.getRawParameterValue("GAIN");
+        if (val != nullptr)
+            proc.getGainProcessor().setGain(val->load());
+            proc.getGainProcessor().process(buffer);
       }
     },
 
     { "Noise Gate",
       [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new NoiseGatePanel(proc); },
       [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) {
-          proc.getNoiseGateProcessor().setThreshold(proc.gateThresholdDb);
-          proc.getNoiseGateProcessor().setAttack(proc.gateAttack);
-          proc.getNoiseGateProcessor().setRelease(proc.gateRelease);
+         // Fetch parameter from APVTS
+         auto* thresh = proc.apvts.getRawParameterValue("GATE_THRESHOLD");
+         auto* attack = proc.apvts.getRawParameterValue("GATE_ATTACK");
+         auto* release = proc.apvts.getRawParameterValue("GATE_RELEASE");
+         if (thresh && attack && release)
+         {
+            proc.getNoiseGateProcessor().setThreshold(thresh->load());
+            proc.getNoiseGateProcessor().setAttack(attack->load());
+            proc.getNoiseGateProcessor().setRelease(release->load());
+         }
           proc.getNoiseGateProcessor().process(buffer);
       }
     },
