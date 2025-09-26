@@ -8,8 +8,7 @@
 
 
 //==============================================================================
-class AudioPluginAudioProcessor final : public juce::AudioProcessor,
-                                        public juce::DragAndDropContainer
+class AudioPluginAudioProcessor final : public juce::AudioProcessor
 {
 public:
     //==============================

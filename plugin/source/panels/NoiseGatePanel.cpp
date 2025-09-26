@@ -18,52 +18,65 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc) : processor(proc
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    thresholdSlider.setRange(-60.0, 0.0);
-    thresholdSlider.setValue(processor.gateThresholdDb);
+    //thresholdSlider.setRange(-60.0, 0.0);
+    //thresholdSlider.setValue(processor.gateThresholdDb);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
-    thresholdSlider.addListener(this);
+    //thresholdSlider.addListener(this);
     addAndMakeVisible(thresholdSlider);
-
-    // Threshold Label - Austin
-    addAndMakeVisible(thresholdLabel);
+	//attachment to link slider to the apvts parameters - reyna
+    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.apvts, "GATE_THRESHOLD", thresholdSlider);
+    
+    // Threshold Label - Austin   
     thresholdLabel.setText("Threshold", juce::dontSendNotification);
     thresholdLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(thresholdLabel);
+
+    ////////////////////
 
     // Attack slider
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    attackSlider.setRange(0.1, 300.0);
-    attackSlider.setValue(processor.gateAttack);
+    //attackSlider.setRange(0.1, 300.0);
+    //attackSlider.setValue(processor.gateAttack);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
-    attackSlider.addListener(this);
+    //attackSlider.addListener(this);
     addAndMakeVisible(attackSlider);
 
+    attackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.apvts, "GATE_ATTACK", attackSlider);
+
     // Attack Label - Austin
-    addAndMakeVisible(attackLabel);
     attackLabel.setText("Attack", juce::dontSendNotification);
     attackLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(attackLabel);
+
+    ////////////////////
 
     // Release slider
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    releaseSlider.setRange(0.1, 300.0);
-    releaseSlider.setValue(processor.gateRelease);
+    //releaseSlider.setRange(0.1, 300.0);
+    //releaseSlider.setValue(processor.gateRelease);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
-    releaseSlider.addListener(this);
+    //releaseSlider.addListener(this);
     addAndMakeVisible(releaseSlider);
 
-    // Release Label - Austin
-    addAndMakeVisible(releaseLabel);
+    releaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.apvts, "GATE_RELEASE", releaseSlider);
+
+    // Release Label - Austin 
     releaseLabel.setText("Release", juce::dontSendNotification);
     releaseLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(releaseLabel);
 }
 
 void NoiseGatePanel::resized()
@@ -96,15 +109,15 @@ void NoiseGatePanel::resized()
     releaseSlider.setBounds(releaseArea);
 }
 //updates gainDB in AudioPluginAudioProcessor , when slider changes value changes
-void NoiseGatePanel::sliderValueChanged(juce::Slider* s)
-{
-    if (s == &thresholdSlider)
-        processor.gateThresholdDb = (float)thresholdSlider.getValue();
-    else if (s == &attackSlider)
-        processor.gateAttack = (float)attackSlider.getValue();
-    else if (s == &releaseSlider)
-        processor.gateRelease = (float)releaseSlider.getValue();
-}
+//void NoiseGatePanel::sliderValueChanged(juce::Slider* s)
+//{
+//    if (s == &thresholdSlider)
+//        processor.gateThresholdDb = (float)thresholdSlider.getValue();
+//    else if (s == &attackSlider)
+//        processor.gateAttack = (float)attackSlider.getValue();
+//    else if (s == &releaseSlider)
+//        processor.gateRelease = (float)releaseSlider.getValue();
+//}
 
 void NoiseGatePanel::paint(juce::Graphics& g)
 {
