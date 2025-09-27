@@ -1,4 +1,4 @@
-// reyna macabebe
+// reyna
 
 #pragma once
 #include <JuceHeader.h>
@@ -7,7 +7,7 @@
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
-
+#include "Pitchblade/ui/DaisyChainItem.h"
 
 class AudioPluginAudioProcessor;   
 
