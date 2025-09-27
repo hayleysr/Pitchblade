@@ -1,4 +1,4 @@
-// reyna macabebe
+// reyna
 #pragma once
 #include <JuceHeader.h>
 #include "Pitchblade/ui/EffectRegistry.h"
@@ -14,7 +14,11 @@ public:
     void showEffect(int index);
     void paint(juce::Graphics&) override;
 
+	//refresh tabs when effects are added/removed
+    void refreshTabs();
+
 private:
     // tab buttons; side + top tabs
+    AudioPluginAudioProcessor& processor;
     juce::TabbedComponent tabs{ juce::TabbedButtonBar::TabsAtTop };
 };

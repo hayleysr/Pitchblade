@@ -1,4 +1,4 @@
-// reyna macabebe
+// reyna
 
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/EffectRegistry.h"
@@ -9,10 +9,10 @@
 
 
 //effects panel section
-EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
+EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc) : processor(proc)
 {
-    for (auto& e : effects)
-        tabs.addTab(e.name, Colors::background, e.createPanel(proc), true);
+    refreshTabs();
+
     //hide top tab buttons
     tabs.setTabBarDepth(0);
     addAndMakeVisible(tabs);
@@ -36,4 +36,12 @@ void EffectPanel::paint(juce::Graphics& g)
     g.fillAll(Colors::background);
     //g.setColour(Colors::accent);
     g.drawRect(getLocalBounds(), 2);
+}
+
+void EffectPanel::refreshTabs()
+{
+    tabs.clearTabs();
+	//rebuilds tabs based on gobal effects list
+    for (auto& e : effects)
+        tabs.addTab(e.name, Colors::background, e.createPanel(processor), true);
 }
