@@ -22,7 +22,9 @@ private:
     float attackCoeff = 0.0f;
     float releaseCoeff = 0.0f;
 
-    //The envelope is the current state of the compressor, where 0.0 lets no sound through and 1.0 lets all sound through
+    //The envelope is the current state of the compressor. Unlike the noise gate, it does not control the audio directly.
+    //Its role is more to track the amplitude of the loudest channel in a given sample, which is then used to calculate
+    //the amount to reduce the gain by.
     float envelope = 0.0f;
 
     //The sample rate will help to convert the unit in milliseconds to something that translates more closely to the audio signal
