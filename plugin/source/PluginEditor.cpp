@@ -27,6 +27,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+    visualizer.refreshTabs();
 
     // Top bar bypass 
     topBar.bypassButton.setClickingTogglesState(false);
@@ -51,17 +52,20 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         daisyChain.items[i]->button.onClick = [this, i]()
             {
                 effectPanel.showEffect(i);
+				visualizer.showVisualizer(i);       //connect visualizer to daisychain
             };
     }
     //keeps daiychain reordering consistant
     daisyChain.onReorderFinished = [this]()
         {
             effectPanel.refreshTabs();
+            visualizer.refreshTabs();
             for (int i = 0; i < daisyChain.items.size(); ++i)
             {
                 daisyChain.items[i]->button.onClick = [this, i]()
                     {
                         effectPanel.showEffect(i); 
+                        visualizer.showVisualizer(i);
                     };
             }
         };
