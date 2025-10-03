@@ -11,48 +11,64 @@
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/ui/EffectRegistry.h"
-
+#include "Pitchblade/ui/DaisyChainItem.h"
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
-{   // gui frontend / ui
+                                                                : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
+{   // gui frontend / ui reyna
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-
+    setLookAndFeel(nullptr),
     setSize (800, 600);
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
-
-    // panels (EffectPanel, Visualizer, DaisyChain, etc.)
-    /*lf.setColour(juce::GroupComponent::backgroundColourId, Colors::panel);
-    lf.setColour(juce::GroupComponent::outlineColourId, Colors::accent);*/
-
-    //// buttons
-    //lf.setColour(juce::TextButton::buttonColourId, Colors::button);
-    //lf.setColour(juce::TextButton::buttonOnColourId, Colors::button);
-    ////lf.setColour(juce::TextButton::outlineColourId, Colors::accent);
-    //lf.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
-    //lf.setColour(juce::TextButton::textColourOnId, Colors::buttonActive);
 
     addAndMakeVisible(topBar);
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+    visualizer.refreshTabs();
 
-
-    // connect DaisyChain buttons to EffectPanel
-    for (int i = 0; i < daisyChain.effectButtons.size(); ++i) {
-        daisyChain.effectButtons[i]->onClick = [this, i]() {
-            effectPanel.showEffect(i);
-            };
-    }
-
-    // bypass button
+    // Top bar bypass 
+    topBar.bypassButton.setClickingTogglesState(false);
     topBar.bypassButton.onClick = [this]() {
-        processorRef.setBypassed(!processorRef.isBypassed());       //sets bypass state
-        topBar.bypassButton.setToggleState(processorRef.isBypassed(), juce::dontSendNotification);
+        const bool newState = !processorRef.isBypassed();
+        processorRef.setBypassed(newState);
+
+		//update topbar bypass button color
+        const auto bg = newState ? Colors::accent : Colors::panel;
+            topBar.bypassButton.setColour(juce::TextButton::buttonColourId, bg);
+            topBar.bypassButton.setColour(juce::TextButton::buttonOnColourId, bg); 
+            topBar.bypassButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+            topBar.bypassButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white); 
+            topBar.bypassButton.repaint();
+			//update daisychain bypass buttons color : greyed out
+            daisyChain.setGlobalBypassVisual(newState);
         };
 
+	//connect DaisyChain buttons to EffectPanel
+    for (int i = 0; i < daisyChain.items.size(); ++i)
+    {
+        daisyChain.items[i]->button.onClick = [this, i]()
+            {
+                effectPanel.showEffect(i);
+				visualizer.showVisualizer(i);       //connect visualizer to daisychain
+            };
+    }
+    //keeps daiychain reordering consistant
+    daisyChain.onReorderFinished = [this]()
+        {
+            effectPanel.refreshTabs();
+            visualizer.refreshTabs();
+            for (int i = 0; i < daisyChain.items.size(); ++i)
+            {
+                daisyChain.items[i]->button.onClick = [this, i]()
+                    {
+                        effectPanel.showEffect(i); 
+                        visualizer.showVisualizer(i);
+                    };
+            }
+        };
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
@@ -72,13 +88,13 @@ void AudioPluginAudioProcessorEditor::resized()
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
     
-    //ui//////////////////////////////////////////
+    //ui reyna//////////////////////////////////////////
     auto area = getLocalBounds();
     //topbar height
     auto top = area.removeFromTop(40);
     topBar.setBounds(top);
     //daisychain width
-    auto left = area.removeFromLeft(150);
+    auto left = area.removeFromLeft(190);
     daisyChain.setBounds(left);
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);

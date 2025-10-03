@@ -64,7 +64,12 @@ public:
     //bypass on/off
     bool isBypassed();
     void setBypassed(bool newState);
+    //stored perameters for daisy chain
+    juce::AudioProcessorValueTreeState apvts;
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
+    //// DSP processors ==========================================================
+    
     GainProcessor& getGainProcessor() { return gainProcessor; }
     NoiseGateProcessor& getNoiseGateProcessor() { return noiseGateProcessor; }
     //FormantDetector& getFormantDetector() { return formantDetector; }

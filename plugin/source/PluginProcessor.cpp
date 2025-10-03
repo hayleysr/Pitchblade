@@ -11,16 +11,40 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), 
+	//apvts contructor: attachs this to processor
+    // AudioProcessorValueTreeState used to manage, a ValueTree that is used to manage an AudioProcessor's entire state
+    apvts(*this, nullptr, "Parameters", createParameterLayout())
     {
 }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
-{
-}
+AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
 
 
 //==============================================================================
+//ui stuff: perameter layout - reyna
+//need to save peramters for daisy chain all in one place, so when reodering chain effects stay the same
+// i can also use this later for preset saving/loading
+juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout() {
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    // Gain
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GAIN", "Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
+
+    // Noise gate
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f), -48.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_ATTACK", "Gate Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 1.0f), 25.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_RELEASE", "Gate Release", juce::NormalisableRange<float>(10.0f, 1000.0f, 1.0f), 100.0f));
+
+    return { params.begin(), params.end() };
+}
+
+//==============================================================================
+
 const juce::String AudioPluginAudioProcessor::getName() const
 {
     return JucePlugin_Name;
