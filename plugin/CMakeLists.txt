@@ -45,6 +45,7 @@ target_sources(${PROJECT_NAME}
         source/panels/NoiseGatePanel.cpp
         source/panels/FormantPanel.cpp
         source/panels/PitchPanel.cpp
+        source/panels/CompressorPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
