@@ -101,6 +101,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);
 
+    compressorProcessor.prepare(sampleRate);
+
     //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
     //I just didn't want to push for something more complex than needed this early on
 

@@ -5,6 +5,7 @@
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
 #include "Pitchblade/effects/PitchDetector.h"       //hayley
+#include "Pitchblade/effects/CompressorProcessor.h" //Austin
 
 
 //==============================================================================
@@ -60,6 +61,13 @@ public:
     FormantDetector& getFormantDetector() { return formantDetector; }
     const std::vector<float>&getLatestFormants() const {return latestFormants;}
 
+    //COMPRESSOR STUFF==============================================================
+    float compressorThresholdDb = -20.0f;
+    float compressorRatio = 2.0f;
+    float compressorAttack = 10.0f;
+    float compressorRelease = 100.0f;
+    bool isLimiterMode = 0;
+
     //UI STUFF====================================================================
     //bypass on/off
     bool isBypassed();
@@ -70,6 +78,7 @@ public:
     //FormantDetector& getFormantDetector() { return formantDetector; }
     std::vector<float>& getLatestFormants() { return latestFormants; }
     PitchDetector& getPitchDetector() { return pitchProcessor; }
+    CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
 
 private:
     //==============================
