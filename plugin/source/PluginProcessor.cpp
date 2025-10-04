@@ -177,6 +177,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 e.process(*this, buffer);       //calls unbypassed effects processor 
         }
     }
+
     //juce boilerplate
     for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i) {
         buffer.clear(i, 0, buffer.getNumSamples());
