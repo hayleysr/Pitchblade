@@ -10,12 +10,13 @@
 #include "Pitchblade/ui/DaisyChain.h"
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
-#include "Pitchblade/ui/EffectRegistry.h"
+
 #include "Pitchblade/ui/DaisyChainItem.h"
+#include "Pitchblade/panels/EffectNode.h"
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-                                                                : AudioProcessorEditor(&p), processorRef(p), effectPanel(p)
+                                                                : AudioProcessorEditor(&p), processorRef(p), daisyChain(p.getEffectNodes()), effectPanel(p, p.getEffectNodes())
 {   // gui frontend / ui reyna
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -27,11 +28,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+
+    effectPanel.refreshTabs();
     visualizer.refreshTabs();
 
-    // Top bar bypass 
+    // Top bar bypass daisychains
     topBar.bypassButton.setClickingTogglesState(false);
     topBar.bypassButton.onClick = [this]() {
+
         const bool newState = !processorRef.isBypassed();
         processorRef.setBypassed(newState);
 
