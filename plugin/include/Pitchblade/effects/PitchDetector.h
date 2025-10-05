@@ -27,14 +27,6 @@
 
         void processFrame(const std::vector<float>&);
 
-        void difference(const std::vector<float>&);
-
-        void cumulative();
-
-        int absoluteThreshold();
-
-        //void yinProb();
-
         float getCurrentPitch();
         float getCurrentNote();
         std::string getCurrentNoteName();
@@ -43,6 +35,13 @@
         ~PitchDetector();
 
     private:
+        /**
+         * Autocorrection, Difference, Cumulative
+         */
+        void difference(const std::vector<float>&);
+        void cumulative();
+        int absoluteThreshold();
+
         float dCurrentPitch;                // Pitch of most recent sample batch in Hz
         double dSampleRate;                 // Sample rate
         int dWindowSize;                    // interval i to 2W
@@ -54,6 +53,10 @@
         int dHopSize;                       // Amount to jump fwd by. Creates overlapping frames.
         juce::dsp::WindowingFunction<float>::WindowingMethod dWindow; // Hann window
         std::vector<float> dWindowFunction; 
+
+        /**
+         * YIN
+         */
         double dThresh;                     // Threshold for YIN
         float convertLagToPitch(int);       // Helper function for YIN
         float dReferencePitch;              // Pitch that notes are tuned to
@@ -61,4 +64,18 @@
                 "A", "A#", "B", "C", "C#", "D", 
                 "D#", "E", "F", "F#", "G", "G#"
             };
+        
+        /**
+         * pYIN
+         */
+        std::vector<std::pair<int, float>> findPitchCandidates();
+        std::vector<float> calculateProbabilities(std::vector<std::pair<int, float>>&);
+        float temporalTracking(std::vector<std::pair<int, float>>&, std::vector<float>&);
+
+        std::vector<std::vector<float>> dPitchCandidates; // Likely pitch per frame for pYIN
+        std::vector<float> dPitchProbabilities;           // Probabilities per candidate
+        std::vector<float> dSmoothedPitchTrack;           // Temporal smoothing
+        float dVoiceThreshold;                            // Min threshold for a freq to be considered voiced
+        int dMaxCandidates;                               // Number of candidates to consider
+        
  };
