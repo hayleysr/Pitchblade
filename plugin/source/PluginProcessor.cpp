@@ -169,6 +169,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     juce::ScopedNoDenormals noDenormals;
 
     // indivdual bypass checker reyna
+	// process and forward only if root node exists and plugin is not globally bypassed
+    //  for future chaining effects theyre all the same rn
     if (rootNode && !isBypassed()) {    
         rootNode->processAndForward(*this, buffer);
     }

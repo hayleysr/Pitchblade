@@ -22,7 +22,7 @@ public:
 	// ui panel creation 
      virtual std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) = 0;
 
-    // forward processing through the node and its outputs
+	 // processing through the node and its outputs for different chain modes
     void processAndForward(AudioPluginAudioProcessor& proc,
         juce::AudioBuffer<float>& buffer)
     {
@@ -38,23 +38,17 @@ public:
             break;
         case 2: 
             // Split into double: duplicate buffer to each output
-            for (auto& out : outputs)
-            {
-                juce::AudioBuffer<float> copy(buffer);
-                out->processAndForward(proc, copy);
-            }
+            if (!outputs.empty())
+                outputs[0]->processAndForward(proc, buffer);
             break;
 
         case 3: 
             // Double down: expects two inputs merged 
-            // For now, treat like case 1. Proper merging requires
-            // a buffer mixer node that sums multiple inputs.
             if (!outputs.empty())
                 outputs[0]->processAndForward(proc, buffer);
             break;
         case 4: 
             // Unite into single: combine buffers 
-            // For now, just pass buffer to next
             if (!outputs.empty())
                 outputs[0]->processAndForward(proc, buffer);
             break;
