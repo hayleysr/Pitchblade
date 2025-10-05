@@ -8,8 +8,9 @@
     dWindowSize(windowSize),
     dYinBufferSize(windowSize / 2),
     dReferencePitch(referencePitch),
-    dVoiceThreshold(0.3f),
-    dMaxCandidates(4)
+    dVoiceThreshold(0.1f),
+    dMaxCandidates(4),
+    dAmpThreshold(0.001f)
  {
     // Constructor
  }
@@ -88,6 +89,12 @@
 
  void PitchDetector::processFrame(const std::vector<float>& frame)
  {
+    dCurrentAmp = calculateRMS(frame);  // Check if amp is below threshold
+    if(dCurrentAmp < dAmpThreshold){
+        dCurrentPitch = 0.0f;           // Set pitch to 0
+        return;
+    }
+
     difference(frame);      // Populate dYinBuffer with difference function
     cumulative();           // Apply cumulative mean to dYinBuffer
     
@@ -273,6 +280,15 @@
     }
     
     return weightedSum / totalWeight;
+ }
+
+ float PitchDetector::calculateRMS(const std::vector<float>& frame)
+ {
+    float sumSquares = 0.0f;
+    for (float sample : frame) {
+        sumSquares += sample * sample;
+    }
+    return std::sqrt(sumSquares / frame.size());
  }
 
  float PitchDetector::convertLagToPitch(int lag)

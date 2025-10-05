@@ -41,6 +41,7 @@
         void difference(const std::vector<float>&);
         void cumulative();
         int absoluteThreshold();
+        float calculateRMS(const std::vector<float>&);
 
         float dCurrentPitch;                // Pitch of most recent sample batch in Hz
         double dSampleRate;                 // Sample rate
@@ -53,6 +54,9 @@
         int dHopSize;                       // Amount to jump fwd by. Creates overlapping frames.
         juce::dsp::WindowingFunction<float>::WindowingMethod dWindow; // Hann window
         std::vector<float> dWindowFunction; 
+        
+        float dCurrentAmp;                  // Amplitude tracker for RMS cutoff
+        float dAmpThreshold;                // Threshold for RMS cutoff
 
         /**
          * YIN
