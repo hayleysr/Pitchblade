@@ -90,6 +90,8 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     PitchDetector pitchProcessor;
     bool bypassed = false;
+
+    CompressorProcessor = compressorProcessor;
     
  
 

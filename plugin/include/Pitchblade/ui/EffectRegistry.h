@@ -7,13 +7,14 @@
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
+#include "Pitchblade/panels/CompressorPanel.h"
 
 
 class AudioPluginAudioProcessor;   
 
 //class PitchPanel;
 //class EqualizerPanel;
-//class CompressorPanel;
+class CompressorPanel;
 class GainPanel;
 class NoiseGatePanel;
 class FormantPanel; 
@@ -43,6 +44,27 @@ inline std::vector<EffectDefinition> effects = {
           proc.getNoiseGateProcessor().setAttack(proc.gateAttack);
           proc.getNoiseGateProcessor().setRelease(proc.gateRelease);
           proc.getNoiseGateProcessor().process(buffer);
+      }
+    },
+
+    { "Compressor",
+      [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new CompressorPanel(proc); },
+      [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) {
+          if(proc.isLimiterMode){
+            //In limiter mode, use a high fixed ratio and fast attack
+            proc.getCompressorProcessor().setThreshold(proc.compressorThresholdDb);
+            proc.getCompressorProcessor().setRatio(20.0f); // Can be altered to be higher if needed
+            proc.getCompressorProcessor().setAttack(1.0f); // Really fast attack
+            proc.getCompressorProcessor().setRelease(proc.compressorRelease);
+          }else{
+            //In simple compressor mode, use the values from the sliders directly
+            proc.getCompressorProcessor().setThreshold(proc.compressorThresholdDb);
+            proc.getCompressorProcessor().setRatio(proc.compressorRatio); 
+            proc.getCompressorProcessor().setAttack(proc.compressorAttack); 
+            proc.getCompressorProcessor().setRelease(proc.compressorRelease);
+          }
+          
+          proc.getCompressorProcessor().process(buffer);
       }
     },
 
