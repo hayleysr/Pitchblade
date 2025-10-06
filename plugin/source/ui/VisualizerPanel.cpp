@@ -1,8 +1,9 @@
 // reyna macabebe
-
+#include <JuceHeader.h>
 #include "Pitchblade/ui/VisualizerPanel.h"
-#include "Pitchblade/ui/EffectRegistry.h"
 #include "Pitchblade/PluginProcessor.h"
+
+#include "Pitchblade/panels/EffectNode.h"
 
 VisualizerPanel::VisualizerPanel() {
     tabs.setTabBarDepth(0);  // hide tab bar
@@ -31,10 +32,9 @@ void VisualizerPanel::refreshTabs()
 {
     tabs.clearTabs();
 
-    for (auto& e : effects)
-    {
-        auto* placeholder = new juce::Label({}, "Visualizer for " + e.name);
-        placeholder->setJustificationType(juce::Justification::centred);
-        tabs.addTab(e.name, juce::Colours::black, placeholder, true);
-    }
+    auto* placeholder = new juce::Label({}, "Visualizer");
+    placeholder->setJustificationType(juce::Justification::centred);
+    placeholder->setFont(juce::Font(18.0f, juce::Font::bold));
+
+    tabs.addTab("Visualizer", juce::Colours::black, placeholder, true);
 }

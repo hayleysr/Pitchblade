@@ -1,9 +1,10 @@
 ﻿//reyna 
 #pragma once
 #include <JuceHeader.h>
-#include "Pitchblade/ui/EffectRegistry.h"
 #include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/ui/CustomLookAndFeel.h"
+
+#include "Pitchblade/panels/EffectNode.h"
 
 //merges effect buttons and bypass buttons into one row item for daisychain drag n drop
 class DaisyChainItem : public juce::Component,

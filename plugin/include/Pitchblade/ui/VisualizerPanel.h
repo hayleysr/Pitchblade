@@ -1,8 +1,7 @@
-// reyna macabebe
-
+// reyna
 #pragma once
 #include <JuceHeader.h>
-#include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/panels/EffectNode.h"
 
 //panel that shows audio visuals
 class VisualizerPanel : public juce::Component

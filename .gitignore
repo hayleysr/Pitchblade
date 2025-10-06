@@ -5,6 +5,7 @@ cmake_install.cmake
 plugins/cmake_install.cmake
 plugin/CMakeFiles/
 plugin/Pitchblade_artefacts/
+plugin/plugin/
 
 # CMake Excludes
 build/
