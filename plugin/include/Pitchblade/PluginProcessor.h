@@ -53,29 +53,6 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    //GAIN STUFF====================================================================
-    float gainDB = 0.0f;
-
-    //NOISE GATE STUFF==============================================================
-    float gateThresholdDb = -48.0f;
-    float gateAttack = 25.0f;
-    float gateRelease = 100.0f;
-
-    // Formant Detector stuff ===================================================
-    bool showFormantGUI = false;  // true = Formant view, false = Gain view - huda
-    FormantDetector& getFormantDetector() { return formantDetector; }
-    const std::vector<float>&getLatestFormants() const {return latestFormants;}
-
-    //COMPRESSOR STUFF==============================================================
-    float compressorThresholdDb = -20.0f;
-    float compressorRatio = 2.0f;
-    float compressorAttack = 10.0f;
-    float compressorRelease = 100.0f;
-    bool isLimiterMode = 0;
-
-    //UI STUFF====================================================================
-    //bypass on/off
-    bool isBypassed();
     //============================== global bypass
     bool isBypassed() const;
     void setBypassed(bool newState);
