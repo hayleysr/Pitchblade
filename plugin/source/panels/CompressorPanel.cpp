@@ -25,8 +25,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    thresholdSlider.setRange(-60.0, 0.0);
-    thresholdSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
@@ -43,8 +41,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     ratioSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     ratioSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    ratioSlider.setRange(-60.0, 0.0);
-    ratioSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     ratioSlider.setNumDecimalPlacesToDisplay(1);
     ratioSlider.setTextValueSuffix(" : 1");
@@ -61,8 +57,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    attackSlider.setRange(0.1, 300.0);
-    attackSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
@@ -79,8 +73,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    releaseSlider.setRange(0.1, 300.0);
-    releaseSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
