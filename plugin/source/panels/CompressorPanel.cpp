@@ -1,4 +1,5 @@
 // Written by Austin Hills
+// Redone to use APVTS attachments
 
 #include "Pitchblade/panels/CompressorPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
@@ -11,28 +12,27 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     addAndMakeVisible(compressorLabel);
 
     // Mode Button
-    // I have no idea if any of this works yet. I'll have to make sure that the components work before worrying about this. If it does, I'm going to try to save some variables so that ratio and attack aren't reset upon toggling this on and off.
-    if(processor.IsLimiterMode == 0){
-        modeButton.setButtonText("Compressor");
-    }else{
-        modeButton.setButtonText("Limiter");
-    }
     modeButton.setClickingTogglesState(true);
-    modeButton.setToggleState(processor.isLimiterMode, juce::dontSendNotification);
-    modeButton.addListener(this);
     addAndMakeVisible(modeButton);
+    modeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.apvts, "COMP_LIMITER_MODE", modeButton);
+
+    //This updates the UI when the button is clicked
+    modeButton.onClick = [this](){
+        updateSliderVisibility();
+    };
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
     thresholdSlider.setRange(-60.0, 0.0);
-    thresholdSlider.setValue(processor.compressorThresholdDb);
+    thresholdSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
-    thresholdSlider.addListener(this);
     addAndMakeVisible(thresholdSlider);
+
+    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_THRESHOLD", thresholdSlider);
 
     // Threshold Label - Austin
     addAndMakeVisible(thresholdLabel);
@@ -44,12 +44,13 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     //Set the isReadOnly flag to false to allow user to edit - Austin
     ratioSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
     ratioSlider.setRange(-60.0, 0.0);
-    ratioSlider.setValue(processor.compressorRatioDb);
+    ratioSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     ratioSlider.setNumDecimalPlacesToDisplay(1);
     ratioSlider.setTextValueSuffix(" : 1");
-    ratioSlider.addListener(this);
     addAndMakeVisible(ratioSlider);
+
+    ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_RATIO", ratioSlider);
 
     // Ratio Label - Austin
     addAndMakeVisible(ratioLabel);
@@ -61,12 +62,13 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     //Set the isReadOnly flag to false to allow user to edit - Austin
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
     attackSlider.setRange(0.1, 300.0);
-    attackSlider.setValue(processor.compressorAttack);
+    attackSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
-    attackSlider.addListener(this);
     addAndMakeVisible(attackSlider);
+
+    attackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_ATTACK", attackSlider);
 
     // Attack Label - Austin
     addAndMakeVisible(attackLabel);
@@ -78,18 +80,22 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     //Set the isReadOnly flag to false to allow user to edit - Austin
     releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
     releaseSlider.setRange(0.1, 300.0);
-    releaseSlider.setValue(processor.compressorRelease);
+    releaseSlider.setValue(0);
     //Added these two to make them more nice looking and obvious for what they are - Austin
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
-    releaseSlider.addListener(this);
     addAndMakeVisible(releaseSlider);
+
+    releaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_RELEASE", releaseSlider);
 
     // Release Label - Austin
     addAndMakeVisible(releaseLabel);
     releaseLabel.setText("Release", juce::dontSendNotification);
     releaseLabel.setJustificationType(juce::Justification::centred);
-}
+
+    //Initializing visibility of sliders
+    updateSliderVisibility();
+};
 
 void CompressorPanel::resized()
 {
@@ -125,40 +131,25 @@ void CompressorPanel::resized()
     releaseSlider.setBounds(releaseArea);
 }
 
-void CompressorPanel::sliderValueChanged(juce::Slider* s)
-{
-    if (s == &thresholdSlider)
-        processor.compressorThresholdDb = (float)thresholdSlider.getValue();
-    else if (s == &ratioSlider)
-        processor.compressorRatio = (float)ratioSlider.getValue();
-    else if (s == &attackSlider)
-        processor.compressorAttack = (float)attackSlider.getValue();
-    else if (s == &releaseSlider)
-        processor.compressorRelease = (float)releaseSlider.getValue();
-}
-
-void CompressorPanel::buttonClicked(juce::Button* b)
-{
-    if(b == &modeButton){
-        processor.isLimiterMode = b->getToggleState();
-        if(processor.isLimiterMode == 0){
-            b->setButtonText("Simple Mode");
-        }else{
-            b->setButtonText("Limiter Mode");
-        }
-        updateSliderVisibility();
-    }
-}
-
 void CompressorPanel::updateSliderVisibility()
 {
-    ratioSlider.setVisible(!processor.isLimiterMode);
-    ratioLabel.setVisible(!processor.isLimiterMode);
-    attackSlider.setVisible(!processor.isLimiterMode);
-    attackLabel.setVisible(!processor.isLimiterMode);
+    //Get the current state from the toggle state
+    bool isLimiter = modeButton.getToggleState();
+
+    if(isLimiter==0){
+        modeButton.setButtonText("Limiter Mode");
+    }else{
+        modeButton.setButtonText("Compressor Mode");
+    }
+
+    //Show or hide controls based on the mode
+    ratioSlider.setVisible(isLimiter);
+    ratioLabel.setVisible(isLimiter);
+    attackSlider.setVisible(isLimiter);
+    attackLabel.setVisible(isLimiter);
 }
 
-void NoiseGatePanel::paint(juce::Graphics& g)
+void CompressorPanel::paint(juce::Graphics& g)
 {
     g.fillAll(Colors::background);
     //g.setColour(Colors::accent);

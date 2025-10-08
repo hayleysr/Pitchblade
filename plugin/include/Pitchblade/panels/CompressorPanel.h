@@ -5,8 +5,7 @@
 #include "Pitchblade/PluginProcessor.h"
 
 //Defines the UI panel
-class CompressorPanel : public juce::Component,
-    private juce::Slider::Listener
+class CompressorPanel : public juce::Component
 {
 public:
     explicit CompressorPanel(AudioPluginAudioProcessor& proc);
@@ -14,28 +13,82 @@ public:
     void paint(juce::Graphics&) override;
 
 private:
-    void sliderValueChanged(juce::Slider* slider) override;
-    void buttonClicked(juce::Button* button) override;
-
-    //updates the visibility of sliders based on the current mode
-    void updateSliderVisibility();
-
     // Reference back to main processor
     AudioPluginAudioProcessor& processor;
 
     //Sliders
-    juce::Slider thresholdSlider;
-    juce::Slider ratioSlider;
-    juce::Slider attackSlider;
-    juce::Slider releaseSlider;
+    juce::Slider thresholdSlider, ratioSlider, attackSlider, releaseSlider;
 
-    //Button
-    juce::TextButton modeButton;
+    //Button for mode switching
+    juce::TextButton modeButton {"Limiter Mode"};
 
-    //Labels
-    juce::Label compressorLabel;
-    juce::Label thresholdLabel;
-    juce::Label ratioLabel;
-    juce::Label attackLabel;
-    juce::Label releaseLabel;
-}
+    //Labels for sliders
+    juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
+
+    //Attachments to link stuff to APVTS parameters
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modeAttachment;
+
+    //Update visibility function
+    void updateSliderVisibility();
+};
+
+////////////////////////////////////////////////////////////
+
+//Austin (copying reyna's formatting)
+#include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/effects/CompressorProcessor.h"
+
+class CompressorNode : public EffectNode 
+{
+public:
+    //GainNode() : EffectNode("Gain") {}
+    CompressorNode(AudioPluginAudioProcessor& proc) : EffectNode("Compressor"), processor(proc) { }
+
+    // dsp processing step for compressor
+    void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
+
+        // get the compressor parameters from apvts
+        auto* threshold = proc.apvts.getRawParameterValue("COMP_THRESHOLD");
+        auto* ratio = proc.apvts.getRawParameterValue("COMP_RATIO");
+        auto* attack = proc.apvts.getRawParameterValue("COMP_ATTACK");
+        auto* release = proc.apvts.getRawParameterValue("COMP_RELEASE");
+        auto* limiter = proc.apvts.getRawParameterValue("COMP_LIMITER_MODE");
+        
+        //Ensure all parameters were found before using them
+        if (threshold && ratio && attack && release && limiter){
+            //Check if limiter is active
+            bool isLimiterMode = limiter->load() > 0.5f;
+
+            if(isLimiterMode){
+                //In limiter mode, use a high fixed ratio and fast attack
+                proc.getCompressorProcessor().setThreshold(threshold->load());
+                proc.getCompressorProcessor().setRatio(200.0f); //High, fixed ratio
+                proc.getCompressorProcessor().setAttack(1.0f); //Very fast attack
+                proc.getCompressorProcessor().setRelease(release->load());
+            }else{
+                //In simple compressor mode, use the values from the sliders
+                proc.getCompressorProcessor().setThreshold(threshold->load());
+                proc.getCompressorProcessor().setRatio(ratio->load()); 
+                proc.getCompressorProcessor().setAttack(attack->load()); 
+                proc.getCompressorProcessor().setRelease(release->load());
+            }
+        }
+
+        //Process the audio buffer with the updated settings
+            proc.getCompressorProcessor().process(buffer);
+    }
+
+    // return UI panel linked to node
+    std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
+        return std::make_unique<CompressorPanel>(proc);
+    }
+
+private:
+	//nodes own dsp processor + reference to main processor for param access
+    AudioPluginAudioProcessor& processor;
+    CompressorProcessor compressorDSP;
+};

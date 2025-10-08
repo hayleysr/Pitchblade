@@ -49,4 +49,4 @@ public:
     //processes the input audio buffer to apply compression
     void process(juce::AudioBuffer<float>& buffer);
 
-}
+};

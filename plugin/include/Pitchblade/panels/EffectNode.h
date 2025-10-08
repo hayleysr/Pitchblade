@@ -3,7 +3,7 @@
 
 #pragma once
 #include <JuceHeader.h>
-//Commented this include out. For some reason, that makes it able to compile better. I was getting an infinite error loop
+//Commented this include out. For some reason, that makes it able to compile better. I was getting an infinite error loop - Austin
 //#include "Pitchblade/PluginProcessor.h"
 #include <memory>
 #include <vector>
