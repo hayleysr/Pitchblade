@@ -10,17 +10,13 @@
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
-#include "ui/EffectRegistry.h"
 
-//add your effect processors here
-#include "effects/GainProcessor.h"
-#include "effects/NoiseGateProcessor.h"
-#include "effects/FormantDetector.h"
-#include "effects/PitchDetector.h"
+#include "Pitchblade/panels/EffectNode.h"
 
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
+class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
+                                              public juce::DragAndDropContainer
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -31,14 +27,11 @@ public:
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+    // This reference is provided as a quick way for your editor to access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
 
+    //reyna ui
 	CustomLookAndFeel customLF;     //custom colorpallet using juce lookandfeel
-
-    //Slider for the gain
-    juce::Slider gainSlider;
                                                 
     TopBar topBar;
     DaisyChain daisyChain;

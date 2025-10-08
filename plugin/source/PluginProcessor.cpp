@@ -1,6 +1,12 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
-#include "Pitchblade/ui/EffectRegistry.h"
+
+#include "Pitchblade/panels/GainPanel.h"
+#include "Pitchblade/panels/NoiseGatePanel.h"
+#include "Pitchblade/panels/FormantPanel.h"
+#include "Pitchblade/panels/PitchPanel.h"
+#include "Pitchblade/panels/EffectNode.h"
+
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -11,23 +17,44 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), 
+	//apvts contructor: attachs this to processor
+    // AudioProcessorValueTreeState used to manage, a ValueTree that is used to manage an AudioProcessor's entire state
+    apvts(*this, nullptr, "Parameters", createParameterLayout())
     {
 }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
-{
-}
+AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
 
 
 //==============================================================================
-const juce::String AudioPluginAudioProcessor::getName() const
-{
+//ui stuff: perameter layout - reyna
+//need to save peramters for daisy chain all in one place, so when reodering chain effects stay the same
+// i can also use this later for preset saving/loading
+juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout() {
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    // Gain
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GAIN", "Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
+
+    // Noise gate
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f), -48.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_ATTACK", "Gate Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 1.0f), 25.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "GATE_RELEASE", "Gate Release", juce::NormalisableRange<float>(10.0f, 1000.0f, 1.0f), 100.0f));
+
+    return { params.begin(), params.end() };
+}
+
+//==============================================================================
+const juce::String AudioPluginAudioProcessor::getName() const {
     return JucePlugin_Name;
 }
 
-bool AudioPluginAudioProcessor::acceptsMidi() const
-{
+bool AudioPluginAudioProcessor::acceptsMidi() const {
    #if JucePlugin_WantsMidiInput
     return true;
    #else
@@ -35,8 +62,7 @@ bool AudioPluginAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool AudioPluginAudioProcessor::producesMidi() const
-{
+bool AudioPluginAudioProcessor::producesMidi() const {
    #if JucePlugin_ProducesMidiOutput
     return true;
    #else
@@ -44,8 +70,7 @@ bool AudioPluginAudioProcessor::producesMidi() const
    #endif
 }
 
-bool AudioPluginAudioProcessor::isMidiEffect() const
-{
+bool AudioPluginAudioProcessor::isMidiEffect() const {
    #if JucePlugin_IsMidiEffect
     return true;
    #else
@@ -53,58 +78,57 @@ bool AudioPluginAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double AudioPluginAudioProcessor::getTailLengthSeconds() const
-{
+double AudioPluginAudioProcessor::getTailLengthSeconds() const {
     return 0.0;
 }
 
-int AudioPluginAudioProcessor::getNumPrograms()
-{
+int AudioPluginAudioProcessor::getNumPrograms() {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int AudioPluginAudioProcessor::getCurrentProgram()
-{
+int AudioPluginAudioProcessor::getCurrentProgram() {
     return 0;
 }
 
-void AudioPluginAudioProcessor::setCurrentProgram (int index)
-{
+void AudioPluginAudioProcessor::setCurrentProgram (int index) {
     juce::ignoreUnused (index);
 }
 
-const juce::String AudioPluginAudioProcessor::getProgramName (int index)
-{
+const juce::String AudioPluginAudioProcessor::getProgramName (int index) {
     juce::ignoreUnused (index);
     return {};
 }
 
-void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
-{
+void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String& newName) {
     juce::ignoreUnused (index, newName);
 }
 
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
     
-    //Initialization for FormantDetector for real-time processing - huda
-    formantDetector.prepare(sampleRate);
+	//intialize dsp processors
+    formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
+    noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    compressorProcessor.prepare(sampleRate);                    //Austin
+    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
 
-    //Sending the sample rate to the noise gate processor AUSTIN HILLS
-    noiseGateProcessor.prepare(sampleRate);
+	//effect node building - reyna
+    effectNodes.clear();
+    effectNodes.push_back(std::make_shared<GainNode>(*this));
+    effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
+    effectNodes.push_back(std::make_shared<FormantNode>(*this));
+    effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
-    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);
-
-    compressorProcessor.prepare(sampleRate);
-
-    //Little side note. Might be useful for things later on if we switch this over to something like ProcessSpec, which can store and send along information in a more organized manner
-    //I just didn't want to push for something more complex than needed this early on
+	// set up default chain: Gain > Noise gate > formant > Pitch
+    for (int i = 0; i + 1 < effectNodes.size(); ++i) {
+        effectNodes[i]->connectTo(effectNodes[i + 1]);
+    }
+    rootNode = effectNodes.front();
 
 }
 
@@ -137,24 +161,22 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layou
     return true;
   #endif
 }
-
-void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
-                                              juce::MidiBuffer& midiMessages)
-{   //real time processor to update everything
-    // MOVED ALL PROCESS BLOCK STUFF INTO EFFECTREGISTRY.h - reyna
-    // instead, processor loops through registry 
+//==============================================================================
+void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {   
+    //real time processor to update everything
+    
+    // MOVED ALL PROCESS BLOCK STUFF INTO EFFECTNODE AGAINNN DX - reyna
+	// all individual processors are called in their respective effect nodes (in their panel.h)
     juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
-    
-    // austins bypass for topbar (global bypass effects)
-    if (!isBypassed())
-    {
-        for (auto& e : effects)                 //individual bypasses - reyna
-        {
-            if (!e.bypassed && e.process)       //checks if each indv effect is bypassed befor calling processor
-                e.process(*this, buffer);       //calls unbypassed effects processor 
-        }
+
+    // indivdual bypass checker reyna
+	// process and forward only if root node exists and plugin is not globally bypassed
+    //  for future chaining effects theyre all the same rn
+    if (rootNode && !isBypassed()) {    
+        rootNode->processAndForward(*this, buffer);
     }
+
     //juce boilerplate
     for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i) {
         buffer.clear(i, 0, buffer.getNumSamples());
@@ -198,10 +220,12 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
 //==============================================================================
 //Entire plugin bypass functionality - Austin
-bool AudioPluginAudioProcessor::isBypassed(){
+bool AudioPluginAudioProcessor::isBypassed() const
+{
     return bypassed;
 }
 
-void AudioPluginAudioProcessor::setBypassed(bool newState){
+void AudioPluginAudioProcessor::setBypassed(bool newState)
+{
     bypassed = newState;
 }

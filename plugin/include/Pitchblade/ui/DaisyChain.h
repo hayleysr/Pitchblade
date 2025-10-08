@@ -1,23 +1,28 @@
-// reyna macabebe
+// reyna
 
 #pragma once
 #include <JuceHeader.h>
-#include "Pitchblade/ui/EffectRegistry.h"
+#include "Pitchblade/ui/DaisyChainItem.h"
+#include "Pitchblade/panels/EffectNode.h"
 
-
+//updated to work with effect nodes instead of vector
 //sidebar
 class DaisyChain : public juce::Component
 {
 public:
-    DaisyChain();
+    DaisyChain(std::vector<std::shared_ptr<EffectNode>>& nodes);
+
     void resized() override;
-
-    bool isBypassed();
-    void setBypassed(bool newState);
     void paint(juce::Graphics&) override;
+	void setGlobalBypassVisual(bool globalBypassed);    // grayed out when global bypassed
+    bool globalBypassed = false;
 
-    //  all effect buttons 
-    juce::OwnedArray<juce::TextButton> effectButtons;
-    //bypass buttons
-    juce::OwnedArray<juce::ToggleButton> bypassButtons;
+	//refeshes ui from effectnodes
+    void rebuild();
+    std::function<void()> onReorderFinished;
+    juce::OwnedArray<DaisyChainItem> items;
+
+private:
+    void handleReorder(int fromIndex, const juce::String& targetName, int targetIndex);
+    std::vector<std::shared_ptr<EffectNode>>& effectNodes;  // refern to processor's chain
 };

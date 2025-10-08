@@ -1,18 +1,17 @@
-// reyna macabebe
+// reyna
 
 #include "Pitchblade/ui/EffectPanel.h"
-#include "Pitchblade/ui/EffectRegistry.h"
-#include "Pitchblade/effects/GainProcessor.h"
-#include "Pitchblade/panels/GainPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 
+#include "Pitchblade/panels/EffectNode.h"
 
 //effects panel section
-EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc)
+EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes)
+    : processor(proc), effectNodes(nodes)
 {
-    for (auto& e : effects)
-        tabs.addTab(e.name, Colors::background, e.createPanel(proc), true);
+    refreshTabs();
+
     //hide top tab buttons
     tabs.setTabBarDepth(0);
     addAndMakeVisible(tabs);
@@ -34,6 +33,13 @@ void EffectPanel::showEffect(int index)
 void EffectPanel::paint(juce::Graphics& g)
 {
     g.fillAll(Colors::background);
-    //g.setColour(Colors::accent);
     g.drawRect(getLocalBounds(), 2);
+}
+
+void EffectPanel::refreshTabs()
+{
+    //rebuilds tabs based on gobal effects list
+    tabs.clearTabs();
+    for (auto& node : effectNodes)
+        tabs.addTab(node->effectName, Colors::background, node->createPanel(processor).release(), true);
 }
