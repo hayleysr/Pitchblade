@@ -53,7 +53,6 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-<<<<<<< HEAD
     //GAIN STUFF====================================================================
     float gainDB = 0.0f;
 
@@ -77,10 +76,8 @@ public:
     //UI STUFF====================================================================
     //bypass on/off
     bool isBypassed();
-=======
     //============================== global bypass
     bool isBypassed() const;
->>>>>>> main
     void setBypassed(bool newState);
     //============================== stored perameters for daisy chain
     juce::AudioProcessorValueTreeState apvts;
@@ -109,7 +106,7 @@ private:
 
     bool bypassed = false;
 
-    CompressorProcessor = compressorProcessor;
+    CompressorProcessor compressorProcessor;
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;
