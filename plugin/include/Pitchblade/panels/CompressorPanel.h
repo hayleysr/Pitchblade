@@ -63,10 +63,10 @@ public:
             //Check if limiter is active
             bool isLimiterMode = limiter->load() > 0.5f;
 
-            if(isLimiterMode){
+            if(!isLimiterMode){
                 //In limiter mode, use a high fixed ratio and fast attack
                 proc.getCompressorProcessor().setThreshold(threshold->load());
-                proc.getCompressorProcessor().setRatio(200.0f); //High, fixed ratio
+                proc.getCompressorProcessor().setRatio(20.0f); //High, fixed ratio
                 proc.getCompressorProcessor().setAttack(1.0f); //Very fast attack
                 proc.getCompressorProcessor().setRelease(release->load());
             }else{
