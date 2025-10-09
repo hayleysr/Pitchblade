@@ -1,5 +1,15 @@
 /**
  * Author: Hayley Spellicy-Ryan
+ * 
+ * Implements the pYIN algorithm to detect pitch.
+ * Pitch is determined by the frequency of the waveform, which is the inverse of the period.
+ * Detecting pitch relies on detecting the period.
+ * 
+ * The YIN algorithm overlaps a waveform with itself over a lag parameter 
+ * and calculates a difference function to determine the most likely period.
+ * 
+ * The pYIN algorithm takes an array of likely periods and applies smoothing over time.
+ * 
  */
 
  #include "Pitchblade/effects/PitchDetector.h"
@@ -7,15 +17,20 @@
  PitchDetector::PitchDetector(int windowSize, float referencePitch):
     dWindowSize(windowSize),
     dYinBufferSize(windowSize / 2),
-    dReferencePitch(referencePitch)
+    dReferencePitch(referencePitch),
+    dVoiceThreshold(0.1f),
+    dMaxCandidates(4),
+    dAmpThreshold(0.001f)
  {
     // Constructor
  }
 
+ // Defaults reference pitch to 440Hz, standard A
  PitchDetector::PitchDetector(int windowSize) : PitchDetector(windowSize, 440) {
 
  }
 
+ // Defaults Hann window size to 1024. Higher values increase resolution, lower values increase speed.
  PitchDetector::PitchDetector() : PitchDetector(1024, 440) {
 
  }
@@ -48,6 +63,10 @@
     for (int i = 0; i < dWindowSize; ++i) {
         dWindowFunction[i] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * i / (dWindowSize - 1)));
     }
+
+    dPitchCandidates.clear();
+    dPitchProbabilities.clear();
+    dSmoothedPitchTrack.clear();
  }
 
  void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
@@ -82,9 +101,21 @@
 
  void PitchDetector::processFrame(const std::vector<float>& frame)
  {
+    dCurrentAmp = calculateRMS(frame);  // Check if amp is below threshold
+    if(dCurrentAmp < dAmpThreshold){
+        dCurrentPitch = 0.0f;           // Set pitch to 0
+        return;
+    }
+
     difference(frame);      // Populate dYinBuffer with difference function
     cumulative();           // Apply cumulative mean to dYinBuffer
-    dCurrentPitch = absoluteThreshold();    //yin algorithm
+    
+    //dCurrentPitch = absoluteThreshold();    //yin algorithm
+
+    std::vector<std::pair<int, float>> candidates = findPitchCandidates();
+    std::vector<float> probabilities = calculateProbabilities(candidates);
+
+    dCurrentPitch = temporalTracking(candidates, probabilities);
  }
 
  void PitchDetector::difference(const std::vector<float>& frame)
@@ -173,6 +204,105 @@
     return 0.0f; // No pitch found
  }
 
+ std::vector<std::pair<int, float>> PitchDetector::findPitchCandidates()
+ {
+    std::vector<std::pair<int, float>> pitchCandidates;
+    const int numThresholds = 3; //number of frequency-probability pairs
+    float thresholds[] = {0.1f, 0.2f, 0.3f};
+
+    for(int t = 0; t < numThresholds; ++t){
+        for(int tau = 2; tau < dYinBufferSize - 1; ++tau){
+            //compare to entry before and after, sliding window of 3
+            if (dYinBuffer[tau] < thresholds[t] && 
+                dYinBuffer[tau] < dYinBuffer[tau-1] && 
+                dYinBuffer[tau] < dYinBuffer[tau+1]) {
+                pitchCandidates.emplace_back(tau, dYinBuffer[tau]);
+            }
+        }
+    }
+
+    // fallback: global minimum
+    if (pitchCandidates.empty())
+    {
+        float minVal = std::numeric_limits<float>::max();
+        int minTau = -1;
+        
+        for (int tau = 2; tau < dYinBufferSize - 1; ++tau) {
+            if (dYinBuffer[tau] < minVal) {
+                minVal = dYinBuffer[tau];
+                minTau = tau;
+            }
+        }
+        
+        if (minTau > 0) {
+            pitchCandidates.emplace_back(minTau, minVal);
+        }
+    }
+
+    //sort by yin
+    std::sort(pitchCandidates.begin(), pitchCandidates.end(), 
+        [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    if(pitchCandidates.size() > dMaxCandidates)
+        pitchCandidates.resize(dMaxCandidates);
+
+    return pitchCandidates;
+ }
+
+ std::vector<float> PitchDetector::calculateProbabilities(std::vector<std::pair<int, float>>& candidates)
+ {
+    std::vector<float> probabilities;
+    if(candidates.empty()) return probabilities;
+
+    // YIN to probabilities
+    float sum = 0.0f;
+    for (const auto& candidate : candidates) {
+        float prob = std::exp(-candidate.second * 10.0f);
+        probabilities.push_back(prob);
+        sum += prob;
+    }
+    
+    // Normalize
+    if (sum > 0.0f) {
+        for (float& prob : probabilities) {
+            prob /= sum;
+        }
+    }
+    
+    return probabilities;
+ }
+
+ // Viterbi algorithm
+ float PitchDetector::temporalTracking(std::vector<std::pair<int, float>>& candidates, std::vector<float>& probabilities)
+ {
+    if(candidates.empty()) return 0.0f;
+    float weightedSum = 0.0f;
+    float totalWeight = 0.0f;
+
+    for (int i = 0; i < candidates.size(); ++i) {
+        float pitch = convertLagToPitch(candidates[i].first);
+        weightedSum += pitch * probabilities[i];
+        totalWeight += probabilities[i];
+    }
+    
+    // Detect if voiced: if the signal is periodic or noisy
+    float bestProbability = probabilities.empty() ? 0.0f : probabilities[0];
+    if (bestProbability < dVoiceThreshold) {
+        return 0.0f; 
+    }
+    
+    return weightedSum / totalWeight;
+ }
+
+ float PitchDetector::calculateRMS(const std::vector<float>& frame)
+ {
+    float sumSquares = 0.0f;
+    for (float sample : frame) {
+        sumSquares += sample * sample;
+    }
+    return std::sqrt(sumSquares / frame.size());
+ }
+
  float PitchDetector::convertLagToPitch(int lag)
  {
     if (lag <= 0) return 0.0f;
@@ -192,6 +322,11 @@
  float PitchDetector::getCurrentNote()
  {
     return 12 * std::log2(dCurrentPitch / dReferencePitch);
+ }
+
+ float PitchDetector::getSemitoneError()
+ {
+    return getCurrentNote() - getCurrentPitch();
  }
 
  std::string PitchDetector::getCurrentNoteName()
