@@ -6,21 +6,10 @@
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include <algorithm>
 
-DaisyChain::DaisyChain()
+DaisyChain::DaisyChain(std::vector<std::shared_ptr<EffectNode>>& nodes)
+    : effectNodes(nodes)
 {
     rebuild();
-}
-
-static void reorderEffects(int fromIndex, int toIndex)
-{
-	//reorder in global effects list
-    if (fromIndex < 0 || fromIndex >= (int)effects.size()) return;
-    if (toIndex < 0 || toIndex >= (int)effects.size()) return;
-    if (fromIndex == toIndex) return;
-
-    auto item = effects[fromIndex];
-    effects.erase(effects.begin() + fromIndex);
-    effects.insert(effects.begin() + toIndex, item);
 }
 
 void DaisyChain::rebuild()
@@ -29,20 +18,25 @@ void DaisyChain::rebuild()
     for (auto* it : items) removeChildComponent(it);
     items.clear();
 
-    // create rows from the global effects list
-    for (int i = 0; i < effects.size(); ++i) {
-        auto* row = new DaisyChainItem(effects[i].name, i);
+	// create rows from effectnodes // edited to use effectnodes
+    for (int i = 0; i < effectNodes.size(); ++i) {
+        auto* row = new DaisyChainItem(effectNodes[i] -> effectName, i);
         // sync visuals to current effect bypass state
-        row->updateBypassVisual(effects[i].bypassed);
+        row -> updateBypassVisual(effectNodes[i]->bypassed);
 
         // hook callback to update global bypass state
-        row->onBypassChanged = [i, row](int index, bool state) {
-            effects[index].bypassed = state;
-            row->updateBypassVisual(state); // keep visuals in sync immediately
+        row -> onBypassChanged = [ this, i, row](int index, bool state) {
+            effectNodes[index]->bypassed = state;
+            row->updateBypassVisual(state);         // keep visuals insync
+            };
+
+		// hook mode chain change callback
+        row -> onModeChanged = [this, i]( int index, int modeId) {
+            effectNodes[index]->chainMode = modeId;
             };
 
         // reorder callback
-        row->onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {
+        row -> onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {
                 handleReorder(fromIndex, dragName, targetIndex);
             };
         addAndMakeVisible(row);
@@ -60,8 +54,8 @@ void DaisyChain::handleReorder(int fromIndex, const juce::String& dragName, int 
     int resolvedFrom = fromIndex;
     if (resolvedFrom < 0)
     {
-        for (int i = 0; i < (int)effects.size(); ++i)
-            if (effects[i].name == dragName) { resolvedFrom = i; break; }
+        for (int i = 0; i < (int)effectNodes.size(); ++i)
+            if (effectNodes[i] -> effectName == dragName) { resolvedFrom = i; break; }
     }
     if (resolvedFrom < 0) return; // safety
 
@@ -69,13 +63,17 @@ void DaisyChain::handleReorder(int fromIndex, const juce::String& dragName, int 
     if (resolvedFrom < targetIndex)
         targetIndex -= 1;
 
-    if (targetIndex == resolvedFrom || targetIndex < 0 || targetIndex > (int)effects.size())
+    if (targetIndex == resolvedFrom || targetIndex < 0 || targetIndex > (int)effectNodes.size())
         return;
 
-    // move the effect in the global vector
-    auto item = effects[resolvedFrom];
-    effects.erase(effects.begin() + resolvedFrom);
-    effects.insert(effects.begin() + targetIndex, item);
+    // move the node
+    auto node = effectNodes[resolvedFrom];
+    effectNodes.erase(effectNodes.begin() + resolvedFrom);
+    effectNodes.insert(effectNodes.begin() + targetIndex, node);
+
+    // reconnect linearly after reorder
+    for (int i = 0; i + 1 < effectNodes.size(); ++i)
+        effectNodes[i]->clearConnections(), effectNodes[i]->connectTo(effectNodes[i + 1]);
 
     // Rebuild UI and notify
     rebuild();
