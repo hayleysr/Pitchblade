@@ -3,7 +3,7 @@
  * PitchDetector class
  * -------------------
  * Fundamental frequency detector for monophonic audio. 
- * Uses the YIN algorithm.
+ * Uses the pYIN algorithm.
  */
 
  #pragma once
@@ -28,6 +28,7 @@
         void processFrame(const std::vector<float>&);
 
         float getCurrentPitch();
+        float getSemitoneError();
         float getCurrentNote();
         std::string getCurrentNoteName();
 

@@ -1,5 +1,15 @@
 /**
  * Author: Hayley Spellicy-Ryan
+ * 
+ * Implements the pYIN algorithm to detect pitch.
+ * Pitch is determined by the frequency of the waveform, which is the inverse of the period.
+ * Detecting pitch relies on detecting the period.
+ * 
+ * The YIN algorithm overlaps a waveform with itself over a lag parameter 
+ * and calculates a difference function to determine the most likely period.
+ * 
+ * The pYIN algorithm takes an array of likely periods and applies smoothing over time.
+ * 
  */
 
  #include "Pitchblade/effects/PitchDetector.h"
@@ -15,10 +25,12 @@
     // Constructor
  }
 
+ // Defaults reference pitch to 440Hz, standard A
  PitchDetector::PitchDetector(int windowSize) : PitchDetector(windowSize, 440) {
 
  }
 
+ // Defaults Hann window size to 1024. Higher values increase resolution, lower values increase speed.
  PitchDetector::PitchDetector() : PitchDetector(1024, 440) {
 
  }
@@ -310,6 +322,11 @@
  float PitchDetector::getCurrentNote()
  {
     return 12 * std::log2(dCurrentPitch / dReferencePitch);
+ }
+
+ float PitchDetector::getSemitoneError()
+ {
+    return getCurrentNote() - getCurrentPitch();
  }
 
  std::string PitchDetector::getCurrentNoteName()
