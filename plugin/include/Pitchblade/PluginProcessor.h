@@ -7,8 +7,9 @@
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
 #include "Pitchblade/effects/PitchDetector.h"       //hayley
-
-#include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/effects/CompressorProcessor.h" //Austin
+//Checking to see if this will remove the circular dependency issues
+//#include "Pitchblade/panels/EffectNode.h"
 
 class EffectNode;
 
@@ -70,6 +71,7 @@ public:
         const std::vector<float>& getLatestFormants() { return latestFormants; }
 
     PitchDetector& getPitchDetector() { return pitchProcessor; }
+    CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
 
 private:
     //============================== 
@@ -80,6 +82,8 @@ private:
     PitchDetector pitchProcessor;           //hayley
 
     bool bypassed = false;
+
+    CompressorProcessor compressorProcessor;
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;
