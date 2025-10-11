@@ -26,6 +26,42 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
 	std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
 };
+////////////////////////////////////////////////////////////
+// reyna changes > added noisegate visualizer placeholder
+// visualizer node for noisegate
+#include "Pitchblade/ui/VisualizerPanel.h"
+
+class NoiseGateVisualizer : public juce::Component,
+    private juce::Timer
+{
+public:
+    explicit NoiseGateVisualizer(AudioPluginAudioProcessor& proc) : processor(proc)
+    {
+        startTimerHz(30); // refresh ~30fps
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colours::black);
+        g.setColour(juce::Colours::pink);
+
+        // get noisegate values
+        float thresholdValue = processor.apvts.getRawParameterValue("GATE_THRESHOLD")->load();
+        float attackValue = processor.apvts.getRawParameterValue("GATE_ATTACK")->load();
+        float releaseValue = processor.apvts.getRawParameterValue("GATE_RELEASE")->load();
+
+        // draw label
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(20.0f, juce::Font::bold));
+        g.drawText("Noisegate visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
+    }
+
+private:
+    void timerCallback() override { repaint(); }
+
+    AudioPluginAudioProcessor& processor;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoiseGateVisualizer)
+};
 
 ////////////////////////////////////////////////////////////
 
@@ -60,7 +96,13 @@ public:
         return std::make_unique<NoiseGatePanel>(proc);
     }
 
+    // return visualizer 
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
+        return std::make_unique<NoiseGateVisualizer>(proc);
+    }
+
 private:
+    //nodes own dsp processor + reference to main processor for param access
     AudioPluginAudioProcessor& processor;
     NoiseGateProcessor gateDSP;
 };

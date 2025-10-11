@@ -22,6 +22,11 @@ public:
 	// ui panel creation 
      virtual std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) = 0;
 
+    //visualizer creation
+	 virtual std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) {   
+         juce::ignoreUnused(proc);
+         return nullptr; 
+     }
 	 // processing through the node and its outputs for different chain modes
     void processAndForward(AudioPluginAudioProcessor& proc,
         juce::AudioBuffer<float>& buffer)
