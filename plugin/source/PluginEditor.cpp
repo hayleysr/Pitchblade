@@ -62,6 +62,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     //keeps daiychain reordering consistant
     daisyChain.onReorderFinished = [this]()
         {
+            //getting current ui order for reorder 
+            processorRef.requestReorder(daisyChain.getCurrentOrder());
+
             effectPanel.refreshTabs();
             visualizer.refreshTabs();
             for (int i = 0; i < daisyChain.items.size(); ++i)

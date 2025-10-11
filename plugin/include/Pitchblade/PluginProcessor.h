@@ -71,8 +71,13 @@ public:
 
     PitchDetector& getPitchDetector() { return pitchProcessor; }
 
+    //reyna 
+	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
+	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
+
 private:
     //============================== 
+    //processors
     GainProcessor gainProcessor;            //austin
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
@@ -83,7 +88,15 @@ private:
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;
+	std::shared_ptr<std::vector<std::shared_ptr<EffectNode>>> activeNodes; // copy of current active nodes for reordering
     std::shared_ptr<EffectNode> rootNode;
+
+    //reorder queue
+	std::mutex audioMutex;                           
+	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
+	std::vector<juce::String> pendingOrderNames;        // new order to apply
+
+    void applyPendingReorder();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
