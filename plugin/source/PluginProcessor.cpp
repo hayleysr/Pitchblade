@@ -69,6 +69,7 @@ void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& 
 	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
 	pendingOrderNames = newOrderNames;              //store new order
 	reorderRequested.store(true);                   //set flag to apply reorder
+    applyPendingReorder();
 }
 
 ////// Apply pendingreorder onto audio thread

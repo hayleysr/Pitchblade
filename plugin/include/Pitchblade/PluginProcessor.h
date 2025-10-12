@@ -8,8 +8,7 @@
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
 #include "Pitchblade/effects/PitchDetector.h"       //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
-//Checking to see if this will remove the circular dependency issues
-//#include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/panels/EffectNode.h"           //reyna
 
 class EffectNode;
 
