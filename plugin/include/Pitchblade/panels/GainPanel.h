@@ -23,6 +23,42 @@ private:
 };
 
 ////////////////////////////////////////////////////////////
+// reyna changes > added gain visualizer placeholder
+// visualizer node for gain
+#include "Pitchblade/ui/VisualizerPanel.h"
+
+class GainVisualizer : public juce::Component,
+    private juce::Timer
+{
+public:
+    explicit GainVisualizer(AudioPluginAudioProcessor& proc) : processor(proc)
+    {
+        startTimerHz(30); // refresh ~30fps
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colours::black);
+        g.setColour(juce::Colours::pink);
+
+        // get gain values
+        float gainValue = processor.apvts.getRawParameterValue("GAIN")->load();
+        
+        // draw label
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(20.0f, juce::Font::bold));
+        g.drawText("Gain visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
+    }
+
+private:
+    void timerCallback() override { repaint(); }
+
+    AudioPluginAudioProcessor& processor;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainVisualizer)
+};
+
+
+////////////////////////////////////////////////////////////
 
 //reynas changes > added dsp node defn to ui panel creation
 // gain dsp node , processes audio + makes own panel
@@ -33,7 +69,6 @@ private:
 class GainNode : public EffectNode 
 {
 public:
-    //GainNode() : EffectNode("Gain") {}
     GainNode(AudioPluginAudioProcessor& proc) : EffectNode("Gain"), processor(proc) { }
 
     // dsp processing step for gain
@@ -41,9 +76,10 @@ public:
 
         // get the gain parameter from apvts
         auto* val = proc.apvts.getRawParameterValue("GAIN");
-        if (val != nullptr)
+        if (val != nullptr) {
             proc.getGainProcessor().setGain(val->load());
             proc.getGainProcessor().process(buffer);
+        }
     }
 
     // return UI panel linked to node
@@ -51,8 +87,14 @@ public:
         return std::make_unique<GainPanel>(proc);
     }
 
+    // return visualizer 
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
+        return std::make_unique<GainVisualizer>(proc);
+    }
+
 private:
 	//nodes own dsp processor + reference to main processor for param access
     AudioPluginAudioProcessor& processor;
     GainProcessor gainDSP;
+    
 };

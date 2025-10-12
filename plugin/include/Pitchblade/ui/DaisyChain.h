@@ -20,9 +20,14 @@ public:
 	//refeshes ui from effectnodes
     void rebuild();
     std::function<void()> onReorderFinished;
+	//get current order of effects
+    std::vector<juce::String> getCurrentOrder() const { return effectNames; }
     juce::OwnedArray<DaisyChainItem> items;
 
 private:
     void handleReorder(int fromIndex, const juce::String& targetName, int targetIndex);
+	std::shared_ptr<EffectNode> findNodeByName(const juce::String& name) const; // helper to find node by name
     std::vector<std::shared_ptr<EffectNode>>& effectNodes;  // refern to processor's chain
+
+	std::vector<juce::String> effectNames; // current order of effect names
 };

@@ -6,10 +6,21 @@
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include <algorithm>
 
-DaisyChain::DaisyChain(std::vector<std::shared_ptr<EffectNode>>& nodes)
-    : effectNodes(nodes)
-{
+DaisyChain::DaisyChain(std::vector<std::shared_ptr<EffectNode>>& nodes) : effectNodes(nodes) {
+	// copy effect names from nodes
+    effectNames.clear();
+    for (auto& n : effectNodes)
+        effectNames.push_back(n->effectName);
+
     rebuild();
+}
+// helper to find node by name
+std::shared_ptr<EffectNode> DaisyChain::findNodeByName(const juce::String& name) const {
+
+    for (auto& n : effectNodes)
+        if (n->effectName == name)
+            return n;
+    return {};
 }
 
 void DaisyChain::rebuild()
@@ -18,24 +29,29 @@ void DaisyChain::rebuild()
     for (auto* it : items) removeChildComponent(it);
     items.clear();
 
-	// create rows from effectnodes // edited to use effectnodes
-    for (int i = 0; i < effectNodes.size(); ++i) {
-        auto* row = new DaisyChainItem(effectNodes[i] -> effectName, i);
-        // sync visuals to current effect bypass state
-        row -> updateBypassVisual(effectNodes[i]->bypassed);
+	// create rows from effectnodes // edited to use effectnodes // edited to use effectnames instead of directly using effectnodes
+    for (int i = 0; i < (int)effectNames.size(); ++i) {
+		const auto& name = effectNames[i];  // get name from current order list
+		auto node = findNodeByName(name);   // find corresponding node
 
-        // hook callback to update global bypass state
-        row -> onBypassChanged = [ this, i, row](int index, bool state) {
+		auto* row = new DaisyChainItem(name, i);        // create row with effect name
+
+        // insync visuals to current processor node bypass state
+        const bool bypassState = node ? node->bypassed : false;
+        row -> updateBypassVisual(bypassState);     
+
+        // update global bypass state visually
+        row -> onBypassChanged = [ this, name, row](int index, bool state) {
             effectNodes[index]->bypassed = state;
             row->updateBypassVisual(state);         // keep visuals insync
             };
 
-		// hook mode chain change callback
+		// hook chaining mode (dosnt work yet)
         row -> onModeChanged = [this, i]( int index, int modeId) {
-            effectNodes[index]->chainMode = modeId;
+            //effectNodes[index]->chainMode = modeId;
             };
 
-        // reorder callback
+        // reorder callback ui
         row -> onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {
                 handleReorder(fromIndex, dragName, targetIndex);
             };
@@ -66,17 +82,14 @@ void DaisyChain::handleReorder(int fromIndex, const juce::String& dragName, int 
     if (targetIndex == resolvedFrom || targetIndex < 0 || targetIndex > (int)effectNodes.size())
         return;
 
-    // move the node
-    auto node = effectNodes[resolvedFrom];
-    effectNodes.erase(effectNodes.begin() + resolvedFrom);
-    effectNodes.insert(effectNodes.begin() + targetIndex, node);
+    // move effect order ui only
+    const auto movedName = effectNames[resolvedFrom];       //find name
+	effectNames.erase(effectNames.begin() + resolvedFrom);  //remove from old pos
+	effectNames.insert(effectNames.begin() + targetIndex, movedName);   //insert at new pos
 
-    // reconnect linearly after reorder
-    for (int i = 0; i + 1 < effectNodes.size(); ++i)
-        effectNodes[i]->clearConnections(), effectNodes[i]->connectTo(effectNodes[i + 1]);
-
-    // Rebuild UI and notify
+    // Rebuild Ui
     rebuild();
+	//reorder effect nodes to match new order at end
     if (onReorderFinished) onReorderFinished();
 }
 

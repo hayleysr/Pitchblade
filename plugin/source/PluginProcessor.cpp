@@ -28,8 +28,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
 
 
-//==============================================================================
-//ui stuff: perameter layout - reyna
+//============================================================================== reyna
+/////ui stuff: perameter layout 
 //need to save peramters for daisy chain all in one place, so when reodering chain effects stay the same
 // i can also use this later for preset saving/loading
 juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout() {
@@ -60,6 +60,52 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
     return { params.begin(), params.end() };
+}
+
+///// reorder request from UI thread
+// will instead store names of nodes in new order, and then apply reorder on audio thread 
+void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames)
+{
+	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
+	pendingOrderNames = newOrderNames;              //store new order
+	reorderRequested.store(true);                   //set flag to apply reorder
+}
+
+////// Apply pendingreorder onto audio thread
+void AudioPluginAudioProcessor::applyPendingReorder()
+{
+	if (!reorderRequested.exchange(false))  //check and reset flag
+        return;
+
+    //copy of current list
+    std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
+
+	// rebuilding new list > find nodes by name in old list, and add to new list 
+    std::vector<std::shared_ptr<EffectNode>> newList;
+    for (const auto& name : pendingOrderNames) {
+        for (auto& n : oldNodes) {
+            if (n && n->effectName == name) {
+                newList.push_back(n);
+                break;
+            }
+        }
+    }
+	if (newList.empty())    //if no valid names found, do nothing
+        return; 
+
+	//clear all connections in old and new lists > causing stack overflow crash
+    for (auto& n : newList)
+        if (n) n->clearConnections();
+
+	//reconnect nodes in new order
+    for (int i = 0; i + 1 < (int)newList.size(); ++i) {
+        newList[i]->connectTo(newList[i + 1]);
+    }
+
+    // update effect node list
+    effectNodes = std::move(newList);
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
 }
 
 //==============================================================================
@@ -139,9 +185,11 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
 	// set up default chain: Gain > Noise gate > formant > Pitch
+	for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
     for (int i = 0; i + 1 < effectNodes.size(); ++i) {
         effectNodes[i]->connectTo(effectNodes[i + 1]);
     }
+	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
 
 }
@@ -184,11 +232,19 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
+	// reordering chain if requested - reyna
+    applyPendingReorder();
+
     // indivdual bypass checker reyna
 	// process and forward only if root node exists and plugin is not globally bypassed
     //  for future chaining effects theyre all the same rn
-    if (rootNode && !isBypassed()) {    
-        rootNode->processAndForward(*this, buffer);
+    if (!isBypassed() && activeNodes && !activeNodes->empty()) {
+		auto chain = activeNodes; // copy shared
+		auto root = chain->front(); //  get root node
+        if (root)
+            root->processAndForward(*this, buffer);
+    } else {
+        buffer.clear();
     }
 
     //juce boilerplate

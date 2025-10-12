@@ -15,8 +15,10 @@
 #include "Pitchblade/panels/EffectNode.h"
 
 //==============================================================================
-AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-                                                                : AudioProcessorEditor(&p), processorRef(p), daisyChain(p.getEffectNodes()), effectPanel(p, p.getEffectNodes())
+AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p): AudioProcessorEditor(&p),processorRef(p), 
+                                                                    daisyChain(p.getEffectNodes()),
+                                                                    effectPanel(p, p.getEffectNodes()), 
+                                                                    visualizer(p, p.getEffectNodes())
 {   // gui frontend / ui reyna
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -62,6 +64,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     //keeps daiychain reordering consistant
     daisyChain.onReorderFinished = [this]()
         {
+            //getting current ui order for reorder 
+            processorRef.requestReorder(daisyChain.getCurrentOrder());
+
             effectPanel.refreshTabs();
             visualizer.refreshTabs();
             for (int i = 0; i < daisyChain.items.size(); ++i)

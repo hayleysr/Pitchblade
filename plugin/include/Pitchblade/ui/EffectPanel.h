@@ -8,7 +8,7 @@
 class EffectPanel : public juce::Component
 {
 public:
-    explicit EffectPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes);
+    explicit EffectPanel(AudioPluginAudioProcessor& proc, const std::vector<std::shared_ptr<EffectNode>>& nodes);
 
     void resized() override;
     void showEffect(int index);
@@ -22,5 +22,5 @@ private:
     AudioPluginAudioProcessor& processor;
     juce::TabbedComponent tabs{ juce::TabbedButtonBar::TabsAtTop };
 
-    std::vector<std::shared_ptr<EffectNode>>& effectNodes;
+    std::vector<std::shared_ptr<EffectNode>> effectNodes;           //changed from reference to copy
 };
