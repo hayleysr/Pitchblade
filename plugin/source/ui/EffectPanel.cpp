@@ -39,12 +39,13 @@ void EffectPanel::paint(juce::Graphics& g)
 void EffectPanel::refreshTabs()
 {
     //rebuilds tabs based on gobal effects list
+    effectNodes = processor.getEffectNodes();
     tabs.clearTabs();
     for (auto& node : effectNodes) {
         if (!node) continue; // skip invalid       
 		{   // create panel from node
             auto panel = node->createPanel(processor);
-            if (panel != nullptr)   
+            if (panel)  
                 tabs.addTab(node->effectName, Colors::background, panel.release(), true);
         }
     }

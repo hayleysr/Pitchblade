@@ -5,6 +5,7 @@
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
+#include "Pitchblade/panels/CompressorPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 
@@ -46,6 +47,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_RELEASE", "Gate Release", juce::NormalisableRange<float>(10.0f, 1000.0f, 1.0f), 100.0f));
 
+    // Compressor
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_THRESHOLD", "Compressor Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_RATIO", "Compressor Ratio", juce::NormalisableRange<float>(1.0f, 10.0f, 0.1f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_ATTACK", "Compressor Attack", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 10.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_RELEASE", "Compressor Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 100.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
+
     return { params.begin(), params.end() };
 }
 
@@ -56,6 +69,7 @@ void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& 
 	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
 	pendingOrderNames = newOrderNames;              //store new order
 	reorderRequested.store(true);                   //set flag to apply reorder
+    applyPendingReorder();
 }
 
 ////// Apply pendingreorder onto audio thread
@@ -160,12 +174,14 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    compressorProcessor.prepare(sampleRate);                    //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
 
 	//effect node building - reyna
     effectNodes.clear();
     effectNodes.push_back(std::make_shared<GainNode>(*this));
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
+    effectNodes.push_back(std::make_shared<CompressorNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
@@ -176,6 +192,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     }
 	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()

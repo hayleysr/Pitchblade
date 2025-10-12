@@ -26,6 +26,15 @@ void FormantDetector::prepare(double sampleRateIn)
 
 void FormantDetector::processBlock(const juce::AudioBuffer<float>& buffer)
 {
+
+    // Threshold for formants to stop detecting below a certain threshold
+    float rms = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
+    if (rms < 1e-5f) {  // threshold for now and adjust if needed
+        formants.clear();
+        return;
+    }
+
+
     // Compute FFT on incoming audio block
     computeFFT(buffer);
 
