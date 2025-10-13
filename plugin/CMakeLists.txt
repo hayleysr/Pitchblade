@@ -4,6 +4,30 @@ cmake_minimum_required(VERSION 3.22)
 # Project name
 project(Pitchblade VERSION 0.1.0)
 
+# RubberBand configuration==============================================
+set(RUBBERBAND_DIR ${CMAKE_SOURCE_DIR}/plugin/third-party/rubberband)
+set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/rubberband)
+
+# Select Release or Debug mode
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(RUBBERBAND_LIBRARY ${RUBBERBAND_DIR}/lib/x64/Debug/rubberband-library.lib)
+else()
+    set(RUBBERBAND_LIBRARY ${RUBBERBAND_DIR}/lib/x64/Release/rubberband-library.lib)
+endif()
+
+# Import RubberBand as an interface library
+add_library(RubberBand STATIC IMPORTED)
+set_target_properties(RubberBand PROPERTIES
+    IMPORTED_LOCATION ${RUBBERBAND_LIBRARY}
+    INTERFACE_INCLUDE_DIRECTORIES ${RUBBERBAND_INCLUDE_DIR}
+)
+
+# Verify the library exists
+if(NOT EXISTS ${RUBBERBAND_LIBRARY})
+    message(WARNING "RubberBand library not found at: ${RUBBERBAND_LIBRARY}")
+endif()
+
+# JUCE configuration====================================================
 find_package(JUCE CONFIG REQUIRED)
 
 # Plugin configurtion data
@@ -77,7 +101,16 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_warning_flags    # Warning flags
         juce::juce_core
         juce::juce_dsp                          #dsp files
+        RubberBand                              # Pitch config
 )
+
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME}
+    PRIVATE 
+        winmm
+        ws2_32
+    )
+endif()
 
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
