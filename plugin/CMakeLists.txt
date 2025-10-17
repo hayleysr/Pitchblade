@@ -46,12 +46,14 @@ target_sources(${PROJECT_NAME}
         source/panels/FormantPanel.cpp
         source/panels/PitchPanel.cpp
         source/panels/CompressorPanel.cpp
+        source/panels/DeEsserPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
         source/effects/FormantDetector.cpp
         source/effects/PitchDetector.cpp
         source/effects/CompressorProcessor.cpp
+        source/effects/DeEsserProcessor.cpp
 
 )
 
