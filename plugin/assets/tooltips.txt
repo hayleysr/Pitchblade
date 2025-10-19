@@ -1,0 +1,23 @@
+// reyna 
+// Tooltips for buttons and controls
+
+// top bar buttons
+presetButton	= Open and manage your presets
+bypassButton	= Toggle all effects on or off
+settingsButton	= Open plugin settings
+
+//indivdual daisy chain buttons
+modeButton	= Change chaining mode
+bypass		= Bypass this effect temporarily
+
+// global daisy chain buttons
+addButton		= Add a new effect to the chain
+duplicateButton = Duplicate an existing effect
+deleteButton	= Remove an effect from the chain
+
+// effect discriptions
+effect.Gain			= Adjusts overall volume level
+effect.Noise Gate	= Controls background noise by muting quiet sounds
+effect.Compressor	= Reduces dynamic range to even out loud and quiet parts
+effect.Formant		= Shifts vowel/tone characteristics without changing pitch
+effect.Pitch		= Detects pitch to the nearest target note
