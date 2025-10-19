@@ -8,8 +8,6 @@
 
 
 //gain panel display
-GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
-{
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
