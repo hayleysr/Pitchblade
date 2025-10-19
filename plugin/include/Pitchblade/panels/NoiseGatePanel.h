@@ -74,7 +74,8 @@ private:
 class NoiseGateNode : public EffectNode {
 public:
 	//create node with name n reference to main processor
-    NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode("Noise Gate"), processor(proc) {}
+    NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) { }
+
 	// dsp processing step for noise gate
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
 
@@ -100,6 +101,11 @@ public:
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
         return std::make_unique<NoiseGateVisualizer>(proc);
     }
+
+    ////////////////////////////////////////////////////////////
+
+    // clone node
+    std::shared_ptr<EffectNode> clone() const override { return std::make_shared<NoiseGateNode>(processor); }
 
 private:
     //nodes own dsp processor + reference to main processor for param access

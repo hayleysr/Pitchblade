@@ -16,14 +16,12 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p): AudioProcessorEditor(&p),processorRef(p), 
-                                                                    daisyChain(p.getEffectNodes()),
+                                                                    daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
                                                                     visualizer(p, p.getEffectNodes())
 {   // gui frontend / ui reyna
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setLookAndFeel(nullptr),
-    setSize (800, 600);
+	setLookAndFeel(nullptr),    //reset look and feel
+	setSize(800, 600);          //set editor size
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
 
     addAndMakeVisible(topBar);

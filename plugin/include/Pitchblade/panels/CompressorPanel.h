@@ -46,7 +46,7 @@ class CompressorNode : public EffectNode
 {
 public:
     //GainNode() : EffectNode("Gain") {}
-    CompressorNode(AudioPluginAudioProcessor& proc) : EffectNode("Compressor"), processor(proc) { }
+    CompressorNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "CompressorNode", "Compressor"), processor(proc) { }
 
     // dsp processing step for compressor
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
@@ -86,6 +86,11 @@ public:
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
         return std::make_unique<CompressorPanel>(proc);
     }
+
+    ////////////////////////////////////////////////////////////
+
+    // clone node
+    std::shared_ptr<EffectNode> clone() const override {  return std::make_shared<CompressorNode>(processor); }
 
 private:
 	//nodes own dsp processor + reference to main processor for param access
