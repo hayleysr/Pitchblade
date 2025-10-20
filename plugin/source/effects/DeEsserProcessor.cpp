@@ -59,7 +59,7 @@ void DeEsserProcessor::updateFilter(){
 
     //Assign the new coefficients to both stereo filters
     for(auto& filter : sidechainFilters){
-        *filter.get<0>().coefficients = *coefficients;
+        filter.coefficients = *coefficients;
     }
 }
 
@@ -71,7 +71,7 @@ void DeEsserProcessor::process(juce::AudioBuffer<float>& buffer){
     for(int i = 0;i < numSamples; i++){
         //Find loudest sibilant sample across all channels
         float sidechainSample = 0.0f;
-        for(int j = 0; i < numChannels; j++){
+        for(int j = 0; j < numChannels; j++){
             //Get the unfiltered audio sample
             float originalSample = buffer.getSample(j,i);
 
