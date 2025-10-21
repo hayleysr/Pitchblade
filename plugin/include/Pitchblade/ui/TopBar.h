@@ -1,4 +1,4 @@
-// reyna macabebe
+// reyna
 
 #pragma once
 #include <JuceHeader.h>
@@ -17,6 +17,5 @@ public:
     juce::TextButton bypassButton{ "Bypass" };
     juce::TextButton settingsButton{ "Settings" };
 
-    //juce::Label pluginTitle{ {}, "Pitchblade" };
     juce::ImageComponent logo;
 };

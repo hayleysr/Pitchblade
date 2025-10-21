@@ -10,7 +10,7 @@
 class DaisyChain : public juce::Component
 {
 public:
-    DaisyChain(std::vector<std::shared_ptr<EffectNode>>& nodes);
+    DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes);
 
     void resized() override;
     void paint(juce::Graphics&) override;
@@ -20,9 +20,18 @@ public:
 	//refeshes ui from effectnodes
     void rebuild();
     std::function<void()> onReorderFinished;
-	//get current order of effects
-    std::vector<juce::String> getCurrentOrder() const { return effectNames; }
+	
+    std::vector<juce::String> getCurrentOrder() const { return effectNames; } //get current order of effects
     juce::OwnedArray<DaisyChainItem> items;
+
+	//add + copy buttons
+    juce::TextButton addButton{ "Add" };
+    juce::TextButton duplicateButton{ "Copy" };
+    juce::TextButton deleteButton{ "Del" };
+
+    void showAddMenu();
+    void showDuplicateMenu();
+    void showDeleteMenu();
 
 private:
     void handleReorder(int fromIndex, const juce::String& targetName, int targetIndex);
@@ -30,4 +39,6 @@ private:
     std::vector<std::shared_ptr<EffectNode>>& effectNodes;  // refern to processor's chain
 
 	std::vector<juce::String> effectNames; // current order of effect names
+
+    AudioPluginAudioProcessor& processorRef; // store processor reference
 };

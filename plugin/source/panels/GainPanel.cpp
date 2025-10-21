@@ -1,4 +1,4 @@
-// reyna macabebe
+// reyna
 // austin
 
 #include "Pitchblade/panels/GainPanel.h"
@@ -8,8 +8,7 @@
 
 
 //gain panel display
-GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
-{
+GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {    // added valuetree and localstate - reyna
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
@@ -19,8 +18,6 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
     gainSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    //gainSlider.setRange(-48,48);
-    //gainSlider.setValue(processor.gainDB);
     
     //Added these two to make them more nice looking and obvious for what they are - Austin
     gainSlider.setNumDecimalPlacesToDisplay(1);
@@ -28,10 +25,16 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc) : processor(proc)
     //gainSlider.addListener(this);
     addAndMakeVisible(gainSlider);
 
-	//attachment to link slider to the apvts parameters - reyna
-    gainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        processor.apvts, "GAIN", gainSlider);
+	//reynas changes - adding value tree functionality
+	const float startDb = (float)localState.getProperty("Gain", 0.0f);      // get starting gain from local state, if none, default to 0.0f
+	gainSlider.setRange(-24.0, 24.0, 0.1);                                  // set slider range
+	gainSlider.setValue(startDb, juce::dontSendNotification);               // set slider to match starting gain
+
+	// update value tree on slider change
+    gainSlider.onValueChange = [this]() { localState.setProperty("Gain", (float)gainSlider.getValue(), nullptr); };
+	localState.addListener(this);   // listen to changes in local state
 }
+
 void GainPanel::paint(juce::Graphics& g)
 {
     g.fillAll(Colors::background);
@@ -47,9 +50,16 @@ void GainPanel::resized()
     //Slider
     gainSlider.setBounds(getLocalBounds().reduced(10));
 }
-////updates gainDB in AudioPluginAudioProcessor , when slider changes value changes
-//void GainPanel::sliderValueChanged(juce::Slider* s)
-//{
-//    if (s == &gainSlider)
-//        processor.gainDB = (float)gainSlider.getValue();
-//}
+ 
+// destructor   - reyna
+GainPanel::~GainPanel() {
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+// value tree listener callback - reyna
+void GainPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) {
+    if (tree == localState && property == juce::Identifier("Gain"))
+        gainSlider.setValue((float)tree.getProperty("Gain"), juce::dontSendNotification);
+}
+

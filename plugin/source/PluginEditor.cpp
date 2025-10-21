@@ -14,16 +14,18 @@
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include "Pitchblade/panels/EffectNode.h"
 
+//tooltips
+#include "BinaryData.h"
+#include "Pitchblade/ui/TooltipManager.h"
+
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p): AudioProcessorEditor(&p),processorRef(p), 
-                                                                    daisyChain(p.getEffectNodes()),
+                                                                    daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
                                                                     visualizer(p, p.getEffectNodes())
-{   // gui frontend / ui reyna
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setLookAndFeel(nullptr),
-    setSize (800, 600);
+{   // gui frontend / ui reyna ///////////////////////////////
+	setLookAndFeel(nullptr),    //reset look and feel
+	setSize(800, 600);          //set editor size
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
 
     addAndMakeVisible(topBar);
@@ -34,6 +36,57 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
 
+
+	//tooltip manager / reyna ///////////////////////////////////////////
+	tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 800);  // .8 second delay
+    tooltipWindow->setLookAndFeel(&customLF);
+
+	// load tooltips from file or binary data (wouldnt read from file had to add to binary)
+    auto tooltipFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
+        .getParentDirectory()
+        .getChildFile("assets")
+        .getChildFile("tooltips.txt");
+
+    if (tooltipFile.existsAsFile()) {
+        // load normally from disk 
+        tooltipManager.loadTooltipsFromFile(tooltipFile);
+    } else {
+		// plugin cant access paths, load from binary data
+        juce::MemoryInputStream mis(BinaryData::tooltips_txt, BinaryData::tooltips_txtSize, false);
+        juce::String content = mis.readEntireStreamAsString();
+		// write to temp file and load
+        auto temp = juce::File::getSpecialLocation(juce::File::tempDirectory)
+            .getChildFile("tooltips_temp.txt");
+		// write content to temp file
+        temp.replaceWithText(content);  
+		tooltipManager.loadTooltipsFromFile(temp);  // load from temp file
+    }
+
+    //apply tooltips to every daisychain row
+    auto applyRowTooltips = [this]() {
+            for (int i = 0; i < daisyChain.items.size(); ++i) {
+                if (auto* row = daisyChain.items[i]) {
+					const juce::String effectKey = "effect." + row->getName(); // uses daisyChainItem setName as effect name
+
+                    row->button.setTooltip(tooltipManager.getTooltipFor(effectKey));
+                    row->bypass.setTooltip(tooltipManager.getTooltipFor("bypass"));
+                    row->modeButton.setTooltip(tooltipManager.getTooltipFor("modeButton"));
+                }
+            }
+        };
+
+	// assign tooltips to top bar and global daisychain buttons
+    topBar.presetButton.setTooltip(tooltipManager.getTooltipFor("presetButton"));
+    topBar.bypassButton.setTooltip(tooltipManager.getTooltipFor("bypassButton"));
+    topBar.settingsButton.setTooltip(tooltipManager.getTooltipFor("settingsButton"));
+    daisyChain.addButton.setTooltip(tooltipManager.getTooltipFor("addButton"));
+    daisyChain.duplicateButton.setTooltip(tooltipManager.getTooltipFor("duplicateButton"));
+    daisyChain.deleteButton.setTooltip(tooltipManager.getTooltipFor("deleteButton"));
+
+    applyRowTooltips();
+
+
+	// global bypass button / reyna  ////////////////////////////////////////////
     // Top bar bypass daisychains
     topBar.bypassButton.setClickingTogglesState(false);
     topBar.bypassButton.onClick = [this]() {
@@ -62,22 +115,19 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             };
     }
     //keeps daiychain reordering consistant
-    daisyChain.onReorderFinished = [this]()
-        {
-            //getting current ui order for reorder 
-            processorRef.requestReorder(daisyChain.getCurrentOrder());
-
+    daisyChain.onReorderFinished = [this, applyRowTooltips]() {
+            processorRef.requestReorder(daisyChain.getCurrentOrder());  //getting current ui order for reorder 
             effectPanel.refreshTabs();
             visualizer.refreshTabs();
-            for (int i = 0; i < daisyChain.items.size(); ++i)
-            {
-                daisyChain.items[i]->button.onClick = [this, i]()
-                    {
+            for (int i = 0; i < daisyChain.items.size(); ++i) {
+                daisyChain.items[i]->button.onClick = [this, i]() {
                         effectPanel.showEffect(i); 
                         visualizer.showVisualizer(i);
-                    };
+                };
             }
+			applyRowTooltips();     // reapply tooltips after reorder
         };
+
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {

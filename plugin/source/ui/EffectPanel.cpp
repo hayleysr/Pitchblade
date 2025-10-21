@@ -45,7 +45,7 @@ void EffectPanel::refreshTabs()
         if (!node) continue; // skip invalid       
 		{   // create panel from node
             auto panel = node->createPanel(processor);
-            if (panel)  
+            if (panel)   
                 tabs.addTab(node->effectName, Colors::background, panel.release(), true);
         }
     }
