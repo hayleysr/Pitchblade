@@ -83,10 +83,41 @@ void DaisyChain::rebuild()
             row->updateBypassVisual(state);         // keep visuals insync
             };
 
-		// hook chaining mode (dosnt work yet)
-        row -> onModeChanged = [this, i]( int index, int modeId) {
-            //effectNodes[index]->chainMode = modeId;
-            };
+		// chaining mode //////////////////////////////////
+        row -> onModeChanged = [this]( int index, int modeId) {
+			if (index < 0 || index >= items.size()) {   //safety check
+                return;
+            }
+
+            // get the effect name from ui
+            juce::String effectName = items[index]->getName();
+
+            /// find the matching EffectNode by name
+            auto& nodes = processorRef.getEffectNodes();
+            for (auto& node : nodes) {
+                if (node && node->effectName == effectName) {
+					node->chainMode = static_cast<ChainMode>(modeId);   // update chain mode
+                    break;
+                }
+            }
+            processorRef.requestReorder(getCurrentOrder());  // rebuild processor chain
+
+			// debug output: log updated chain modes
+            juce::Logger::outputDebugString("Chain Mode Updated >>>");
+            for (int j = 0; j < effectNodes.size(); ++j) {
+                auto n = effectNodes[j];
+                juce::String modeName;
+
+                switch (n->chainMode) {
+                case ChainMode::Down: modeName      = "Down"; break;
+                case ChainMode::Split: modeName     = "Split"; break;
+                case ChainMode::DoubleDown: modeName = "DoubleDown"; break;
+                case ChainMode::Unite: modeName     = "Unite"; break;
+                }
+                juce::Logger::outputDebugString("[" + juce::String(j) + "] " + n->effectName + " -> Mode: " + modeName);
+            }
+            juce::Logger::outputDebugString("========================================");
+        };
 
         // reorder callback ui
         row -> onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {

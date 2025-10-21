@@ -74,16 +74,19 @@ void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& 
     applyPendingReorder();
 }
 
-////// Apply pendingreorder onto audio thread
+////// Apply pendingreorder onto audio thread ////////////////
+//reconnecting of effect nodes based on pending order names - reyna 
 void AudioPluginAudioProcessor::applyPendingReorder() {
 	if (!reorderRequested.exchange(false))  //check and reset flag
         return;
 
+    juce::Logger::outputDebugString("=== [applyPendingReorder called] ===");
+
     //copy of current list
     std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
-
-	// rebuilding new list > find nodes by name in old list, and add to new list 
     std::vector<std::shared_ptr<EffectNode>> newList;
+
+	// rebuild new list based on pending order names
     for (const auto& name : pendingOrderNames) {
         for (auto& n : oldNodes) {
             if (n && n->effectName == name) {
@@ -93,22 +96,85 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
         }
     }
 
-	if (newList.empty())    //if no valid names found, do nothing
-        return; 
+    if (newList.empty()) {    //if no valid names found, do nothing
+        juce::Logger::outputDebugString("No valid nodes found to reorder.");
+        return;
+    }
 
 	//clear all connections in old and new lists > causing stack overflow crash
-    for (auto& n : newList)
-        if (n) n->clearConnections();
+    for (auto& n : newList) {
+        if (n) {
+            n->clearConnections();
+        }
+        juce::Logger::outputDebugString("Rebuilding chain connections safely...");
+    }
 
-	//reconnect nodes in new order
+	//reconnect nodes in new order using daisychain modes
     for (int i = 0; i + 1 < (int)newList.size(); ++i) {
-        newList[i]->connectTo(newList[i + 1]);
+        auto& n = newList[i];
+        if (!n) { continue; }
+		// connect based on chain mode
+        switch (n->chainMode) {
+            case ChainMode::Down:
+				if (i + 1 < newList.size()) {       // default : connect to next node
+                    n->connectTo(newList[i + 1]);
+                } break;
+
+            case ChainMode::Split:                   // connect to next two nodes
+                if (i + 1 < newList.size()) {   
+                    n->connectTo(newList[i + 1]);
+                }
+                if (i + 2 < newList.size()) {
+                    n->connectTo(newList[i + 2]);
+                } break;
+
+            case ChainMode::DoubleDown:             // parallel : connect to next and skip one
+                if (i + 1 < newList.size()) {
+                    n->connectTo(newList[i + 1]);
+                }
+                if (i + 2 < newList.size()) {
+                    n->connectTo(newList[i + 2]);
+                } break;
+
+            case ChainMode::Unite:                  // merge previous two nodes into this one
+                if (i >= 1 && i < (int)newList.size()) {
+                    newList[i - 1]->connectTo(newList[i]);
+                }
+                if (i >= 2 && i < (int)newList.size()) {
+                    newList[i - 2]->connectTo(newList[i]);
+				} break;
+
+            default:
+                break;
+        }
     }
 
     // update effect node list
     effectNodes = std::move(newList);
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
 	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
+
+	////////////////////////////////////debug printout : current effect chain
+    juce::Logger::outputDebugString("========== [Current Effect Chain] ==========");
+    for (int i = 0; i < (int)effectNodes.size(); ++i) {
+        auto& n = effectNodes[i];   
+        if (!n) continue;
+
+        juce::String modeName;
+        switch (n->chainMode) {
+            case ChainMode::Down: modeName      = "Down"; break;
+            case ChainMode::Split: modeName     = "Split"; break;
+            case ChainMode::DoubleDown: modeName = "DoubleDown"; break;
+            case ChainMode::Unite: modeName     = "Unite"; break;
+        }
+
+        juce::String msg = "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + modeName + " | Children: ";
+        for (auto& c : n->children) {
+            if (c) msg += c->effectName + " ";
+        }
+        juce::Logger::outputDebugString(msg);
+    }
+    juce::Logger::outputDebugString("============================================");
 }
 
 //==============================================================================
