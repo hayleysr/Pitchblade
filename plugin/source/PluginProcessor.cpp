@@ -6,6 +6,7 @@
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/panels/CompressorPanel.h"
+#include "Pitchblade/panels/DeEsserPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 
@@ -61,6 +62,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "COMP_RELEASE", "Compressor Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 100.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
+
+    //De-Esser : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RATIO", "DeEsser Ratio", juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f), 4.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
 
     return { params.begin(), params.end() };
 }
@@ -178,6 +191,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     compressorProcessor.prepare(sampleRate);                    //Austin
+    deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
 
 	//effect node building - reyna
@@ -185,6 +199,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<GainNode>(*this));
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
     effectNodes.push_back(std::make_shared<CompressorNode>(*this));
+    effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
