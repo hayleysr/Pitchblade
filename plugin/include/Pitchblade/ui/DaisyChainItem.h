@@ -28,8 +28,8 @@ public:
 		addAndMakeVisible(button);
 
         // dropdown for chaining mode
-        modeButton.setButtonText("v");                   
-        modeButton.setTooltip("Chain mode");
+        modeButton.setButtonText("v");                       
+        //modeButton.setTooltip("Chain mode");
         modeButton.setWantsKeyboardFocus(false);
         modeButton.onClick = [this]
             {

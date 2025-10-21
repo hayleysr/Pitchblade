@@ -19,27 +19,30 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
+
 	//apvts contructor: attachs this to processor
-    // AudioProcessorValueTreeState used to manage, a ValueTree that is used to manage an AudioProcessor's entire state
-    apvts(*this, nullptr, "Parameters", createParameterLayout())
-    {
-}
+    // AudioProcessorValueTreeState used to managea ValueTree that is used to manage an AudioProcessor's entire state
+    apvts(*this, nullptr, "Parameters", createParameterLayout()) {
+	        // check if effectNodes tree exists
+        if (!apvts.state.hasType("EffectNodes")) {
+            apvts.state = juce::ValueTree("EffectNodes");
+        }
+    }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
 
-
 //============================================================================== reyna
-/////ui stuff: perameter layout 
-//need to save peramters for daisy chain all in one place, so when reodering chain effects stay the same
-// i can also use this later for preset saving/loading
+// ui stuff: global APVTS perameter layout 
+// no longer shared controls works as a template
+// defines all default perameters, all effects creates local copies into their valuetree
 juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // Gain
+    // Gain : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GAIN", "Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
 
-    // Noise gate
+    // Noise gate : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f), -48.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -47,7 +50,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_RELEASE", "Gate Release", juce::NormalisableRange<float>(10.0f, 1000.0f, 1.0f), 100.0f));
 
-    // Compressor
+    // Compressor : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "COMP_THRESHOLD", "Compressor Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -64,8 +67,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
 ///// reorder request from UI thread
 // will instead store names of nodes in new order, and then apply reorder on audio thread 
-void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames)
-{
+void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames) {
 	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
 	pendingOrderNames = newOrderNames;              //store new order
 	reorderRequested.store(true);                   //set flag to apply reorder
@@ -73,8 +75,7 @@ void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& 
 }
 
 ////// Apply pendingreorder onto audio thread
-void AudioPluginAudioProcessor::applyPendingReorder()
-{
+void AudioPluginAudioProcessor::applyPendingReorder() {
 	if (!reorderRequested.exchange(false))  //check and reset flag
         return;
 
@@ -91,6 +92,7 @@ void AudioPluginAudioProcessor::applyPendingReorder()
             }
         }
     }
+
 	if (newList.empty())    //if no valid names found, do nothing
         return; 
 
@@ -110,6 +112,7 @@ void AudioPluginAudioProcessor::applyPendingReorder()
 }
 
 //==============================================================================
+
 const juce::String AudioPluginAudioProcessor::getName() const {
     return JucePlugin_Name;
 }

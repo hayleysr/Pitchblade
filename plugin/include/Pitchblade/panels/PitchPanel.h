@@ -29,7 +29,8 @@ private:
 
 class PitchNode : public EffectNode {
 public:
-    PitchNode(AudioPluginAudioProcessor& proc) : EffectNode("Pitch"), processor(proc) { }
+    PitchNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "PitchNode", "Pitch"), processor(proc) {}
+
     // forward audio buffer into processor's pitch detector
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override
     {
@@ -42,6 +43,11 @@ public:
     {
         return std::make_unique<PitchPanel>(proc);
     }
+
+    ////////////////////////////////////////////////////////////
+
+    // clone node
+        std::shared_ptr<EffectNode> clone() const override { return std::make_shared<PitchNode>(processor); }
 
 private:
     AudioPluginAudioProcessor& processor;

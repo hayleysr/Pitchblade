@@ -5,6 +5,7 @@
 #include <JuceHeader.h>
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/TooltipManager.h"
 
 #include "ui/TopBar.h"
 #include "ui/DaisyChain.h"
@@ -37,7 +38,9 @@ private:
     DaisyChain daisyChain;
     EffectPanel effectPanel;
     VisualizerPanel visualizer;
-    
+
+    TooltipManager tooltipManager;
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
