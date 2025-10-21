@@ -4,12 +4,21 @@
 #include "Pitchblade/PluginProcessor.h"
 
 //gain panel ui
-class NoiseGatePanel : public juce::Component
+class NoiseGatePanel : public juce::Component, public juce::ValueTree::Listener
 {
 public:
     explicit NoiseGatePanel(AudioPluginAudioProcessor& proc);
     void resized() override;
     void paint(juce::Graphics&) override;
+
+    // overloaded constructor with local state
+    NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
+
+    // destructor
+    ~NoiseGatePanel() override;
+
+    // valueTree listener callback
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
 
 private:
     // Reference back to main processor
@@ -25,6 +34,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
 	std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
+
+    juce::ValueTree localState;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoiseGatePanel)
 };
 ////////////////////////////////////////////////////////////
 // reyna changes > added noisegate visualizer placeholder
@@ -74,27 +87,38 @@ private:
 class NoiseGateNode : public EffectNode {
 public:
 	//create node with name n reference to main processor
-    NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) { }
+    explicit NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) {
+        // initialize default properties
+        if (!getMutableNodeState().hasProperty("GateThreshold"))
+            getMutableNodeState().setProperty("GateThreshold", -48.0f, nullptr);
+        if (!getMutableNodeState().hasProperty("GateAttack"))
+            getMutableNodeState().setProperty("GateAttack", 25.0f, nullptr);
+        if (!getMutableNodeState().hasProperty("GateRelease"))
+            getMutableNodeState().setProperty("GateRelease", 100.0f, nullptr);
+        // ensure EffectNodes tree exists
+        if (!processor.apvts.state.hasType("EffectNodes"))
+            processor.apvts.state = juce::ValueTree("EffectNodes");
+        // add this node to processor state tree
+        processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+    }
 
 	// dsp processing step for noise gate
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
 
-        // get parameters from apvts
-        auto* thresh = proc.apvts.getRawParameterValue("GATE_THRESHOLD");
-        auto* attack = proc.apvts.getRawParameterValue("GATE_ATTACK");
-        auto* release = proc.apvts.getRawParameterValue("GATE_RELEASE");
-        if (thresh && attack && release)
-        {
-			// set parameters in dsp processor
-            proc.getNoiseGateProcessor().setThreshold(thresh->load());
-            proc.getNoiseGateProcessor().setAttack(attack->load());
-            proc.getNoiseGateProcessor().setRelease(release->load());
-        }
-        proc.getNoiseGateProcessor().process(buffer);
+        juce::ignoreUnused(proc);
+
+        const float threshold = (float)getNodeState().getProperty("GateThreshold", -48.0f);
+        const float attack = (float)getNodeState().getProperty("GateAttack", 25.0f);
+        const float release = (float)getNodeState().getProperty("GateRelease", 100.0f);
+
+        gateDSP.setThreshold(threshold);
+        gateDSP.setAttack(attack);
+        gateDSP.setRelease(release);
+        gateDSP.process(buffer);
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<NoiseGatePanel>(proc);
+        return std::make_unique<NoiseGatePanel>(proc, getMutableNodeState());
     }
 
     // return visualizer 
@@ -105,7 +129,19 @@ public:
     ////////////////////////////////////////////////////////////
 
     // clone node
-    std::shared_ptr<EffectNode> clone() const override { return std::make_shared<NoiseGateNode>(processor); }
+    std::shared_ptr<EffectNode> clone() const override {
+        auto copiedTree = getNodeState().createCopy();                      // Copy ValueTree state
+        copiedTree.setProperty("uuid", juce::Uuid().toString(), nullptr);   // new uuid for clone
+
+        auto* self = const_cast<NoiseGateNode*>(this);                                           // to access processor ref
+        auto clonePtr = std::make_shared<NoiseGateNode>(self->processor);                        // create new GainNode
+        clonePtr->getMutableNodeState().copyPropertiesAndChildrenFrom(copiedTree, nullptr); // copy state
+
+        // Keep clone in processor state tree
+        self->processor.apvts.state.addChild(clonePtr->getMutableNodeState(), -1, nullptr);
+        clonePtr->setDisplayName(effectName); // name will be made unique in daisychian
+        return clonePtr;
+    }
 
 private:
     //nodes own dsp processor + reference to main processor for param access
