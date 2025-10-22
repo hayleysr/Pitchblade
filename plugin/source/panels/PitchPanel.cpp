@@ -16,7 +16,7 @@ void PitchPanel::paint(juce::Graphics& g)
 {
     g.setFont(50.0f); 
     g.setColour(Colors::accent);
-    g.drawText(processor.getPitchDetector().getCurrentNoteName(), 0, 50, getWidth(), 50, juce::Justification::centred);
+    g.drawText(processor.getPitchCorrector().getCurrentNoteName(), 0, 50, getWidth(), 50, juce::Justification::centred);
 }
 
 void PitchPanel::timerCallback() {

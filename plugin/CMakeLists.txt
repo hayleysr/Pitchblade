@@ -74,6 +74,7 @@ target_sources(${PROJECT_NAME}
         source/effects/NoiseGateProcessor.cpp
         source/effects/FormantDetector.cpp
         source/effects/PitchDetector.cpp
+        source/effects/PitchCorrector.cpp
 
 )
 

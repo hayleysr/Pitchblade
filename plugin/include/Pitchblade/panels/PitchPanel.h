@@ -4,7 +4,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h" 
-#include "Pitchblade/effects/PitchDetector.h"
+#include "Pitchblade/effects/PitchCorrector.h"
 
 class PitchPanel : public juce::Component,
                    private juce::Timer          // Update UI at regular intervals
@@ -34,8 +34,8 @@ public:
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override
     {
         //pull current note
-        proc.getPitchDetector().processBlock(buffer);   
-        float pitchHz = proc.getPitchDetector().getCurrentPitch();
+        proc.getPitchCorrector().processBlock(buffer);   
+        float pitchHz = proc.getPitchCorrector().getCurrentPitch();
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override

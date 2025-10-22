@@ -75,8 +75,12 @@ inline std::vector<EffectDefinition> effects = {
     { "Pitch",
         [](AudioPluginAudioProcessor& proc) -> juce::Component* { return new PitchPanel(proc); },
         [](AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer){
-            proc.getPitchDetector().processBlock(buffer);
-            proc.getPitchDetector().getCurrentPitch();
+            DBG("Pitch correction START - Buffer RMS: " << buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
+            proc.getPitchCorrector().processBlock(buffer);
+            proc.getPitchCorrector().getCurrentPitch();
+            DBG("Pitch correction END - Buffer RMS: " << buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
+            DBG("Detected Pitch: " << proc.getPitchCorrector().getCurrentPitch());
+            DBG("Correction State: " << (int)proc.getPitchCorrector().getCurrentState());
         }
 
     }
