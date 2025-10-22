@@ -8,7 +8,7 @@ PitchCorrector::PitchCorrector(int sampleRate = 44100, int channels = 1) :
     dOutputReadPos(0),
     dOutputWritePos(0),
     dCorrectionState(CorrectionState::Bypass),
-    dCorrectionRatio(0.1f),
+    dCorrectionRatio(1.0f),
     dTargetPitch(440.0),
     dCurrentNote(-1),
     dTargetNote(-1),
@@ -53,8 +53,8 @@ void PitchCorrector::prepare(double sampleRate, int samplesPerBlock, double hopS
     oPitchDetector.prepare(sampleRate, samplesPerBlock, hopSizeDenominator);
 
     // Indexers
-    dInputBuffer.setSize(1, std::max(dSamplesPerBlock * 10, 8192)); //one channel of max size
-    dOutputBuffer.setSize(1, std::max(dSamplesPerBlock * 10, 8192));
+    dInputBuffer.setSize(1, std::max(dSamplesPerBlock * 8, 8192)); //one channel of max size
+    dOutputBuffer.setSize(1, std::max(dSamplesPerBlock * 8, 8192));
     dInputBuffer.clear();
     dOutputBuffer.clear();
 
@@ -64,7 +64,7 @@ void PitchCorrector::prepare(double sampleRate, int samplesPerBlock, double hopS
 
     // Other parameters
     dCorrectionState = CorrectionState::Bypass;
-    dCorrectionRatio = 0.1f;
+    dCorrectionRatio = 1.0f;
     dTargetPitch = 220.0f;
     dCurrentNote = -1;
     dTargetNote = 57; //A3
@@ -85,13 +85,8 @@ void PitchCorrector::prepare(double sampleRate, int samplesPerBlock, double hopS
 
 void PitchCorrector::processBlock(juce::AudioBuffer<float> &buffer)
 {
-    // DBG("=== PITCH CORRECTOR ===");
-    // DBG("Buffer size: " << buffer.getNumSamples());
-    // DBG("Channels: " << buffer.getNumChannels());
-    // DBG("State: " << (int)dCorrectionState);
-    // DBG("Current pitch: " << getCurrentPitch());
-    // Set info pointers
-    auto* bufferData = buffer.getReadPointer(0);
+    auto* leftChannel = buffer.getReadPointer(0);
+    auto* rightChannel = buffer.getReadPointer(1);
     auto bufferNumSamples = buffer.getNumSamples(); 
 
     // Get pitch detection info
@@ -102,6 +97,11 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float> &buffer)
     float dDetectedPitch = oPitchDetector.getCurrentPitch();
     float dDetectedNote = oPitchDetector.getCurrentMidiNote();
 
+    // Throw out unreasonable pitches
+    if (dDetectedPitch < 50.0f || dDetectedPitch > 2000.0f) {
+        dDetectedPitch = 0.0f;
+    }
+
     // Determine correction state
     setStateMachine(dDetectedPitch, dDetectedNote);
     
@@ -109,39 +109,33 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float> &buffer)
     calculatePitchCorrection(dDetectedPitch, dDetectedNote);
 
     // Pass pitch ratio to rubber band and accumulate samples
-    for (int channel = 0; channel < 2; channel++){
-        auto* channelData = buffer.getReadPointer(channel);
-        for (int i = 0; i < bufferNumSamples; ++i){
-            if(dInputWritePos < dInputBuffer.getNumSamples()){
-                dInputBuffer.setSample(0, dInputWritePos, bufferData[i]);               //pass buffer data to input buffer
-                dInputWritePos++;
-            }
+    for (int i = 0; i < bufferNumSamples; ++i){
+        if(dInputWritePos < dInputBuffer.getNumSamples()){
+            float monoSample = 0.5f * (leftChannel[i] + rightChannel[i]);
+            dInputBuffer.setSample(0, dInputWritePos, monoSample);               //pass buffer data to input buffer
+            dInputWritePos++;
         }
-        dInputWritePos = (dInputWritePos + 1) % dInputBuffer.getNumSamples();   //wrap circular buffer
     }
+    
     DBG("Accumulated samples: " << dInputWritePos << " | Required: " << pStretcher->getSamplesRequired());
     processRubberBand();
 
     // Return processed buffer
-    for(int channel = 0; channel < 2; channel++){
+    for(int channel = 0; channel < buffer.getNumChannels(); channel++){
         auto* outputData = buffer.getWritePointer(0);
         int samplesCopied = 0;
         // Pass existing data to buffer
-        while (dOutputReadPos != dOutputWritePos && samplesCopied < bufferNumSamples)
-        {
+        while (dOutputReadPos != dOutputWritePos && samplesCopied < bufferNumSamples){
             outputData[samplesCopied] = dOutputBuffer.getSample(0, dOutputReadPos);
             dOutputReadPos = (dOutputReadPos + 1) % dOutputBuffer.getNumSamples();
             samplesCopied++;
         }
         // Route original audio for the rest of the buffer
-        for (int i = samplesCopied; i < bufferNumSamples; ++i)
-        {
-            outputData[i] = bufferData[i];
+        auto originalData = buffer.getReadPointer(channel);
+        for (int i = samplesCopied; i < bufferNumSamples; ++i){
+            outputData[i] = originalData[i];
         }
     }
-
-    if(dOutputReadPos != dOutputWritePos)
-        dOutputReadPos = (dOutputReadPos + bufferNumSamples) % dOutputBuffer.getNumSamples();
             
     dSamplesInState += bufferNumSamples;        // Increment time tracker
 }
@@ -384,21 +378,25 @@ void PitchCorrector::processRubberBand()
         std::vector<float*> inputPointers(1);
         std::vector<float> inputData(requiredInput);
         
-        int readPos = (dInputWritePos - availableInput + dInputBuffer.getNumSamples()) % 
-                        dInputBuffer.getNumSamples();
-        
+        // Read from the start of the accumulated buffer
         for (int i = 0; i < requiredInput; ++i)
         {
-            inputData[i] = dInputBuffer.getSample(0, readPos);
-            readPos = (readPos + 1) % dInputBuffer.getNumSamples();
+            inputData[i] = dInputBuffer.getSample(0, i);
         }
-        
+
         inputPointers[0] = inputData.data();
         pStretcher->process(inputPointers.data(), requiredInput, false);
         
-        dInputWritePos = (dInputWritePos - availableInput + requiredInput + 
-                                dInputBuffer.getNumSamples()) % dInputBuffer.getNumSamples();
+        // Remove processed samples, shift remaining to front
+        int remainingSamples = availableInput - requiredInput;
+        for (int i = 0; i < remainingSamples; ++i)
+        {
+            dInputBuffer.setSample(0, i, dInputBuffer.getSample(0, i + requiredInput));
+        }
+        dInputWritePos = remainingSamples;
         
+        DBG("Processed " << requiredInput << " samples, " << remainingSamples << " remaining in buffer");
+
         retrieveOutputFromRubberBand();
     }else{
         
