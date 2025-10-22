@@ -63,19 +63,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
-    //De-Esser : austin
+    // Formant Shifter : huda
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+        PARAM_FORMANT_SHIFT, "Formant",
+        juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
+
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_RATIO", "DeEsser Ratio", juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f), 4.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+        PARAM_FORMANT_MIX, "Dry/Wet",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 1.0f), 1.0f)); // full wet by default for obviousness
 
     return { params.begin(), params.end() };
+
 }
 
 ///// reorder request from UI thread
@@ -195,6 +193,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     compressorProcessor.prepare(sampleRate);                    //Austin
     deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
+    formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
+
 
 	//effect node building - reyna
     effectNodes.clear();
