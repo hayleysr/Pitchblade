@@ -40,7 +40,7 @@ void PitchCorrector::setSmoothing(float smoothingAmt){
 int PitchCorrector::quantizeToScale(int note){
     if (scale.empty()) return note;
 
-    closestNote = note;
+    int closestNote = note;
     int minDist = INT_MAX;
 
     for (int octave = 0; octave < 8; ++octave) {
@@ -53,9 +53,15 @@ int PitchCorrector::quantizeToScale(int note){
             }
         }
     }
-
+    targetNote = closestNote;
     return closestNote;
 }
 float PitchCorrector::noteToFrequency(int midi){
     return 440.0f * std::pow(2.0f, (midi - 69) / 12.0f);
+}
+
+std::string PitchCorrector::getTargetNoteName(){
+    int index = (int)targetNote % 12;
+    if (index < 0) index += 12;
+    return aNoteNames[index];
 }
