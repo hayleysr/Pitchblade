@@ -28,16 +28,19 @@ public:
 		addAndMakeVisible(button);
 
         // dropdown for chaining mode
-        modeButton.setButtonText("v");                       
-        //modeButton.setTooltip("Chain mode");
+        modeButton.setButtonText("M");                       
         modeButton.setWantsKeyboardFocus(false);
         modeButton.onClick = [this]
             {
                 juce::PopupMenu m;
-                m.addItem(1, "Down");
+                const bool isRoot = (myIndex == 0); // top of chain
+                m.addItem(1, "Down |");
                 m.addItem(2, "Split [ Double");
-                m.addItem(3, "Double = Down");
-                m.addItem(4, "Unite > Single");
+				// only non-root can do these
+                if (!isRoot) {
+                    m.addItem(3, "Double = Down");
+                    m.addItem(4, "Unite > Single");
+                }
 
                 m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&modeButton),
                     [this](int result)
@@ -45,8 +48,12 @@ public:
                         if (result > 0)
                         {
                             chainModeId = result;
-                            if (onModeChanged) 
+                            // turn button pink when changed from default
+                            auto newColor = (chainModeId == 1) ? juce::Colours::grey : Colors::accent;
+                            modeButton.setColour(juce::TextButton::buttonColourId, newColor);
+                            if (onModeChanged) {
                                 onModeChanged(myIndex, chainModeId);
+                            }
                         }
                     });
             };
@@ -68,11 +75,9 @@ public:
                     onBypassChanged(myIndex, bypassed);
 
                 if (bypassed) {
-                    bypass.setColour(juce::TextButton::buttonColourId, juce::Colours::hotpink);
-                    //bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                    bypass.setColour(juce::TextButton::buttonColourId, Colors::accent);
                 } else {
                     bypass.setColour(juce::TextButton::buttonColourId, Colors::panel);
-                   // bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
                 }
             };
 
