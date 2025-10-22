@@ -22,15 +22,10 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     int quantizedNote = quantizeToScale(std::round(detectedNote)); //determine target note
     float targetPitch = noteToFrequency(quantizedNote);
 
-    // Update ratio with retune speed
+    // Update ratio with smoothing
     float targetRatio = targetPitch / detectedPitch;
     targetRatio = juce::jlimit(0.5f, 2.0f, targetRatio);
-    // Correction ratio parameter
-    float correctedPitch = detectedPitch * targetRatio;
-    float mixedPitch = juce::jmap(correctionRatio, 0.0f, 1.0f, detectedPitch, correctedPitch);
-    float correctedRatio = mixedPitch / detectedPitch;
-
-    currentRatio = currentRatio * (1.0f - retuneSpeed) + correctedRatio * retuneSpeed;
+    currentRatio = currentRatio * (1.0f - smoothing) + targetRatio * smoothing;
 
     pitchShifter.setPitchShiftRatio(currentRatio);
     pitchShifter.processBlock(buffer);
@@ -38,16 +33,13 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
 void PitchCorrector::setScale(int scaleType){
     this->scaleType = scaleType;
 }
-void PitchCorrector::setRetuneSpeed(float smoothingAmt){
-    retuneSpeed = juce::jlimit(0.001f, 1.0f, smoothingAmt);
-}
-void PitchCorrector::setCorrectionRatio(float correctionRatio){
-    this->correctionRatio = juce::jlimit(0.0f, 1.0f, correctionRatio);
+void PitchCorrector::setSmoothing(float smoothingAmt){
+    smoothing = juce::jlimit(0.001f, 1.0f, smoothingAmt);
 }
 
 int PitchCorrector::quantizeToScale(int note){
     if (scale.empty()) return note;
-    
+
     int closestNote = note;
     int minDist = INT_MAX;
 
