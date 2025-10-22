@@ -40,7 +40,7 @@ void PitchCorrector::setSmoothing(float smoothingAmt){
 int PitchCorrector::quantizeToScale(int note){
     if (scale.empty()) return note;
 
-    int closestNote = note;
+    closestNote = note;
     int minDist = INT_MAX;
 
     for (int octave = 0; octave < 8; ++octave) {

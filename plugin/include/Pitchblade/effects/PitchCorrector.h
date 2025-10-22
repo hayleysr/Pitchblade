@@ -22,6 +22,7 @@ public:
     void setSmoothing(float);
 
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
+    float getTargetPitch() { return closestNote; }
     std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
 
 private:
@@ -39,6 +40,8 @@ private:
 
     float currentRatio = 1.0f;
     float smoothing = 1.0f;
+
+    int closestNote;
 
     double sampleRate;
 };
