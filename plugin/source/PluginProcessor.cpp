@@ -187,6 +187,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
     
+    currentBlockSize = samplesPerBlock; // Austin
+
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS

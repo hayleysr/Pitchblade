@@ -105,6 +105,9 @@ public:
 
         //add this node to processor state tree
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+
+        //Preparing the compressor
+        compressorDSP.prepare(proc.getSampleRate());
     }
 
     // dsp processing step for compressor

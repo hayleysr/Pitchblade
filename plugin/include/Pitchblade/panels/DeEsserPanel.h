@@ -101,6 +101,9 @@ public:
 
         //Add this node to processor state tree
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+
+        //Preparing the de-esser
+        deEsserDSP.prepare(proc.getSampleRate(),proc.getCurrentBlockSize());
     }
 
     //dsp processing step for de-esser
