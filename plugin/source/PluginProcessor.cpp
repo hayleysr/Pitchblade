@@ -63,6 +63,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
+	//De-Esser : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RATIO", "DeEsser Ratio", juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f), 4.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
     // Formant Shifter : huda
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_SHIFT, "Formant",
