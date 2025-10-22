@@ -21,3 +21,4 @@ effect.Noise Gate	= Controls background noise by muting quiet sounds
 effect.Compressor	= Reduces dynamic range to even out loud and quiet parts
 effect.Formant		= Shifts vowel/tone characteristics without changing pitch
 effect.Pitch		= Detects pitch to the nearest target note
+effect.De-Esser		= Reduces harsh, high-frequency 's', 'sh', and 't' sounds (sibilance)
