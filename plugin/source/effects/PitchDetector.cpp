@@ -336,7 +336,7 @@
 
  std::string PitchDetector::getCurrentNoteName()
  {
-    int index = (int)getCurrentNote() % 12;
+    int index = ((int)std::round(getCurrentNote() + 9)) % 12;
     if (index < 0) index += 12;
     return cNoteNames[index];
  }

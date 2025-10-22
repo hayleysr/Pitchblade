@@ -19,7 +19,8 @@ public:
     void prepare(double, int);
     void processBlock(juce::AudioBuffer<float>&);
     void setScale(int);
-    void setSmoothing(float);
+    void setRetuneSpeed(float);
+    void setCorrectionRatio(float);
 
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
     std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
@@ -38,7 +39,8 @@ private:
     int scaleType = 0;
 
     float currentRatio = 1.0f;
-    float smoothing = 0.1f;
+    float retuneSpeed = 0.1f;
+    float correctionRatio = 1.0f;
 
     double sampleRate;
 };
