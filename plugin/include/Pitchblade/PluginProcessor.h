@@ -9,6 +9,7 @@
 #include "Pitchblade/effects/PitchDetector.h"       //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
+#include "Pitchblade/effects/FormantShifter.h"      //huda
 
 class EffectNode;
 
@@ -72,6 +73,8 @@ public:
     PitchDetector& getPitchDetector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
 
+    FormantShifter& getFormantShifter() { return formantShifter; }
+
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
@@ -84,6 +87,7 @@ private:
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
     PitchDetector pitchProcessor;           //hayley
+    FormantShifter formantShifter;          //huda
 
     bool bypassed = false;
 

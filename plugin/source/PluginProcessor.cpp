@@ -62,7 +62,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
+    // Formant Shifter : huda
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        PARAM_FORMANT_SHIFT, "Formant",
+        juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        PARAM_FORMANT_MIX, "Dry/Wet",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 1.0f), 1.0f)); // full wet by default for obviousness
+
     return { params.begin(), params.end() };
+
 }
 
 ///// reorder request from UI thread
@@ -179,6 +189,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     compressorProcessor.prepare(sampleRate);                    //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
+    formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
+
 
 	//effect node building - reyna
     effectNodes.clear();
