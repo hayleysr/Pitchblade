@@ -80,7 +80,6 @@ inline std::vector<EffectDefinition> effects = {
             proc.getPitchCorrector().getCurrentPitch();
             DBG("Pitch correction END - Buffer RMS: " << buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
             DBG("Detected Pitch: " << proc.getPitchCorrector().getCurrentPitch());
-            DBG("Correction State: " << (int)proc.getPitchCorrector().getCurrentState());
         }
 
     }

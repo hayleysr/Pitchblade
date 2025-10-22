@@ -77,6 +77,7 @@ target_sources(${PROJECT_NAME}
         source/effects/FormantDetector.cpp
         source/effects/PitchDetector.cpp
         source/effects/PitchCorrector.cpp
+        source/effects/PitchShifter.cpp
         source/effects/CompressorProcessor.cpp
         source/effects/DeEsserProcessor.cpp
 
