@@ -38,7 +38,7 @@ private:
     int scaleType = 0;
 
     float currentRatio = 1.0f;
-    float smoothing = 0.1f;
+    float smoothing = 1.0f;
 
     double sampleRate;
 };
