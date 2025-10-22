@@ -46,7 +46,7 @@ void PitchCorrector::prepare(double sampleRate, int samplesPerBlock, double hopS
         
     // Rubber band stretcher setup for the phase vocoder mechanic
     pStretcher = std::make_unique<RubberBand::RubberBandStretcher>(
-        sampleRate, 1, options, 1.0, 1.0);           //args: sampleRate, channels, Options, initialTimeRatio, initialPitchScale
+        sampleRate, 1, options, 1.0, dCorrectionRatio);           //args: sampleRate, channels, Options, initialTimeRatio, initialPitchScale
     pStretcher->setMaxProcessSize(dSamplesPerBlock); //inform rubber band of max size
 
     // Initialize pitch detector
@@ -82,62 +82,68 @@ void PitchCorrector::prepare(double sampleRate, int samplesPerBlock, double hopS
     }
 
 }
-
 void PitchCorrector::processBlock(juce::AudioBuffer<float> &buffer)
 {
-    auto* leftChannel = buffer.getReadPointer(0);
-    auto* rightChannel = buffer.getReadPointer(1);
     auto bufferNumSamples = buffer.getNumSamples(); 
 
-    // Get pitch detection info
-    juce::AudioBuffer<float> analysisBuffer(1, bufferNumSamples);
-    analysisBuffer.copyFrom(0, 0, buffer, 0, 0, bufferNumSamples);
-    oPitchDetector.processBlock(analysisBuffer);
-
-    float dDetectedPitch = oPitchDetector.getCurrentPitch();
-    float dDetectedNote = oPitchDetector.getCurrentMidiNote();
-
-    // Throw out unreasonable pitches
-    if (dDetectedPitch < 50.0f || dDetectedPitch > 2000.0f) {
-        dDetectedPitch = 0.0f;
+    juce::AudioBuffer<float> monoBuffer(1, bufferNumSamples);
+    if (buffer.getNumChannels() >= 2) {
+        auto* left = buffer.getReadPointer(0);
+        auto* right = buffer.getReadPointer(1);
+        auto* mono = monoBuffer.getWritePointer(0);
+        for (int i = 0; i < bufferNumSamples; ++i) {
+            mono[i] = 0.5f * (left[i] + right[i]);
+        }
+    } else {
+        monoBuffer.copyFrom(0, 0, buffer, 0, 0, bufferNumSamples);
     }
 
-    // Determine correction state
-    setStateMachine(dDetectedPitch, dDetectedNote);
+    // Pitch detection
+    oPitchDetector.processBlock(monoBuffer);
+    float dDetectedPitch = oPitchDetector.getCurrentPitch();
     
-    // Calculate pitch ratio
+    // Throw out unreasonable values
+    if (dDetectedPitch < 50.0f || dDetectedPitch > 2000.0f){
+        dDetectedPitch = 0.0f;
+    }
+    
+    float dDetectedNote = oPitchDetector.getCurrentMidiNote();
+
+    // State machine and correction calculation
+    setStateMachine(dDetectedPitch, dDetectedNote);
     calculatePitchCorrection(dDetectedPitch, dDetectedNote);
 
-    // Pass pitch ratio to rubber band and accumulate samples
+    // Accumulate input samples (mono)
+    auto* monoData = monoBuffer.getReadPointer(0);
     for (int i = 0; i < bufferNumSamples; ++i){
-        if(dInputWritePos < dInputBuffer.getNumSamples()){
-            float monoSample = 0.5f * (leftChannel[i] + rightChannel[i]);
-            dInputBuffer.setSample(0, dInputWritePos, monoSample);               //pass buffer data to input buffer
+        if (dInputWritePos < dInputBuffer.getNumSamples())
+        {
+            dInputBuffer.setSample(0, dInputWritePos, monoData[i]);
             dInputWritePos++;
         }
     }
     
-    DBG("Accumulated samples: " << dInputWritePos << " | Required: " << pStretcher->getSamplesRequired());
+    DBG("Accumulated: " << dInputWritePos << " | Required: " << pStretcher->getSamplesRequired());
     processRubberBand();
 
-    // Return processed buffer
-    for(int channel = 0; channel < buffer.getNumChannels(); channel++){
-        auto* outputData = buffer.getWritePointer(0);
+    // Output processed audio to both channels
+    for (int channel = 0; channel < buffer.getNumChannels(); channel++){
+        auto* outputData = buffer.getWritePointer(channel);
         int samplesCopied = 0;
-        // Pass existing data to buffer
+        
         while (dOutputReadPos != dOutputWritePos && samplesCopied < bufferNumSamples){
             outputData[samplesCopied] = dOutputBuffer.getSample(0, dOutputReadPos);
             dOutputReadPos = (dOutputReadPos + 1) % dOutputBuffer.getNumSamples();
             samplesCopied++;
         }
-        // Route original audio for the rest of the buffer
-        auto originalData = buffer.getReadPointer(channel);
-        for (int i = samplesCopied; i < bufferNumSamples; ++i){
-            outputData[i] = originalData[i];
+        
+        // Fill undershoots with empty noise.
+        for (int i = samplesCopied; i < bufferNumSamples; ++i) {
+            outputData[i] = 0.0f;
         }
     }
-            
-    dSamplesInState += bufferNumSamples;        // Increment time tracker
+    
+    dSamplesInState += bufferNumSamples;
 }
 
 /* parameters / dials */
@@ -299,7 +305,7 @@ void PitchCorrector::calculatePitchCorrection(float detectedPitch, float detecte
                 // Auto-tune mode: quantize to nearest scale note
                 targetPitch = noteToFrequency(quantizeToScale(detectedNote));
             }
-            
+            if(detectedPitch <= 0.0f) return;
             targetRatio = targetPitch / detectedPitch;
             
             // Apply correction speed smoothing
@@ -337,7 +343,9 @@ void PitchCorrector::calculatePitchCorrection(float detectedPitch, float detecte
     dCorrectionRatio = dCorrectionRatio * (1.0f - finalWaver) + 
                         targetRatio * finalWaver;
     
+    DBG("Pitch Correction - Detected: " << detectedPitch << " Hz, Target: " << dTargetPitch << " Hz, Ratio: " << dCorrectionRatio);
     pStretcher->setPitchScale(dCorrectionRatio);
+    pStretcher->setTimeRatio(1.0 / dCorrectionRatio);
 }
 
 int PitchCorrector::quantizeToScale(float detectedNote)
