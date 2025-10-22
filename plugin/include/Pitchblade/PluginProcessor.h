@@ -6,7 +6,7 @@
 #include "Pitchblade/effects/GainProcessor.h"       //Austin
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
-#include "Pitchblade/effects/PitchDetector.h"       //hayley
+#include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
@@ -70,7 +70,7 @@ public:
         void setLatestFormants(const std::vector<float>& freqs) { latestFormants = freqs; }
         const std::vector<float>& getLatestFormants() { return latestFormants; }
 
-    PitchDetector& getPitchDetector() { return pitchProcessor; }
+    PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
     DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
 
@@ -87,7 +87,7 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
-    PitchDetector pitchProcessor;           //hayley
+    PitchCorrector pitchProcessor;          // To correct pitch - hayley
 
     bool bypassed = false;
 

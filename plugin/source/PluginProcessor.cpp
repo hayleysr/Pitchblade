@@ -194,7 +194,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     compressorProcessor.prepare(sampleRate);                    //Austin
     deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
+    pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
 
 	//effect node building - reyna
     effectNodes.clear();
