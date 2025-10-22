@@ -207,7 +207,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 
 	// set up default chain: Gain > Noise gate > formant > Pitch
 	for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
-    for (int i = 0; i + 1 < effectNodes.size(); ++i) {
+    for (size_t i = 0; i + 1 < effectNodes.size(); ++i) {
         effectNodes[i]->connectTo(effectNodes[i + 1]);
     }
 	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
