@@ -1,11 +1,15 @@
 // Written by Austin Hills
-// Redone to use APVTS attachments
+// Redone to use local ValueTree state instead of APVTS
 
 #include "Pitchblade/panels/CompressorPanel.h"
+#include <JuceHeader.h>
+#include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
+#include "BinaryData.h"
 
 //Set up of UI components
-CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(proc)
+CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state)
 {
     // Label
     compressorLabel.setText("Compressor", juce::dontSendNotification);
@@ -14,80 +18,112 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc) : processor(pr
     // Mode Button
     modeButton.setClickingTogglesState(true);
     addAndMakeVisible(modeButton);
-    modeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.apvts, "COMP_LIMITER_MODE", modeButton);
 
-    //This updates the UI when the button is clicked
-    modeButton.onClick = [this](){
-        updateSliderVisibility();
+    // Set initial button state from local state
+    const bool startLimiterMode = (bool)localState.getProperty("CompLimiterMode", false);
+    modeButton.setToggleState(startLimiterMode, juce::dontSendNotification);
+    
+    // On click, update the local state property
+    modeButton.onClick = [this]() {
+        localState.setProperty("CompLimiterMode", modeButton.getToggleState(), nullptr);
     };
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    //Set the isReadOnly flag to false to allow user to edit - Austin
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    //Added these two to make them more nice looking and obvious for what they are - Austin
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
 
-    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_THRESHOLD", thresholdSlider);
-
-    // Threshold Label - Austin
-    addAndMakeVisible(thresholdLabel);
+    // Threshold Label
     thresholdLabel.setText("Threshold", juce::dontSendNotification);
     thresholdLabel.setJustificationType(juce::Justification::centred);
-
+    addAndMakeVisible(thresholdLabel);
+    
     // Ratio slider
     ratioSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    //Set the isReadOnly flag to false to allow user to edit - Austin
     ratioSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    //Added these two to make them more nice looking and obvious for what they are - Austin
     ratioSlider.setNumDecimalPlacesToDisplay(1);
     ratioSlider.setTextValueSuffix(" : 1");
     addAndMakeVisible(ratioSlider);
-
-    ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_RATIO", ratioSlider);
-
-    // Ratio Label - Austin
-    addAndMakeVisible(ratioLabel);
+    
+    // Ratio Label
     ratioLabel.setText("Ratio", juce::dontSendNotification);
     ratioLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(ratioLabel);
 
     // Attack slider
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    //Set the isReadOnly flag to false to allow user to edit - Austin
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    //Added these two to make them more nice looking and obvious for what they are - Austin
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(attackSlider);
-
-    attackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_ATTACK", attackSlider);
-
-    // Attack Label - Austin
-    addAndMakeVisible(attackLabel);
+    
+    // Attack Label
     attackLabel.setText("Attack", juce::dontSendNotification);
     attackLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(attackLabel);
 
     // Release slider
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    //Set the isReadOnly flag to false to allow user to edit - Austin
     releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-    //Added these two to make them more nice looking and obvious for what they are - Austin
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
 
-    releaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts, "COMP_RELEASE", releaseSlider);
-
-    // Release Label - Austin
-    addAndMakeVisible(releaseLabel);
+    // Release Label
     releaseLabel.setText("Release", juce::dontSendNotification);
     releaseLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(releaseLabel);
+
+    ///////////////////
+    // Link sliders to local state properties
+    const float startThresholdDb = (float)localState.getProperty("CompThreshold", 0.0f);
+    thresholdSlider.setRange(-60.0f, 0.0f, 0.1f);
+    thresholdSlider.setValue(startThresholdDb, juce::dontSendNotification);
+    thresholdSlider.onValueChange = [this]() {
+        localState.setProperty("CompThreshold", (float)thresholdSlider.getValue(), nullptr);
+        };
+
+    const float startRatio = (float)localState.getProperty("CompRatio", 3.0f);
+    ratioSlider.setRange(1.0f, 20.0f, 0.1f);
+    ratioSlider.setValue(startRatio, juce::dontSendNotification);
+    ratioSlider.onValueChange = [this]() {
+        localState.setProperty("CompRatio", (float)ratioSlider.getValue(), nullptr);
+        };
+    
+    const float startAttackMs = (float)localState.getProperty("CompAttack", 50.0f);
+    attackSlider.setRange(1.0f, 200.0f, 1.0f);
+    attackSlider.setValue(startAttackMs, juce::dontSendNotification);
+    attackSlider.onValueChange = [this]() {
+        localState.setProperty("CompAttack", (float)attackSlider.getValue(), nullptr);
+        };
+    
+    const float startReleaseMs = (float)localState.getProperty("CompRelease", 250.0f);
+    releaseSlider.setRange(10.0f, 1000.0f, 1.0f);
+    releaseSlider.setValue(startReleaseMs, juce::dontSendNotification);
+    releaseSlider.onValueChange = [this]() {
+        localState.setProperty("CompRelease", (float)releaseSlider.getValue(), nullptr);
+        };
+    
+    // Add this panel as a listener to the local state
+    localState.addListener(this);
 
     //Initializing visibility of sliders
     updateSliderVisibility();
 };
+
+void CompressorPanel::paint(juce::Graphics& g)
+{
+    g.fillAll(Colors::background);
+    g.drawRect(getLocalBounds(), 2);
+}
+
+CompressorPanel::~CompressorPanel()
+{
+    if (localState.isValid())
+        localState.removeListener(this);
+}
 
 void CompressorPanel::resized()
 {
@@ -95,11 +131,10 @@ void CompressorPanel::resized()
 
     //Title label at the top
     compressorLabel.setBounds(area.removeFromTop(30));
-
-    modeButton.setBounds(area.removeFromTop(30).reduced(10,5));
+    modeButton.setBounds(area.removeFromTop(30).reduced(10, 5));
 
     auto dials = area.reduced(10);
-    int dialWidth = dials.getWidth()/4;
+    int dialWidth = dials.getWidth() / 4;
 
     auto thresholdArea = dials.removeFromLeft(dialWidth).reduced(5);
     auto ratioArea = dials.removeFromLeft(dialWidth).reduced(5);
@@ -125,25 +160,40 @@ void CompressorPanel::resized()
 
 void CompressorPanel::updateSliderVisibility()
 {
-    //Get the current state from the toggle state
-    bool isLimiter = modeButton.getToggleState();
+    // Get the current state from the local state
+    const bool isLimiter = (bool)localState.getProperty("CompLimiterMode", false);
 
-    if(isLimiter==0){
-        modeButton.setButtonText("Limiter Mode");
-    }else{
+    if (isLimiter) {
         modeButton.setButtonText("Compressor Mode");
     }
+    else {
+        modeButton.setButtonText("Limiter Mode");
+    }
 
-    //Show or hide controls based on the mode
-    ratioSlider.setVisible(isLimiter);
-    ratioLabel.setVisible(isLimiter);
-    attackSlider.setVisible(isLimiter);
-    attackLabel.setVisible(isLimiter);
+    // In limiter mode, hide the ratio and attack sliders
+    const bool showCompressorControls = !isLimiter;
+    ratioSlider.setVisible(showCompressorControls);
+    ratioLabel.setVisible(showCompressorControls);
+    attackSlider.setVisible(showCompressorControls);
+    attackLabel.setVisible(showCompressorControls);
 }
 
-void CompressorPanel::paint(juce::Graphics& g)
+void CompressorPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
 {
-    g.fillAll(Colors::background);
-    //g.setColour(Colors::accent);
-    g.drawRect(getLocalBounds(), 2);
+    if (tree == localState)
+    {
+        if (property == juce::Identifier("CompThreshold"))
+            thresholdSlider.setValue((float)tree.getProperty("CompThreshold"), juce::dontSendNotification);
+        else if (property == juce::Identifier("CompRatio"))
+            ratioSlider.setValue((float)tree.getProperty("CompRatio"), juce::dontSendNotification);
+        else if (property == juce::Identifier("CompAttack"))
+            attackSlider.setValue((float)tree.getProperty("CompAttack"), juce::dontSendNotification);
+        else if (property == juce::Identifier("CompRelease"))
+            releaseSlider.setValue((float)tree.getProperty("CompRelease"), juce::dontSendNotification);
+        else if (property == juce::Identifier("CompLimiterMode"))
+        {
+            modeButton.setToggleState((bool)tree.getProperty("CompLimiterMode"), juce::dontSendNotification);
+            updateSliderVisibility();
+        }
+    }
 }

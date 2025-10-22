@@ -63,7 +63,7 @@ void NoiseGateProcessor::process(juce::AudioBuffer<float>& buffer){
         //want that, but the option is there for them.
         if(targetEnvelope > envelope){
             envelope = attackCoeff * envelope + (1.0f - attackCoeff) * targetEnvelope;
-        }else{
+        }else if(targetEnvelope < envelope){
             envelope = releaseCoeff * envelope + (1.0f - releaseCoeff) * targetEnvelope;
         }
 
