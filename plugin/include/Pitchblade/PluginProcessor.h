@@ -7,8 +7,9 @@
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
 #include "Pitchblade/effects/PitchCorrector.h"      //hayley
-
-#include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/effects/CompressorProcessor.h" //Austin
+#include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
+#include "Pitchblade/panels/EffectNode.h"           //reyna
 
 class EffectNode;
 
@@ -70,9 +71,18 @@ public:
         const std::vector<float>& getLatestFormants() { return latestFormants; }
 
     PitchCorrector& getPitchCorrector() { return pitchProcessor; }
+    CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
+    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+
+    //reyna 
+	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
+	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
+
+    int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
 
 private:
     //============================== 
+    //processors
     GainProcessor gainProcessor;            //austin
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
@@ -80,10 +90,23 @@ private:
     PitchCorrector pitchProcessor;          // To correct pitch - hayley
 
     bool bypassed = false;
+
+    int currentBlockSize = 512; // Austin
+
+    CompressorProcessor compressorProcessor; //Austin
+    DeEsserProcessor deEsserProcessor;      //Austin
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;
+	std::shared_ptr<std::vector<std::shared_ptr<EffectNode>>> activeNodes; // copy of current active nodes for reordering
     std::shared_ptr<EffectNode> rootNode;
+
+    //reorder queue
+	std::mutex audioMutex;                           
+	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
+	std::vector<juce::String> pendingOrderNames;        // new order to apply
+
+    void applyPendingReorder();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

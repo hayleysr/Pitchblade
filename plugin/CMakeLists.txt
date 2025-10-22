@@ -69,12 +69,16 @@ target_sources(${PROJECT_NAME}
         source/panels/NoiseGatePanel.cpp
         source/panels/FormantPanel.cpp
         source/panels/PitchPanel.cpp
+        source/panels/CompressorPanel.cpp
+        source/panels/DeEsserPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp
         source/effects/FormantDetector.cpp
         source/effects/PitchDetector.cpp
         source/effects/PitchCorrector.cpp
+        source/effects/CompressorProcessor.cpp
+        source/effects/DeEsserProcessor.cpp
 
 )
 
@@ -89,6 +93,7 @@ juce_add_binary_data(BinaryData
     SOURCES
         assets/pitchblade_logo.png
         assets/pb_logo.png
+        assets/tooltips.txt
 )
 
 #Include these libraries in build

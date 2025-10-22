@@ -52,4 +52,19 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.setColour(Colors::accent);
         g.drawRoundedRectangle(bounds, 5.0f, 1.0f);
     }
+
+    void drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) override {
+        // clear background
+		g.fillAll(juce::Colours::transparentBlack); 
+		// background
+        g.setColour(Colors::panel.withAlpha(0.75f));
+        g.fillRoundedRectangle(0.0f, 0.0f, (float)width, (float)height, 6.0f);
+		// outline
+        g.setColour(Colors::panel);
+        g.drawRoundedRectangle(0.5f, 0.5f, (float)width - 1.0f, (float)height - 1.0f, 6.0f, 1.5f);
+        //text
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(14.0f));
+        g.drawFittedText(text, 8, 4, width - 16, height - 8, juce::Justification::centredLeft, 2);
+    }
 };

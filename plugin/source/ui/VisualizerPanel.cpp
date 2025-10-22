@@ -1,21 +1,21 @@
-// reyna macabebe
+// reyna
 #include <JuceHeader.h>
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/PluginProcessor.h"
 
 #include "Pitchblade/panels/EffectNode.h"
 
-VisualizerPanel::VisualizerPanel() {
+VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes)
+                                                                        : processor(proc), effectNodes(nodes) {
     tabs.setTabBarDepth(0);  // hide tab bar
     addAndMakeVisible(tabs);
+    refreshTabs();
 }
 
 void VisualizerPanel::paint(juce::Graphics& g)
 {
     //placeholder
     g.fillAll(juce::Colours::black);
-    /*g.setColour(juce::Colours::white);
-    g.drawText("Visualizer Placeholder", getLocalBounds(), juce::Justification::centred);*/
 }
 
 void VisualizerPanel::resized()
@@ -32,9 +32,19 @@ void VisualizerPanel::refreshTabs()
 {
     tabs.clearTabs();
 
-    auto* placeholder = new juce::Label({}, "Visualizer");
-    placeholder->setJustificationType(juce::Justification::centred);
-    placeholder->setFont(juce::Font(18.0f, juce::Font::bold));
-
-    tabs.addTab("Visualizer", juce::Colours::black, placeholder, true);
+	// each node creates its own visualizer 
+    for (auto& node : effectNodes)
+    {
+        auto visualizer = node->createVisualizer(processor);
+        if (visualizer)
+            tabs.addTab(node->effectName, juce::Colours::black, visualizer.release(), true);
+        else
+        {
+            // default placeholder , currently for formant and pitch 
+            auto* placeholder = new juce::Label({}, node->effectName + " Visualizer");
+            placeholder->setJustificationType(juce::Justification::centred);
+            placeholder->setFont(juce::Font(18.0f));
+            tabs.addTab(node->effectName, juce::Colours::black, placeholder, true);
+        }
+    }
 }

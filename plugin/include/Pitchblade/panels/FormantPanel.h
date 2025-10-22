@@ -36,7 +36,7 @@ private:
 
 class FormantNode : public EffectNode {
 public:
-    FormantNode(AudioPluginAudioProcessor& proc) : EffectNode("Formant"), processor(proc) { }
+    FormantNode(AudioPluginAudioProcessor& proc): EffectNode(proc, "FormantNode", "Formant"), processor(proc) {}
 
     // forward buffer into processor's formant detector
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
@@ -61,6 +61,14 @@ public:
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
         return std::make_unique<FormantPanel>(proc);
     }
+
+    ////////////////////////////////////////////////////////////
+
+    // clone node
+        std::shared_ptr<EffectNode> clone() const override
+        {
+            return std::make_shared<FormantNode>(processor);
+        }
 
 private:
     AudioPluginAudioProcessor& processor;

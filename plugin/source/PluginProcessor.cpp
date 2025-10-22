@@ -5,6 +5,8 @@
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
+#include "Pitchblade/panels/CompressorPanel.h"
+#include "Pitchblade/panels/DeEsserPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 
@@ -18,27 +20,30 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
+
 	//apvts contructor: attachs this to processor
-    // AudioProcessorValueTreeState used to manage, a ValueTree that is used to manage an AudioProcessor's entire state
-    apvts(*this, nullptr, "Parameters", createParameterLayout())
-    {
-}
+    // AudioProcessorValueTreeState used to managea ValueTree that is used to manage an AudioProcessor's entire state
+    apvts(*this, nullptr, "Parameters", createParameterLayout()) {
+	        // check if effectNodes tree exists
+        if (!apvts.state.hasType("EffectNodes")) {
+            apvts.state = juce::ValueTree("EffectNodes");
+        }
+    }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
 
-
-//==============================================================================
-//ui stuff: perameter layout - reyna
-//need to save peramters for daisy chain all in one place, so when reodering chain effects stay the same
-// i can also use this later for preset saving/loading
+//============================================================================== reyna
+// ui stuff: global APVTS perameter layout 
+// no longer shared controls works as a template
+// defines all default perameters, all effects creates local copies into their valuetree
 juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::createParameterLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // Gain
+    // Gain : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GAIN", "Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
 
-    // Noise gate
+    // Noise gate : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f), -48.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -46,10 +51,81 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_RELEASE", "Gate Release", juce::NormalisableRange<float>(10.0f, 1000.0f, 1.0f), 100.0f));
 
+    // Compressor : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_THRESHOLD", "Compressor Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_RATIO", "Compressor Ratio", juce::NormalisableRange<float>(1.0f, 10.0f, 0.1f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_ATTACK", "Compressor Attack", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 10.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "COMP_RELEASE", "Compressor Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 100.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
+
+    //De-Esser : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RATIO", "DeEsser Ratio", juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f), 4.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
     return { params.begin(), params.end() };
 }
 
+///// reorder request from UI thread
+// will instead store names of nodes in new order, and then apply reorder on audio thread 
+void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames) {
+	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
+	pendingOrderNames = newOrderNames;              //store new order
+	reorderRequested.store(true);                   //set flag to apply reorder
+    applyPendingReorder();
+}
+
+////// Apply pendingreorder onto audio thread
+void AudioPluginAudioProcessor::applyPendingReorder() {
+	if (!reorderRequested.exchange(false))  //check and reset flag
+        return;
+
+    //copy of current list
+    std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
+
+	// rebuilding new list > find nodes by name in old list, and add to new list 
+    std::vector<std::shared_ptr<EffectNode>> newList;
+    for (const auto& name : pendingOrderNames) {
+        for (auto& n : oldNodes) {
+            if (n && n->effectName == name) {
+                newList.push_back(n);
+                break;
+            }
+        }
+    }
+
+	if (newList.empty())    //if no valid names found, do nothing
+        return; 
+
+	//clear all connections in old and new lists > causing stack overflow crash
+    for (auto& n : newList)
+        if (n) n->clearConnections();
+
+	//reconnect nodes in new order
+    for (int i = 0; i + 1 < (int)newList.size(); ++i) {
+        newList[i]->connectTo(newList[i + 1]);
+    }
+
+    // update effect node list
+    effectNodes = std::move(newList);
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
+}
+
 //==============================================================================
+
 const juce::String AudioPluginAudioProcessor::getName() const {
     return JucePlugin_Name;
 }
@@ -111,23 +187,32 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
     
+    currentBlockSize = samplesPerBlock; // Austin
+
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    compressorProcessor.prepare(sampleRate);                    //Austin
+    deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
 
 	//effect node building - reyna
     effectNodes.clear();
     effectNodes.push_back(std::make_shared<GainNode>(*this));
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
+    effectNodes.push_back(std::make_shared<CompressorNode>(*this));
+    effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
 	// set up default chain: Gain > Noise gate > formant > Pitch
+	for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
     for (int i = 0; i + 1 < effectNodes.size(); ++i) {
         effectNodes[i]->connectTo(effectNodes[i + 1]);
     }
+	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -168,11 +253,19 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
+	// reordering chain if requested - reyna
+    applyPendingReorder();
+
     // indivdual bypass checker reyna
 	// process and forward only if root node exists and plugin is not globally bypassed
     //  for future chaining effects theyre all the same rn
-    if (rootNode && !isBypassed()) {    
-        rootNode->processAndForward(*this, buffer);
+    if (!isBypassed() && activeNodes && !activeNodes->empty()) {
+		auto chain = activeNodes; // copy shared
+		auto root = chain->front(); //  get root node
+        if (root)
+            root->processAndForward(*this, buffer);
+    } else {
+        buffer.clear();
     }
 
     //juce boilerplate

@@ -316,7 +316,7 @@
 
  float PitchDetector::getCurrentMidiNote()
 {
-    return (int)(round(69.0 + 12.0 * log2(dCurrentPitch / 440.0)));
+    return (int)(round(69.0f + 12.0f * log2(dCurrentPitch / 440.0f)));
 }
 
  /**
