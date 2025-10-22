@@ -6,8 +6,8 @@
 class FormantShifter
 {
 public:
-    FormantShifter();                 // impl constructed here
-    ~FormantShifter() noexcept;       // out-of-line dtor (after Impl is complete in .cpp)
+    FormantShifter(); // impl constructed here
+    ~FormantShifter() noexcept;  
 
     void prepare(double sampleRate, int maxBlockSize, int numChannels);
     void reset();
