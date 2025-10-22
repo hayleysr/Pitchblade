@@ -54,6 +54,7 @@ target_sources(${PROJECT_NAME}
         source/effects/PitchDetector.cpp
         source/effects/CompressorProcessor.cpp
         source/effects/FormantShifter.cpp
+        source/effects/DeEsser.cpp
 
 )
 
