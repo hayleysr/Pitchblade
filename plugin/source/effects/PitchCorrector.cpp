@@ -4,10 +4,11 @@ void PitchCorrector::prepare(double sampleRate, int blockSize){
     pitchDetector.prepare(sampleRate, blockSize, 4);
     pitchShifter.prepare(sampleRate, blockSize);
     currentRatio = 1.0f;    //high correction
+    monoBuffer.setSize(1, blockSize);
 }
 void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     // Process pitch detection
-    juce::AudioBuffer<float> monoBuffer(1, buffer.getNumSamples());
+    auto numSamples = buffer.getNumSamples();
     monoBuffer.copyFrom(0, 0, buffer, 0, 0 ,buffer.getNumSamples());
     pitchDetector.processBlock(monoBuffer);
 
@@ -26,7 +27,7 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     float targetRatio = targetPitch / detectedPitch;
     targetRatio = juce::jlimit(0.5f, 2.0f, targetRatio);
     currentRatio = currentRatio * (1.0f - smoothing) + targetRatio * smoothing;
-    
+
     pitchShifter.setPitchShiftRatio(currentRatio);
     pitchShifter.processBlock(buffer);
 }

@@ -33,6 +33,8 @@ private:
     PitchDetector pitchDetector;
     PitchShifter pitchShifter;
 
+    juce::AudioBuffer<float> monoBuffer;
+
     std::vector<std::vector<int>> scale = {
         { 12, 14, 16, 17, 19, 21, 23}, // Major
         { 12, 14, 15, 17, 19, 20, 22}  // Minor

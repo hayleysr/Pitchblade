@@ -43,6 +43,8 @@
  void PitchDetector::prepare(double sampleRate, int samplesPerBlock, double hopSizeDenominator = 4)
  {
     dSampleRate = sampleRate;
+    frame.assign(dWindowSize, 0.0f);
+    r.assign(dYinBufferSize + 1, 0.0f);
 
     // Initialize circular buffer of size windowSize with empty floats
     for(int i = 0; i < dWindowSize; ++i)
@@ -81,17 +83,11 @@
         dCircularIdx = (dCircularIdx + 1) % dWindowSize;
     }
 
-    // Copy accumulated frames to handle wrap-around
-    std::vector<float> frame(dWindowSize, 0.0f);
+    // Handle wrap-around and apply windowing function
     int startIndex = (dCircularIdx - dWindowSize + dWindowSize) % dWindowSize;
     for (int i = 0; i < dWindowSize; ++i) {
         int index = (startIndex + i) % dWindowSize;
-        frame[i] = dCircularBuffer[index];
-    }
-
-    // Apply windowing function
-    for (int n = 0; n < dWindowSize; ++n) {
-        frame[n] *= dWindowFunction[n];
+        frame[i] = dCircularBuffer[index] * dWindowFunction[i];
     }
 
     // Pass to processor to calculate pYIN
@@ -127,7 +123,6 @@
     }
 
     // Running sum
-    std::vector<float> r(dYinBufferSize + 1, 0.0f);
     r[0] = sumSquares;
 
     // from DF(tau) = r_{\tau}(0) + r_{t + \tau}(0) - 2r_t(\tau)
