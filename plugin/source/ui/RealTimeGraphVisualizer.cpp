@@ -1,6 +1,6 @@
 //Written by Austin Hills
 
-#include "ui/RealTimeGraphVisualizer.h"
+#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
 //Initializing by setting the parameters as defined
 RealTimeGraphVisualizer::RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz){

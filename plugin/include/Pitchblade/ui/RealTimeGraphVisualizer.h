@@ -5,7 +5,7 @@
 #include <JuceHeader.h>
 #include <deque>
 //deque essentially has a lot of the same functionality as vectors, but it has better performance when adding or removing elements from the front. It is designed for queue-like behavior
-#include "ui/ColorPalette.h"
+#include "Pitchblade/ui/ColorPalette.h"
 
 
 //This visualizer class is a generic visualizer for any data stream. Its primary functionality is as a first-in, first-out queue, displaying a fixed number of recent data points

@@ -197,3 +197,29 @@ void CompressorPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce
         }
     }
 }
+
+CompressorVisualizer::~CompressorVisualizer(){
+        //Stop listening
+        if(localState.isValid()){
+            localState.removeListener(this);
+        }
+    }
+
+//Update the graph
+void CompressorVisualizer::timerCallback(){
+    float newDbLevel = compressorNode.getOutputLevelAtomic().load();
+
+    //Push it to graph
+    pushData(newDbLevel);
+
+    //Call the graph visualizer's timerCallback
+    RealTimeGraphVisualizer::timerCallback();
+}
+
+void CompressorVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if(tree==localState && property == juce::Identifier("CompThreshold")){
+        //Threshold slider changed, so update the line
+        float newThreshold = (float)localState.getProperty("CompThreshold",0.0f);
+        setThreshold(newThreshold,true);
+    }
+}
