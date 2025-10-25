@@ -26,7 +26,7 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     float targetRatio = targetPitch / detectedPitch;
     targetRatio = juce::jlimit(0.5f, 2.0f, targetRatio);
     currentRatio = currentRatio * (1.0f - smoothing) + targetRatio * smoothing;
-
+    
     pitchShifter.setPitchShiftRatio(currentRatio);
     pitchShifter.processBlock(buffer);
 }
