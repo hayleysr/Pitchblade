@@ -6,8 +6,9 @@
 #include "Pitchblade/effects/GainProcessor.h"       //Austin
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
-#include "Pitchblade/effects/PitchDetector.h"       //hayley
+#include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
+#include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
 
 class EffectNode;
@@ -69,12 +70,15 @@ public:
         void setLatestFormants(const std::vector<float>& freqs) { latestFormants = freqs; }
         const std::vector<float>& getLatestFormants() { return latestFormants; }
 
-    PitchDetector& getPitchDetector() { return pitchProcessor; }
+    PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
+    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
 
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
+
+    int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
 
 private:
     //============================== 
@@ -83,11 +87,14 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
-    PitchDetector pitchProcessor;           //hayley
+    PitchCorrector pitchProcessor;          // To correct pitch - hayley
 
     bool bypassed = false;
 
-    CompressorProcessor compressorProcessor;
+    int currentBlockSize = 512; // Austin
+
+    CompressorProcessor compressorProcessor; //Austin
+    DeEsserProcessor deEsserProcessor;      //Austin
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;

@@ -100,6 +100,9 @@ public:
             processor.apvts.state = juce::ValueTree("EffectNodes");
         // add this node to processor state tree
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+
+        //Preparing the gate
+        gateDSP.prepare(proc.getSampleRate());
     }
 
 	// dsp processing step for noise gate

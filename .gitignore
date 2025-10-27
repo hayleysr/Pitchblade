@@ -28,10 +28,7 @@ libs/
 **/Builds/
 
 [Bb]uild/
-[Dd]ebug/
-[Rr]elease/
 [Rr]eleases/
-x64/
 x86/
 [Bb]in/
 [Oo]bj/
