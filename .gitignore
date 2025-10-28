@@ -49,3 +49,4 @@ ipch/
 .jucer
 
 /.gitignore
+/plugin/x64/Debug
