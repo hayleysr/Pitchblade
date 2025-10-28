@@ -43,14 +43,13 @@ public:
                 }
 
                 m.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&modeButton),
-                    [this](int result)
-                    {
-                        if (result > 0)
-                        {
+                    [this](int result) {
+                        if (result > 0) {
                             chainModeId = result;
-                            // turn button pink when changed from default
-                            auto newColor = (chainModeId == 1) ? juce::Colours::grey : Colors::accent;
-                            modeButton.setColour(juce::TextButton::buttonColourId, newColor);
+
+							// update buttons
+							updateModeVisual();
+
                             if (onModeChanged) {
                                 onModeChanged(myIndex, chainModeId);
                             }
@@ -108,6 +107,35 @@ public:
 
         button.setBounds(area);
 	}
+
+    // setter getter for chain mode
+    void setChainModeId(int id) {
+        chainModeId = juce::jlimit(1, 4, id);
+        updateModeVisual();
+    }
+
+    int getChainModeId() const { 
+        return chainModeId; 
+    }
+
+	//update chain mode button visuals
+    void updateModeVisual() {
+        juce::Colour bg;
+        juce::String label;
+        switch (chainModeId) {
+            case 1:  bg = Colors::panel;              label = "D"; break;   // down
+            case 2:  bg = juce::Colour(0xffe966ed);   label = "S"; break;   // split
+            case 3:  bg = juce::Colour(0xffae66ed);   label = "DD"; break;  // doubleDown
+            case 4:  bg = juce::Colour(0xff7166ed);   label = "U"; break;   // unite
+            default: bg = Colors::accent;              label = "M"; break;
+        }
+        modeButton.setButtonText(label);
+        modeButton.setColour(juce::TextButton::buttonColourId, bg);
+        modeButton.setColour(juce::TextButton::buttonOnColourId, bg);
+        modeButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        modeButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        modeButton.repaint();
+    }
 
 	//for external bypass changes, changes button color if gobal bypassed
     void updateBypassVisual(bool state)
@@ -192,7 +220,6 @@ public:
     std::function<void(int, juce::String, int)> onReorder;
 
 	juce::TextButton button;    // main effect button
-	//juce::ToggleButton bypass;  // bypass toggle
     juce::TextButton bypass;
     bool bypassed = false;
 	juce::Label grip;           // drag handle

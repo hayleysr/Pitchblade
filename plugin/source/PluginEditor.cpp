@@ -153,7 +153,7 @@ void AudioPluginAudioProcessorEditor::resized()
     auto top = area.removeFromTop(40);
     topBar.setBounds(top);
     //daisychain width
-    auto left = area.removeFromLeft(190);
+    auto left = area.removeFromLeft(200);
     daisyChain.setBounds(left);
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);

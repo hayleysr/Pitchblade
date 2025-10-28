@@ -14,6 +14,8 @@
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
 
+#include "Pitchblade/panels/EffectNode.h"
+
 // helper to make unique effect names when adding/duplicating
 static juce::String makeUniqueName(const juce::String& baseName, const std::vector<std::shared_ptr<EffectNode>>& nodes) {
     int counter = 1;
@@ -40,6 +42,9 @@ DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_
 
     rebuild();
 
+    addAndMakeVisible(scrollArea);
+    scrollArea.setViewedComponent(&effectsContainer, false);
+
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
     addAndMakeVisible(duplicateButton);
@@ -58,98 +63,93 @@ std::shared_ptr<EffectNode> DaisyChain::findNodeByName(const juce::String& name)
             return n;
     return {};
 }
+// helper to convert chainmode to modeId for ui
+static int toModeIdFromNode(const std::shared_ptr<EffectNode>& n) {
+    if (!n) return 1;
+    const int id = (int)n->chainMode;
+    return juce::jlimit(1, 4, id);
+}
 
 void DaisyChain::rebuild()
 {
     // clear UI rows
-    for (auto* it : items) removeChildComponent(it);
+    for (auto* it : items) effectsContainer.removeChildComponent(it);
     items.clear();
 
 	// create rows from effectnodes // edited to use effectnodes // edited to use effectnames instead of directly using effectnodes
     for (int i = 0; i < (int)effectNames.size(); ++i) {
-		const auto& name = effectNames[i];  // get name from current order list
-		auto node = findNodeByName(name);   // find corresponding node
+        const auto& name = effectNames[i];  // get name from current order list
+        auto node = findNodeByName(name);   // find corresponding node
 
-		auto* row = new DaisyChainItem(name, i);        // create row with effect name
+        auto* row = new DaisyChainItem(name, i);        // create row with effect name
 
         // insync visuals to current processor node bypass state
         const bool bypassState = node ? node->bypassed : false;
-        row -> updateBypassVisual(bypassState);     
+        row->updateBypassVisual(bypassState);
+
+        // insync chaining mode
+        row->setChainModeId(toModeIdFromNode(node));
 
         // update global bypass state visually
-        row -> onBypassChanged = [ this, name, row](int index, bool state) {
-			auto node = findNodeByName(name);   // find corresponding node by name
-            if (node)
-                node->bypassed = state;
-            row->updateBypassVisual(state);         // keep visuals insync
+        row->onBypassChanged = [this, name, row](int index, bool state) {
+
+            // find node by name and update its bypass state
+            if (auto n = findNodeByName(name)) n->bypassed = state;
+            row->updateBypassVisual(state);
             };
 
-		// chaining mode //////////////////////////////////
-        row -> onModeChanged = [this]( int index, int modeId) {
-			if (index < 0 || index >= items.size()) {   //safety check
-                return;
+        // chaining mode //////////////////////////////////
+        // update chain mode callback ui using name instead of index (to avoid issues with reordering)
+        row->onModeChanged = [this, name](int index, int modeId) {
+			// find node by name and update its chain mode
+            if (auto n = findNodeByName(name)) {
+                n->chainMode = (ChainMode)juce::jlimit(1, 4, modeId);
             }
+			processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
 
-            // get the effect name from ui
-            juce::String effectName = items[index]->getName();
-
-            /// find the matching EffectNode by name
-            auto& nodes = processorRef.getEffectNodes();
-            for (auto& node : nodes) {
-                if (node && node->effectName == effectName) {
-					node->chainMode = static_cast<ChainMode>(modeId);   // update chain mode
-                    break;
-                }
-            }
-            processorRef.requestReorder(getCurrentOrder());  // rebuild processor chain
-
-			// debug output: log updated chain modes
+            // debug output: log updated chain modes
             juce::Logger::outputDebugString("Chain Mode Updated >>>");
             for (int j = 0; j < effectNodes.size(); ++j) {
                 auto n = effectNodes[j];
                 juce::String modeName;
 
                 switch (n->chainMode) {
-                case ChainMode::Down: modeName      = "Down"; break;
-                case ChainMode::Split: modeName     = "Split"; break;
+                case ChainMode::Down: modeName = "Down"; break;
+                case ChainMode::Split: modeName = "Split"; break;
                 case ChainMode::DoubleDown: modeName = "DoubleDown"; break;
-                case ChainMode::Unite: modeName     = "Unite"; break;
+                case ChainMode::Unite: modeName = "Unite"; break;
                 }
                 juce::Logger::outputDebugString("[" + juce::String(j) + "] " + n->effectName + " -> Mode: " + modeName);
             }
             juce::Logger::outputDebugString("========================================");
-        };
+            };
 
         // reorder callback ui
-        row -> onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {
-                handleReorder(fromIndex, dragName, targetIndex);
+        row->onReorder = [this](int fromIndex, juce::String dragName, int targetIndex) {
+            handleReorder(fromIndex, dragName, targetIndex);
             };
-        addAndMakeVisible(row);
+        effectsContainer.addAndMakeVisible(row);
         items.add(row);
-    }
+    };
     resized();
     repaint();
-    if (globalBypassed)
-        setGlobalBypassVisual(true);
+	if (globalBypassed) { setGlobalBypassVisual(true); } //  global bypass visual state
 }
 
 //reorders the global effects list and rebuilds UI
 void DaisyChain::handleReorder(int fromIndex, const juce::String& dragName, int targetIndex)
 {
     int resolvedFrom = fromIndex;
-    if (resolvedFrom < 0)
-    {
-        for (int i = 0; i < (int)effectNodes.size(); ++i)
-            if (effectNodes[i] -> effectName == dragName) { resolvedFrom = i; break; }
+    if (resolvedFrom < 0) {
+		for (int i = 0; i < (int)effectNames.size(); ++i)       // find index by name instead of node
+            if (effectNames[i] == dragName) { resolvedFrom = i; break; }
     }
     if (resolvedFrom < 0) return; // safety
-
+	targetIndex = juce::jlimit(0, (int)effectNames.size(), targetIndex); // allow dropping at end
     // If dragging dragged, removing the source shifts the target left by 1
-    if (resolvedFrom < targetIndex)
-        targetIndex -= 1;
-
-    if (targetIndex == resolvedFrom || targetIndex < 0 || targetIndex > (int)effectNodes.size())
-        return;
+    if (resolvedFrom < targetIndex) targetIndex -= 1;
+	// no-op check
+    if (targetIndex == resolvedFrom)  return;
 
     // move effect order ui only
     const auto movedName = effectNames[resolvedFrom];       //find name
@@ -168,18 +168,43 @@ void DaisyChain::resized()
     area.removeFromTop(10);
     area.removeFromRight(8);
 
-    for (auto* item : items)
-        item->setBounds(area.removeFromTop(48));
+	//add + duplicate buttons + delete top bar
+    auto topBar = area.removeFromTop(40);
+    const int buttonWidth = 50;
+    const int spacing = 4;
 
-	//add + duplicate buttons + delete
-    auto bottomArea = area.removeFromTop(40);
-    const int buttonWidth = 45;
-    const int spacing = 5;
-
-    auto rightEdge = getWidth() - 16;
-    deleteButton.setBounds(rightEdge - buttonWidth, bottomArea.getY() + 4, buttonWidth, bottomArea.getHeight() - 8);
+    auto rightEdge = getWidth() - 23;
+    deleteButton.setBounds(rightEdge - buttonWidth, topBar.getY() + 4, buttonWidth, topBar.getHeight() - 8);
     duplicateButton.setBounds(deleteButton.getX() - buttonWidth - spacing, deleteButton.getY(), buttonWidth, deleteButton.getHeight());
     addButton.setBounds(duplicateButton.getX() - buttonWidth - spacing, duplicateButton.getY(), buttonWidth, duplicateButton.getHeight());
+
+    // scrollable list area
+    auto scrollBounds = area;
+    scrollArea.setBounds(scrollBounds);
+
+    // only vertical scrollbar
+    scrollArea.setScrollBarsShown(true, false);
+
+    // scrollbar
+    juce::ScrollBar& scrollBar = scrollArea.getVerticalScrollBar();
+    const int scrollBarWidth = 6;
+    scrollArea.setScrollBarsShown(true, false);
+    scrollArea.setScrollBarThickness(scrollBarWidth);
+    scrollArea.getVerticalScrollBar().setColour(juce::ScrollBar::thumbColourId, juce::Colours::grey);
+    scrollArea.getVerticalScrollBar().setColour(juce::ScrollBar::trackColourId, Colors::panel);
+
+    scrollArea.setViewedComponent(&effectsContainer, false);
+
+    const int listRightPadding = scrollBarWidth + 28; // a little gap next to the bar
+    const int rowHeight = 48;
+    const int totalHeight = items.size() * rowHeight;
+    effectsContainer.setBounds(0, 0, scrollArea.getWidth(), totalHeight);
+
+    int y = 0;
+	for (auto* item : items) {  // layout rows
+        item->setBounds(0, y, scrollArea.getWidth()-8, rowHeight);
+        y += rowHeight;
+    }
 }
 
 void DaisyChain::paint(juce::Graphics& g)

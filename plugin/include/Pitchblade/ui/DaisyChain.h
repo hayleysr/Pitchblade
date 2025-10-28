@@ -22,7 +22,10 @@ public:
     std::function<void()> onReorderFinished;
 	
     std::vector<juce::String> getCurrentOrder() const { return effectNames; } //get current order of effects
-    juce::OwnedArray<DaisyChainItem> items;
+	juce::OwnedArray<DaisyChainItem> items; // ui rows
+	juce::Component effectsContainer;       // ui container for rows (for multiple rows of effects
+
+    juce::Viewport scrollArea;
 
 	//add + copy buttons
     juce::TextButton addButton{ "Add" };

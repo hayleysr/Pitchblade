@@ -215,6 +215,18 @@ inline void EffectNode::processAndForward(AudioPluginAudioProcessor& proc, juce:
 
 	case ChainMode::Unite:  // single output merged from all children
     {
+        // nothing to unite, behave as down
+        if (parents.empty()) {             
+            if (!children.empty() && children.front()) {
+				children.front()->processAndForward(proc, temp);    // process first child
+				buffer.makeCopyOf(temp, true);                      // output processed buffer
+            }
+            else {
+				buffer.makeCopyOf(temp, true);  // No children, output the processed buffer
+            }
+            break;
+        }
+
 		// process each parent and accumulate into mix buffer
         const int numCh = temp.getNumChannels();
         const int nSamp = temp.getNumSamples();

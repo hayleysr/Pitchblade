@@ -93,11 +93,12 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
 	if (!reorderRequested.exchange(false))  //check and reset flag
         return;
 
-    juce::Logger::outputDebugString("=== [applyPendingReorder called] ===");
+    juce::Logger::outputDebugString("=== applyPendingReorder called ===");
 
     //copy of current list
     std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
     std::vector<std::shared_ptr<EffectNode>> newList;
+    newList.reserve(pendingOrderNames.size());  
 
 	// rebuild new list based on pending order names
     for (const auto& name : pendingOrderNames) {
@@ -123,39 +124,52 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     }
 
 	//reconnect nodes in new order using daisychain modes
-    for (int i = 0; i + 1 < (int)newList.size(); ++i) {
+    for (int i = 0; i + 1 < (int)newList.size(); ++i) { 
         auto& n = newList[i];
-        if (!n) { continue; }
+        if (!n) { continue; 
+        }
+
+		// helper lambda to connect if valid index
+        auto connectIfValid = [&](int from, int to) {
+                if (to >= 0 && to < (int)newList.size()) {
+                    auto& src = newList[from];
+                    auto& dst = newList[to];
+                    if (src && dst) 
+                        src->connectTo(dst);
+                        juce::Logger::outputDebugString("connect " + src->effectName + " >>> " + dst->effectName);
+                    }
+            };
+
 		// connect based on chain mode
         switch (n->chainMode) {
             case ChainMode::Down:
-				if (i + 1 < newList.size()) {       // default : connect to next node
-                    n->connectTo(newList[i + 1]);
-                } break;
+                connectIfValid(i, i + 1); 
+                juce::Logger::outputDebugString("mode Down : " + n->effectName);
+                break;
 
             case ChainMode::Split:                   // connect to next two nodes
-                if (i + 1 < newList.size()) {   
-                    n->connectTo(newList[i + 1]);
-                }
-                if (i + 2 < newList.size()) {
-                    n->connectTo(newList[i + 2]);
-                } break;
+                connectIfValid(i, i + 1);
+                connectIfValid(i, i + 2);
+                juce::Logger::outputDebugString("mode Split : " + n->effectName);
+                break;
 
             case ChainMode::DoubleDown:             // parallel : connect to next and skip one
-                if (i + 1 < newList.size()) {
-                    n->connectTo(newList[i + 1]);
-                }
-                if (i + 2 < newList.size()) {
-                    n->connectTo(newList[i + 2]);
-                } break;
+                connectIfValid(i, i + 1);
+                connectIfValid(i, i + 2);
+                juce::Logger::outputDebugString("mode doubleDown : " + n->effectName);
+                break;
 
             case ChainMode::Unite:                  // merge previous two nodes into this one
-                if (i >= 1 && i < (int)newList.size()) {
-                    newList[i - 1]->connectTo(newList[i]);
+                if (i - 1 >= 0 && newList[i - 1]) {
+                    newList[i - 1]->connectTo(n);
+                    juce::Logger::outputDebugString("connect " + newList[i - 1]->effectName + " >>> " + n->effectName);
                 }
-                if (i >= 2 && i < (int)newList.size()) {
-                    newList[i - 2]->connectTo(newList[i]);
-				} break;
+                if (i - 2 >= 0 && newList[i - 2]) {
+                    newList[i - 2]->connectTo(n);
+                    juce::Logger::outputDebugString("connect " + newList[i - 2]->effectName + " >>> " + n->effectName);
+                }
+                juce::Logger::outputDebugString("mode Unite : " + n->effectName);
+                break;
 
             default:
                 break;
@@ -166,9 +180,10 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     effectNodes = std::move(newList);
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
 	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
+    juce::Logger::outputDebugString("=== Reorder finished ===\n");
 
 	////////////////////////////////////debug printout : current effect chain
-    juce::Logger::outputDebugString("========== [Current Effect Chain] ==========");
+    juce::Logger::outputDebugString("========== Current Effect Chain ==========");
     for (int i = 0; i < (int)effectNodes.size(); ++i) {
         auto& n = effectNodes[i];   
         if (!n) continue;
