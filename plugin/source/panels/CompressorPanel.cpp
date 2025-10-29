@@ -79,7 +79,7 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     ///////////////////
     // Link sliders to local state properties
     const float startThresholdDb = (float)localState.getProperty("CompThreshold", 0.0f);
-    thresholdSlider.setRange(-60.0f, 0.0f, 0.1f);
+    thresholdSlider.setRange(-100.0f, 0.0f, 0.1f);
     thresholdSlider.setValue(startThresholdDb, juce::dontSendNotification);
     thresholdSlider.onValueChange = [this]() {
         localState.setProperty("CompThreshold", (float)thresholdSlider.getValue(), nullptr);
