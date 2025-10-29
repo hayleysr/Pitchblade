@@ -3,10 +3,12 @@
 #include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
 //Initializing by setting the parameters as defined
-RealTimeGraphVisualizer::RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz){
+RealTimeGraphVisualizer::RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz, bool isLog, int numOfYAxisLabels){
     yAxisLabel = label;
     yAxisRange = range;
     startTimerHz(updateIntervalHz);
+    isLogarithmic = isLog;
+    numYAxisLabels = numOfYAxisLabels;
 }
 
 //Ensuring that the timer can't do anything if the visualizer is destroyed
@@ -21,6 +23,10 @@ void RealTimeGraphVisualizer::paint(juce::Graphics& g){
     
     //Draw labels
     drawLabels(g);
+
+    //Save current graphics state and clip everything outside of the graph's bounds
+    g.saveState();
+    g.reduceClipRegion(graphBounds);
 
     //Draw graph. Lock the dataMutex to ensure the audio thread doesn't modify the queue while it is being read
     //Curly brackets are used to create a new, inner scope, where objects can be created inside and not exist outside of it
@@ -38,7 +44,7 @@ void RealTimeGraphVisualizer::resized(){
 
     labelBounds = bounds.removeFromLeft(labelWidth);
 
-    graphBounds = bounds;
+    graphBounds = bounds.reduced(0,5);
 
     maxDataPoints = graphBounds.getWidth();
 
@@ -90,11 +96,46 @@ void RealTimeGraphVisualizer::drawLabels(juce::Graphics& g){
     //Draw y axis label (often dB)
     g.drawText(yAxisLabel,labelBounds.reduced(2),juce::Justification::centred,1);
 
-    //Maximum value at the top right
-    g.drawText(juce::String(yAxisRange.getEnd()),labelBounds.getX(),graphBounds.getY()-6,labelWidth,12,juce::Justification::centredRight);
+    //Draws the remaining labels aside from the two above
+    if(numYAxisLabels < 2){
+        return;
+    }else{
+        for(int i = 0;i<numYAxisLabels;i++){
+            //Calculate value for this label
+            float proportion = (float)i / (float)(numYAxisLabels - 1);
+            float value;
 
-    //Minimum value at the bottom right
-    g.drawText(juce::String(yAxisRange.getStart()),labelBounds.getX(),graphBounds.getBottom()-6,labelWidth,12,juce::Justification::centredRight);
+            //Logarithmic must have the start point be non-negative. Will default to linear otherwise
+            if(isLogarithmic & (yAxisRange.getStart() >= 0)){
+                float safeStart;
+                if(yAxisRange.getStart()==0){
+                    safeStart = 0.00001f;
+                }else{
+                    safeStart = yAxisRange.getStart();
+                }
+
+                float logStart = log10(safeStart);
+                float logEnd = log10(yAxisRange.getEnd());
+                value = pow(10.0f,logStart + proportion * (logEnd - logStart));
+            }else{
+                value = yAxisRange.getStart() + proportion * (yAxisRange.getEnd() - yAxisRange.getStart());
+            }
+
+            //Calculate the pixel position using the helper
+            float y = mapValuetoY(value);
+
+            //Formatting the text to make it nice for larger numbers
+            //For instance 15423 would display as 15k. No decimals
+            juce::String labelText;
+            if(value >= 1000.0f){
+                labelText = juce::String(value/1000.0,0) + "k";
+            }else{
+                labelText = juce::String(value,0);
+            }
+
+            g.drawText(labelText,labelBounds.getX(),y-6,labelWidth,12,juce::Justification::centredRight);
+        }
+    }
 
 }
 
@@ -121,7 +162,7 @@ void RealTimeGraphVisualizer::drawGraph(juce::Graphics& g){
 
     //jmap maps a value from one range to another. The data value is mapped to the coordinate range
     //Please note that the pixel range is from bottom to top
-    float startY = juce::jmap(firstValue,yAxisRange.getStart(), yAxisRange.getEnd(), graphB, graphY);
+    float startY = mapValuetoY(firstValue);
 
     //Start the path at the first data point at the left side of the graph
     graphPath.startNewSubPath(graphBounds.getX(),startY);
@@ -133,7 +174,7 @@ void RealTimeGraphVisualizer::drawGraph(juce::Graphics& g){
     //Add remaining points to the path
     for(size_t i = 1; i < dataQueue.size(); i++){
         float value = dataQueue[i];
-        float y = juce::jmap(value,yAxisRange.getStart(),yAxisRange.getEnd(),graphB,graphY);
+        float y = mapValuetoY(value);
         graphPath.lineTo(currentX,y);
         currentX+=stepX;
     }
@@ -150,7 +191,7 @@ void RealTimeGraphVisualizer::drawThresholdLine(juce::Graphics& g){
     }
 
     //Map the current threshold value to a y-pixel coordinate
-    float lineY = juce::jmap(thresholdValue,yAxisRange.getStart(),yAxisRange.getEnd(),(float)graphBounds.getBottom(),(float)graphBounds.getY());
+    float lineY = mapValuetoY(thresholdValue);
 
     //Ensure that the value does not appear outside of the graph bounds, just in case
     lineY = juce::jlimit((float)graphBounds.getY(),(float)graphBounds.getBottom(),lineY);
@@ -162,4 +203,36 @@ void RealTimeGraphVisualizer::drawThresholdLine(juce::Graphics& g){
 
     //Draw the dashed line across the graph horizontally
     g.drawDashedLine(juce::Line<float>((float)graphBounds.getX(),lineY,(float)graphBounds.getRight(),lineY),dashes,2);
+}
+
+//Helper function for mapping values
+float RealTimeGraphVisualizer::mapValuetoY(float value) const{
+    const float graphB = (float)graphBounds.getBottom();
+    const float graphY = (float)graphBounds.getY();
+    const float start = yAxisRange.getStart();
+    const float end = yAxisRange.getEnd();
+
+    //This requires the range to be positive, and it will not work if the start of the range is negative
+    //For prevention of errors, if the range is negative, then it is treated as if it is linear
+    if(isLogarithmic & (start >= 0)){
+        float safeStart;
+        float safeValue;
+        if(start==0){
+            safeStart = 0.00001f;
+        }else{
+            safeStart = start;
+        }
+        if(value==0){
+            safeValue = 0.00001f;
+        }else{
+            safeValue = value;
+        }
+
+        float logStart = log10(safeStart);
+        float logEnd = log10(end);
+        float logValue = log10(safeValue);
+        return juce::jmap(logValue, logStart, logEnd, graphB, graphY);
+    }else{
+        return juce::jmap(value,start,end,graphB,graphY);
+    }
 }

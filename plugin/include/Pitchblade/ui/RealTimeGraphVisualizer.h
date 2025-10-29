@@ -54,9 +54,18 @@ private:
 
     //Fixed width in pixels for the label area
     const int labelWidth = 40;
+
+    //Boolean determining if the graph will follow a logarithmic or linear scale
+    bool isLogarithmic = false;
+
+    //Helper function for mapping values to y axis depending on scale mode (linear vs logarithmic)
+    float mapValuetoY(float value) const;
+
+    //Number of y axis labels to draw
+    int numYAxisLabels = 4;
 public:
     //Constructor. Label is the text next to the y-axis. Range is the minimum and maximum values for the y-axis. Update interval is the refresh rate in hz
-    RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz = 30);
+    RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz = 30,bool isLog = false, int numOfYAxisLabels = 5);
     ~RealTimeGraphVisualizer() override;
 
     void paint(juce::Graphics& g) override;

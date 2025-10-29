@@ -58,7 +58,7 @@ private:
     juce::ValueTree localState;
 public:
     explicit CompressorVisualizer(AudioPluginAudioProcessor& proc, CompressorNode& node, juce::ValueTree& state)
-        : RealTimeGraphVisualizer("dB", {-60.0f, 0.0f}),
+        : RealTimeGraphVisualizer("dB", {-100.0f, 0.0f},30,false,6),
             processor(proc),
             compressorNode(node),
             localState(state)
