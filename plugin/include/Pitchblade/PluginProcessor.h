@@ -80,6 +80,9 @@ public:
 
     int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
 
+	struct Row { juce::String left, right; };               // processing chain row
+	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
+
 private:
     //============================== 
     //processors
@@ -105,6 +108,11 @@ private:
 	std::mutex audioMutex;                           
 	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
 	std::vector<juce::String> pendingOrderNames;        // new order to apply
+
+	//layout  rows
+	std::vector<Row> pendingRows;   // new layout to apply
+    std::atomic<bool> layoutRequested{ false };
+    void applyPendingLayout();
 
     void applyPendingReorder();
 

@@ -78,7 +78,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     return { params.begin(), params.end() };
 }
 
-///// reorder request from UI thread
+///// reorder request from UI thread///////////////////////////////////////
 // will instead store names of nodes in new order, and then apply reorder on audio thread 
 void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames) {
 	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
@@ -87,13 +87,40 @@ void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& 
     applyPendingReorder();
 }
 
-////// Apply pendingreorder onto audio thread ////////////////
+////// Apply pendingreorder onto audio thread 
 //reconnecting of effect nodes based on pending order names - reyna 
 void AudioPluginAudioProcessor::applyPendingReorder() {
 	if (!reorderRequested.exchange(false))  //check and reset flag
         return;
-
+	// Debug output of pending rows
+    juce::Logger::outputDebugString("============================================");
     juce::Logger::outputDebugString("=== applyPendingReorder called ===");
+    for (int i = 0; i < (int)pendingRows.size(); ++i) {
+        const auto& r = pendingRows[i];
+        juce::Logger::outputDebugString(
+            "[" + juce::String(i) + "] Left: " + (r.left.isNotEmpty() ? r.left : "(none)")
+            + " | Right: " + (r.right.isNotEmpty() ? r.right : "(none)")
+        );
+    }
+    juce::Logger::outputDebugString("=============");
+	// Debug output of current effect nodes and their modes
+    juce::Logger::outputDebugString("========== Effect Modes (Nodes) ==========");
+    for (int i = 0; i < (int)effectNodes.size(); ++i) {
+        if (auto& n = effectNodes[i]) {
+            auto modeToStr = [](ChainMode m) {
+                switch (m) {
+                case ChainMode::Down:       return "down";
+                case ChainMode::Split:      return "split";
+                case ChainMode::DoubleDown: return "doubleDown";
+                case ChainMode::Unite:      return "unite";
+                default:                    return "?";
+                }
+                };
+            juce::Logger::outputDebugString( "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + juce::String(modeToStr(n->chainMode))
+            );
+        }
+    }
+    juce::Logger::outputDebugString("===========================================");
 
     //copy of current list
     std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
@@ -182,28 +209,126 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
 	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
     juce::Logger::outputDebugString("=== Reorder finished ===\n");
 
-	////////////////////////////////////debug printout : current effect chain
+	////////////////////////////////////debug printout : current effect chain ///////////////////////
+    juce::Logger::outputDebugString("============================================");
     juce::Logger::outputDebugString("========== Current Effect Chain ==========");
-    for (int i = 0; i < (int)effectNodes.size(); ++i) {
-        auto& n = effectNodes[i];   
-        if (!n) continue;
+    for (int i = 0; i < (int)pendingRows.size(); ++i) {
+        const auto& row = pendingRows[i];
+        juce::String msg;
+        msg << "[" << i << "]  Left: " << (row.left.isNotEmpty() ? row.left : "(empty)");
 
-        juce::String modeName;
-        switch (n->chainMode) {
-            case ChainMode::Down: modeName      = "Down"; break;
-            case ChainMode::Split: modeName     = "Split"; break;
-            case ChainMode::DoubleDown: modeName = "DoubleDown"; break;
-            case ChainMode::Unite: modeName     = "Unite"; break;
-        }
-
-        juce::String msg = "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + modeName + " | Children: ";
-        for (auto& c : n->children) {
-            if (c) msg += c->effectName + " ";
-        }
+        if (row.right.isNotEmpty()) msg << " | Right: " << row.right;
+        else msg << " | Right: (none)";
         juce::Logger::outputDebugString(msg);
     }
-    juce::Logger::outputDebugString("============================================");
+    juce::Logger::outputDebugString("========== Effect Modes ==========");
+    for (int i = 0; i < (int)effectNodes.size(); ++i) {
+        if (auto& n = effectNodes[i]) {
+            juce::String mode;
+            switch (n->chainMode) {
+            case ChainMode::Down:       mode = "down"; break;
+            case ChainMode::Split:      mode = "split"; break;
+            case ChainMode::DoubleDown: mode = "doubleDown"; break;
+            case ChainMode::Unite:      mode = "unite"; break;
+            default:                    mode = "unknown"; break;
+            }
+
+            juce::Logger::outputDebugString( "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + mode);
+        }
+    }
+    juce::Logger::outputDebugString("===============================================");
 }
+
+
+//==============================================================================
+// layout request from UI thread 
+// stores new rows and applies on audio thread - reyna
+void AudioPluginAudioProcessor::requestLayout(const std::vector<Row>& newRows) {
+    std::lock_guard<std::mutex> lock(audioMutex);
+    pendingRows = newRows;
+    layoutRequested.store(true);
+    applyPendingLayout(); // apply now (mirrors requestReorder)
+}
+// helper to find node by name in list
+static std::shared_ptr<EffectNode> findByName(const std::vector<std::shared_ptr<EffectNode>>& list, const juce::String& name) {
+    for (auto& n : list) if (n && n->effectName == name) return n;
+    return {};
+}
+
+// apply pending layout on audio thread
+// reconnect effect nodes based on pending rows
+void AudioPluginAudioProcessor::applyPendingLayout() {
+    if (!layoutRequested.exchange(false))
+        return;
+
+	std::vector<std::shared_ptr<EffectNode>> old = effectNodes; // copy of current list
+    for (auto& n : old) if (n) {
+		n->clearConnections(); n->chainMode = ChainMode::Down;  // reset connections and mode
+    }
+
+	auto getRowNodes = [&](const Row& r) -> std::pair<std::shared_ptr<EffectNode>, std::shared_ptr<EffectNode>> {   // helper to get nodes by row
+        return { findByName(old, r.left), r.right.isNotEmpty() ? findByName(old, r.right) : nullptr };
+        };
+
+	std::shared_ptr<EffectNode> prevL = nullptr, prevR = nullptr;   // previous left/right nodes 
+    bool prevWasDouble = false;
+
+	for (int i = 0; i < (int)pendingRows.size(); ++i) { // iterate rows
+        const auto& r = pendingRows[i];
+        auto [L, R] = getRowNodes(r);
+        const bool currDouble = (bool)R;
+        const bool nextDouble = (i + 1 < (int)pendingRows.size()) && pendingRows[i + 1].right.isNotEmpty();
+
+		// connect based on current/previous row types //////
+		if (currDouble) { // if double row
+            if (L) L->chainMode = ChainMode::DoubleDown;
+            if (R) R->chainMode = ChainMode::DoubleDown;
+            // connect continuation from previous double
+            if (prevWasDouble) {
+                if (prevL && L) prevL->connectTo(L);
+                if (prevR && R) prevR->connectTo(R);
+            }
+            // if previous was single, it must have been a Split
+            else if (prevL) {
+                prevL->chainMode = ChainMode::Split;
+                if (L) prevL->connectTo(L);
+                if (R) prevL->connectTo(R);
+            }
+            prevL = L; prevR = R; prevWasDouble = true;
+        }
+        else { // single row
+            if (prevWasDouble) {
+                // this row merges two lanes
+                if (L) L->chainMode = ChainMode::Unite;
+                if (prevL && L) prevL->connectTo(L);
+                if (prevR && L) prevR->connectTo(L);
+            } else {
+                // serial Down
+                if (prevL && L) prevL->connectTo(L);
+                if (L) L->chainMode = nextDouble ? ChainMode::Split : ChainMode::Down;
+            }
+			prevL = L; prevR = nullptr; prevWasDouble = false;  // reset right
+        }
+    }
+
+	// rebuild new effect node list
+    std::vector<std::shared_ptr<EffectNode>> newList;
+    newList.reserve(pendingRows.size() * 2);
+    for (auto& r : pendingRows) { 	                                                                 // add nodes in order of rows
+		if (auto n = findByName(old, r.left)) { newList.push_back(n); }	                            // add left node
+        if (!r.right.isEmpty()) {
+            if (auto m = findByName(old, r.right)) { newList.push_back(m); }    // add right node if exists
+        }
+    }
+
+	// update effect node list
+    if (!newList.empty()) {
+        effectNodes = std::move(newList);
+        activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+        rootNode = effectNodes.front();
+    }
+}
+
 
 //==============================================================================
 
