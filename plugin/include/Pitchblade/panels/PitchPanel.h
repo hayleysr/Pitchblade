@@ -17,6 +17,11 @@ public:
 private:
     void timerCallback() override;
 
+    void drawStaticContent(juce::Graphics& g);
+    void drawDynamicLabels(juce::Graphics& g);
+
+    juce::Rectangle<int> bounds;
+
     AudioPluginAudioProcessor& processor;
 
     juce::Label pitchName;
