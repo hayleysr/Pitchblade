@@ -49,7 +49,7 @@ private:
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
     //Austin added this
-    std::unique_ptr<SettingsPanel> settingsPanel;
+    SettingsPanel settingsPanel;
     bool isShowingSettings = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)

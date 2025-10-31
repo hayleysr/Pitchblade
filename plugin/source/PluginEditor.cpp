@@ -24,7 +24,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                                                                     daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
                                                                     visualizer(p, p.getEffectNodes())
-{   // gui frontend / ui reyna ///////////////////////////////
+{   
+    //Austin
+    //Stuff for the settings panel. Making a listener and setting it to invisible to start
+    addChildComponent(settingsPanel);
+    settingsPanel.setVisible(false);
+    topBar.settingsButton.addListener(this);
+    
+    // gui frontend / ui reyna ///////////////////////////////
 	setLookAndFeel(nullptr),    //reset look and feel
 	setSize(800, 600);          //set editor size
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
@@ -36,13 +43,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
-
-    //Austin
-    //Creating the settings panel and adding a listener for it
-    settingsPanel = std::make_unique<SettingsPanel>();
-    addChildComponent(settingsPanel.get());
-    settingsPanel->setVisible(false);
-    topBar.settingsButton.addListener(this);
 
 
 	//tooltip manager / reyna ///////////////////////////////////////////
@@ -125,7 +125,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
                 if(isShowingSettings){
                     isShowingSettings = false;
-                    settingsPanel->setVisible(false);
+                    settingsPanel.setVisible(false);
 
                     visualizer.setVisible(true);
                     effectPanel.setVisible(true);
@@ -146,7 +146,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                         //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
                         if(isShowingSettings){
                             isShowingSettings = false;
-                            settingsPanel->setVisible(false);
+                            settingsPanel.setVisible(false);
 
                             visualizer.setVisible(true);
                             effectPanel.setVisible(true);
@@ -186,7 +186,7 @@ void AudioPluginAudioProcessorEditor::resized()
 
     //Austin
     //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
-    settingsPanel->setBounds(area);
+    settingsPanel.setBounds(area);
 
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);
@@ -205,7 +205,7 @@ void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button){
         isShowingSettings = !isShowingSettings;
 
         //Show or hide the panels based on the state of the settings
-        settingsPanel->setVisible(isShowingSettings);
+        settingsPanel.setVisible(isShowingSettings);
         visualizer.setVisible(!isShowingSettings);
         effectPanel.setVisible(!isShowingSettings);
     }
