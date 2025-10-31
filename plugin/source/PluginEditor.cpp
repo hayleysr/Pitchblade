@@ -10,6 +10,7 @@
 #include "Pitchblade/ui/DaisyChain.h"
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/panels/SettingsPanel.h"
 
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include "Pitchblade/panels/EffectNode.h"
@@ -35,6 +36,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
+
+    //Austin
+    //Creating the settings panel and adding a listener for it
+    settingsPanel = std::make_unique<SettingsPanel>();
+    addChildComponent(settingsPanel.get());
+    settingsPanel->setVisible(false);
+    topBar.settingsButton.addListener(this);
 
 
 	//tooltip manager / reyna ///////////////////////////////////////////
@@ -112,6 +120,16 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             {
                 effectPanel.showEffect(i);
 				visualizer.showVisualizer(i);       //connect visualizer to daisychain
+
+                //Austin
+                //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
+                if(isShowingSettings){
+                    isShowingSettings = false;
+                    settingsPanel->setVisible(false);
+
+                    visualizer.setVisible(true);
+                    effectPanel.setVisible(true);
+                }
             };
     }
     //keeps daiychain reordering consistant
@@ -123,6 +141,16 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 daisyChain.items[i]->button.onClick = [this, i]() {
                         effectPanel.showEffect(i); 
                         visualizer.showVisualizer(i);
+
+                        //Austin
+                        //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
+                        if(isShowingSettings){
+                            isShowingSettings = false;
+                            settingsPanel->setVisible(false);
+
+                            visualizer.setVisible(true);
+                            effectPanel.setVisible(true);
+                        }
                 };
             }
 			applyRowTooltips();     // reapply tooltips after reorder
@@ -155,6 +183,11 @@ void AudioPluginAudioProcessorEditor::resized()
     //daisychain width
     auto left = area.removeFromLeft(190);
     daisyChain.setBounds(left);
+
+    //Austin
+    //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
+    settingsPanel->setBounds(area);
+
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);
     effectPanel.setBounds(center);
@@ -162,4 +195,18 @@ void AudioPluginAudioProcessorEditor::resized()
     visualizer.setBounds(area);
 
 
+}
+
+//Austin
+//Check to see if the settings button was clicked, and then 
+void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button){
+    if(button == &topBar.settingsButton){
+        //Toggle state
+        isShowingSettings = !isShowingSettings;
+
+        //Show or hide the panels based on the state of the settings
+        settingsPanel->setVisible(isShowingSettings);
+        visualizer.setVisible(!isShowingSettings);
+        effectPanel.setVisible(!isShowingSettings);
+    }
 }
