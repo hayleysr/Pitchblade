@@ -68,7 +68,7 @@ private:
     juce::AudioProcessorValueTreeState& apvts;
 public:
     //Constructor. Label is the text next to the y-axis. Range is the minimum and maximum values for the y-axis. Update interval is the refresh rate in hz
-    RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range, int updateIntervalHz = 30,bool isLog = false, int numOfYAxisLabels = 5);
+    RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range,bool isLog = false, int numOfYAxisLabels = 5);
     ~RealTimeGraphVisualizer() override;
 
     void paint(juce::Graphics& g) override;

@@ -58,7 +58,7 @@ private:
     juce::ValueTree localState;
 public:
     explicit CompressorVisualizer(AudioPluginAudioProcessor& proc, CompressorNode& node, juce::ValueTree& state)
-        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f, 0.0f},30,false,6),
+        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f, 0.0f},false,6),
             processor(proc),
             compressorNode(node),
             localState(state)
@@ -71,7 +71,27 @@ public:
         localState.addListener(this);
 
         //Start timer
-        startTimerHz(30);
+        //startTimerHz(30);
+
+        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+
+        switch(initialIndex){
+            case 0:
+                startTimerHz(5);
+                break;
+            case 1:
+                startTimerHz(15);
+                break;
+            case 2:
+                startTimerHz(30);
+                break;
+            case 3:
+                startTimerHz(60);
+                break;
+            default:
+                startTimerHz(30);
+                break;
+        }
     }
 
     ~CompressorVisualizer() override;

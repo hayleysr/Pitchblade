@@ -3,12 +3,11 @@
 #include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
 //Initializing by setting the parameters as defined
-RealTimeGraphVisualizer::RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range, int updateIntervalHz, bool isLog, int numOfYAxisLabels)
+RealTimeGraphVisualizer::RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range, bool isLog, int numOfYAxisLabels)
     : apvts(vts)
 {
     yAxisLabel = label;
     yAxisRange = range;
-    startTimerHz(updateIntervalHz);
     isLogarithmic = isLog;
     numYAxisLabels = numOfYAxisLabels;
 
