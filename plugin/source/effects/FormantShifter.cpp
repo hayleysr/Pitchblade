@@ -1,437 +1,331 @@
 #include "Pitchblade/effects/FormantShifter.h"
-#include <algorithm>
-#include <array>
 #include <cmath>
+#include <algorithm>
 
-namespace
+// map UI [-50..+50] -> ratio [0.25..4.0]
+float FormantShifter::amountToRatio (float a)
 {
-    inline bool isFinite5(float a, float b, float c, float d, float e) noexcept
-    {
-        return std::isfinite(a) && std::isfinite(b) && std::isfinite(c)
-            && std::isfinite(d) && std::isfinite(e);
-    }
+    float t = juce::jlimit(-1.0f, 1.0f, a / 50.0f);    // -50 -> -1, +50 -> +1
+    float r = std::pow(2.0f, 2.0f * t);                // -1 -> 0.25x, +1 -> 4.0x
+    // Clamp extremes while you test; widen later if desired:
+    return juce::jlimit(0.5f, 2.0f, r);
+}
 
-    inline float tinyDenormGuard(float v) noexcept
+//============================================================
+// Channel helpers
+//============================================================
+
+void FormantShifter::Channel::init (int fifoSize, int olaSize)
+{
+    fifo.setSize(1, fifoSize, false, false, true);
+    fifo.clear();
+    fifoWrite = 0;
+    fifoCount = 0;
+
+    ola.setSize(1, olaSize, false, false, true);
+    ola.clear();
+    olaWeight.setSize(1, olaSize, false, false, true);
+    olaWeight.clear();
+    olaWrite = 0;
+    olaRead  = 0;
+
+    frameTime.setSize(1, fftSize, false, false, true);
+    frameTime.clear();
+
+    window.allocate(fftSize, true);
+    fftIO.allocate(fftSize, true);   // Complex bins
+    ifftTime.allocate(fftSize, true);
+
+    mag    .assign(fftSize, 0.0f);
+    phase  .assign(fftSize, 0.0f);
+    envOrig.assign(fftSize, 0.0f);
+    envWarp.assign(fftSize, 0.0f);
+    specOut.assign(fftSize, std::complex<float>(0.0f, 0.0f));
+
+    // Hann window
+    for (int n = 0; n < fftSize; ++n)
+        window[n] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * (float)n
+                                            / (float)(fftSize - 1)));
+}
+
+float FormantShifter::Channel::antiDenorm (float v)
+{
+    return (std::abs(v) < 1.0e-30f ? 0.0f : v);
+}
+
+void FormantShifter::Channel::pushSamples (const float* in, int n)
+{
+    float* f = fifo.getWritePointer(0);
+    const int fs = fifo.getNumSamples();
+
+    for (int i = 0; i < n; ++i)
     {
-        // kill subnormals cheaply
-        if (std::abs(v) < 1e-30f) return 0.0f;
-        return v;
+        f[fifoWrite] = in[i];
+        fifoWrite = (fifoWrite + 1) % fs;
+        fifoCount = std::min(fifoCount + 1, fs);
     }
 }
 
-struct FormantShifter::Impl
+bool FormantShifter::Channel::haveFrame() const
 {
-    static constexpr int maxFormants = 2;
-    static constexpr int maxChannels = 2;
+    return fifoCount >= fftSize; //to have the full frame availbale
+}
 
-    // helpers
-    static float amountToRatio(float a) noexcept
-    {
-        const float t = juce::jlimit(-1.0f, 1.0f, a / 50.0f); // ±2 octaves on the UI
-        return std::pow(2.0f, 2.0f * t);                      // 0.25x..4x
-    }
-
-    static float clampHz(float f, float nyq) noexcept
-    {
-        return juce::jlimit(80.0f, nyq - 500.0f, f);
-    }
-
-    static float pickQ(float fHz) noexcept
-    {
-        if (fHz < 700.f)  return 2.8f;
-        if (fHz < 1500.f) return 3.6f;
-        return 4.8f;
-    }
-
-    static inline float dbToLin(float dB) noexcept
-    {
-        return juce::Decibels::decibelsToGain(dB);
-    }
-
-    // small smoothed band-pass (RBJ) with smoothed coeffs
-    struct SmoothBandpass
-    {
-        // target params
-        float fT = 1000.f, qT = 3.6f, gT_db = -120.f;
-        // current (smoothed)
-        float fC = 1000.f, qC = 3.6f, gC_db = -120.f;
-
-        // biquad coeffs (current/target)
-        float b0 = 0, b1 = 0, b2 = 0, a1 = 0, a2 = 0;
-        float b0T = 0, b1T = 0, b2T = 0, a1T = 0, a2T = 0;
-
-        // DF2 state
-        float s1 = 0, s2 = 0;
-
-        // smoothing rates
-        float alphaParam = 0.f; // ~5–10 ms
-        float alphaCoeff = 0.f; // ~5–10 ms
-        float fs = 48000.f;
-
-        static float msToAlpha(float ms, float sampleRate)
-        {
-            const float tau = std::max(0.0001f, ms * 0.001f);
-            return 1.f - std::exp(-1.f / (tau * sampleRate));
-        }
-
-        void setSmoothingMs(float paramMs, float coeffMs, float sampleRate)
-        {
-            fs = sampleRate;
-            alphaParam = msToAlpha(std::max(0.5f, paramMs), sampleRate);
-            alphaCoeff = msToAlpha(std::max(0.5f, coeffMs), sampleRate);
-        }
-
-        void setTargets(float fHz, float q, float gDb) noexcept
-        {
-            // light sanity clamps since these can come from outside
-            fT    = std::isfinite(fHz) ? fHz : 1000.f;
-            qT    = juce::jlimit(0.25f, 24.0f, std::isfinite(q) ? q : 3.6f);
-            gT_db = juce::jlimit(-120.0f, 12.0f, std::isfinite(gDb) ? gDb : -120.0f);
-        }
-
-        void reset()
-        {
-            s1 = s2 = 0.f;
-            fC = fT; qC = qT; gC_db = gT_db;
-            recalcTargets();
-            b0 = b0T; b1 = b1T; b2 = b2T; a1 = a1T; a2 = a2T;
-        }
-
-        void recalcTargets()
-        {
-            // if anything went bad, snap to a safe mute
-            if (!isFinite5(fC, qC, gC_db, fs, 1.f))
-            {
-                b0T = b1T = b2T = a1T = a2T = 0.f;
-                return;
-            }
-
-            const float fSafe = juce::jlimit(60.f, fs * 0.45f, fC);
-            const float w0 = juce::MathConstants<float>::twoPi * fSafe / fs;
-            const float c  = std::cos(w0);
-            const float s  = std::sin(w0);
-            const float qSafe = std::max(0.25f, qC);
-            const float alpha = s / (2.f * qSafe);
-
-            // RBJ band-pass (constant skirt gain)
-            const float b0n = qSafe * alpha;
-            const float b1n = 0.f;
-            const float b2n = -qSafe * alpha;
-            const float a0n = 1.f + alpha;
-            const float a1n = -2.f * c;
-            const float a2n = 1.f - alpha;
-
-            const float invA0 = (std::abs(a0n) > 1e-12f ? 1.f / a0n : 0.f);
-            b0T = b0n * invA0; b1T = b1n * invA0; b2T = b2n * invA0;
-            a1T = a1n * invA0; a2T = a2n * invA0;
-
-            if (!isFinite5(b0T, b1T, b2T, a1T, a2T))
-                b0T = b1T = b2T = a1T = a2T = 0.f;
-        }
-
-        float process(float x) noexcept
-        {
-            // smooth params
-            fC    += alphaParam * (fT    - fC);
-            qC    += alphaParam * (qT    - qC);
-            gC_db += alphaParam * (gT_db - gC_db);
-
-            // update coeffs
-            recalcTargets();
-            b0 += alphaCoeff * (b0T - b0);
-            b1 += alphaCoeff * (b1T - b1);
-            b2 += alphaCoeff * (b2T - b2);
-            a1 += alphaCoeff * (a1T - a1);
-            a2 += alphaCoeff * (a2T - a2);
-
-            // if anything went non-finite, hard-mute this band until reset by caller
-            if (!isFinite5(b0, b1, b2, a1, a2))
-                return 0.f;
-
-            // DF2
-            const float y = b0 * x + s1;
-            s1 = tinyDenormGuard(b1 * x - a1 * y + s2);
-            s2 = tinyDenormGuard(b2 * x - a2 * y);
-
-            const float g = juce::Decibels::decibelsToGain(gC_db);
-            return std::isfinite(g) ? y * g : 0.f;
-        }
-    };
-
-    struct ChannelState
-    {
-        std::array<SmoothBandpass, maxFormants> bands{};
-        int nActive = 0;
-
-        // tiny air passthrough (HP)
-        float hp_y = 0.f, hp_x1 = 0.f, hp_a = 0.f;
-
-        // light speech bed (HP ~120 Hz, LP ~12 kHz)
-        float sp_hp_y = 0.f, sp_hp_x1 = 0.f, sp_hp_a = 0.f;
-        float sp_lp_y = 0.f,            sp_lp_a = 0.f;
-
-        juce::LinearSmoothedValue<float> outTrim { 1.f };
-
-        void reset()
-        {
-            nActive = 0;
-            hp_y = hp_x1 = 0.f;
-            sp_hp_y = sp_hp_x1 = sp_lp_y = 0.f;
-            outTrim.setCurrentAndTargetValue(1.f);
-            for (auto& b : bands) b.reset();
-        }
-    };
-
-    // state
-    double sr = 48000.0;
-    int channels = 1;
-
-    std::array<std::vector<float>, maxChannels> lastGoodFreqs{};
-    juce::LinearSmoothedValue<float> amountSm { 0.f };
-    juce::LinearSmoothedValue<float> mixSm    { 1.f };
-    std::array<ChannelState, maxChannels> ch{};
-
-    // temp buffer reused to avoid heap allocs in processBlock
-    juce::AudioBuffer<float> dryTmp;
-
-    void prepare(double sampleRate, int /*maxBlockSize*/, int numChannels)
-    {
-        sr = sampleRate;
-        channels = juce::jlimit(1, maxChannels, numChannels);
-
-        amountSm.reset(sr, 0.004); amountSm.setCurrentAndTargetValue(0.f);
-        mixSm   .reset(sr, 0.006); mixSm   .setCurrentAndTargetValue(1.f);
-
-        for (int ci = 0; ci < maxChannels; ++ci)
-        {
-            ch[ci].reset();
-            ch[ci].outTrim.reset(sr, 0.015);
-
-            for (auto& b : ch[ci].bands)
-            {
-                b.setSmoothingMs(6.f, 9.f, (float) sr);
-                b.setTargets(1000.f, 3.6f, -120.f);
-                b.reset();
-            }
-
-            // HP ~3 kHz for tiny "air" passthrough
-            const float fc = 3000.f;
-            const float k  = std::exp(-juce::MathConstants<float>::twoPi * fc / (float) sr);
-            ch[ci].hp_a = (1.f - k);
-            ch[ci].hp_y = 0.f; ch[ci].hp_x1 = 0.f;
-
-            // speech bed: HP ~120 Hz, LP ~12 kHz
-            const float fch = 120.f, fcl = 12000.f;
-            const float kh  = std::exp(-juce::MathConstants<float>::twoPi * fch / (float) sr);
-            const float kl  = std::exp(-juce::MathConstants<float>::twoPi * fcl / (float) sr);
-            ch[ci].sp_hp_a = (1.f - kh);
-            ch[ci].sp_lp_a = (1.f - kl);
-            ch[ci].sp_hp_y = ch[ci].sp_hp_x1 = ch[ci].sp_lp_y = 0.f;
-        }
-
-        dryTmp.setSize(channels, 0, false, false, true);
-    }
-
-    void reset()
-    {
-        for (auto& c : ch) c.reset();
-        dryTmp.setSize(channels, 0, false, false, true);
-    }
-
-    void setShiftAmount(float a) noexcept
-    {
-        amountSm.setTargetValue(juce::jlimit(-50.f, 50.f, a));
-    }
-
-    void setMix(float m) noexcept
-    {
-        mixSm.setTargetValue(juce::jlimit(0.f, 1.f, m));
-    }
-
-    void setFormantFrequencies(int channel, const std::vector<float>& fHz)
-    {
-        if (channel < 0 || channel >= channels) return;
-        if (fHz.empty()) return; // keep last good on dropouts
-
-        std::vector<float> v;
-        v.reserve(maxFormants);
-        for (float f : fHz)
-            if (f >= 120.f && f <= 3500.f && std::isfinite(f))
-                v.push_back(f);
-
-        std::sort(v.begin(), v.end());
-        if ((int) v.size() > maxFormants) v.resize(maxFormants);
-        lastGoodFreqs[(size_t) channel] = std::move(v);
-    }
-
-    void processBlock(juce::AudioBuffer<float>& buffer) noexcept
-    {
-        juce::ScopedNoDenormals nd;
-        const int ns  = buffer.getNumSamples();
-        const int chIn = buffer.getNumChannels();
-        if (chIn == 0 || ns == 0) return;
-
-        const int chs = std::min(channels, chIn);
-        const float nyq = 0.5f * (float) sr;
-
-        // copy detector snapshot
-        std::array<std::array<float, maxFormants>, maxChannels> peaks{};
-        std::array<int, maxChannels> nPeaks{};
-        for (int ci = 0; ci < chs; ++ci)
-        {
-            const auto& src = lastGoodFreqs[(size_t) ci];
-            const int n = (int) std::min<size_t>(src.size(), maxFormants);
-            nPeaks[(size_t) ci] = juce::jlimit(0, maxFormants, n);
-            for (int i = 0; i < nPeaks[(size_t) ci]; ++i)
-            {
-                const float f = clampHz(src[(size_t) i], nyq);
-                peaks[(size_t) ci][(size_t) i] = std::isfinite(f) ? f : 1000.f;
-            }
-        }
-
-        // dry copy if needed (reused buffer)
-        const float mTarget = mixSm.getTargetValue();
-        if (mTarget < 0.999f)
-        {
-            if (dryTmp.getNumChannels() != chs || dryTmp.getNumSamples() != ns)
-                dryTmp.setSize(chs, ns, false, false, true);
-            for (int ci = 0; ci < chs; ++ci)
-                dryTmp.copyFrom(ci, 0, buffer, ci, 0, ns);
-        }
-
-        // keep boosts sensible
-        const float amtAbs = std::abs(amountSm.getTargetValue());
-        const float maxMidBoostDb = juce::jmap(amtAbs, 0.f, 50.f, 1.5f, 4.f);
-
-        for (int ci = 0; ci < chs; ++ci)
-        {
-            auto& C = ch[(size_t) ci];
-            float* out = buffer.getWritePointer(ci);
-
-            C.nActive = juce::jlimit(0, maxFormants, nPeaks[(size_t) ci]);
-            float hp_y = C.hp_y, hp_x1 = C.hp_x1, hp_a = C.hp_a;
-            float sp_hp_y = C.sp_hp_y, sp_hp_x1 = C.sp_hp_x1, sp_hp_a = C.sp_hp_a;
-            float sp_lp_y = C.sp_lp_y, sp_lp_a = C.sp_lp_a;
-
-            const int chunk = 32;
-            for (int base = 0; base < ns; base += chunk)
-            {
-                const int nThis = std::min(chunk, ns - base);
-                const float aNow  = amountSm.getNextValue();
-                const float ratio = amountToRatio(aNow);
-
-                float accLin = 0.f;
-                for (int i = 0; i < C.nActive; ++i)
-                {
-                    const float f0 = peaks[(size_t) ci][(size_t) i];
-                    const float f1 = clampHz(f0 * ratio, nyq);
-                    const float q1 = pickQ(f1);
-
-                    float cap = maxMidBoostDb;
-                    if (f1 < 400.f)       cap *= juce::jmap(f1, 80.f, 400.f, 0.35f, 1.f);
-                    else if (f1 > 3000.f) cap *= juce::jmap(f1, 3000.f, nyq - 200.f, 1.f, 0.85f);
-
-                    C.bands[(size_t) i].setTargets(f1, q1, cap);
-                    accLin += dbToLin(cap);
-                }
-
-                const float avgBoostLin = (C.nActive > 0 ? accLin / (float) C.nActive : 1.f);
-                const float trim = 1.f / juce::jlimit(1.f, 2.5f, avgBoostLin);
-                C.outTrim.setTargetValue(trim);
-
-                for (int n = 0; n < nThis; ++n)
-                {
-                    const int idx = base + n;
-                    const float x = out[idx];
-
-                    float y = 0.f;
-                    for (int i = 0; i < C.nActive; ++i)
-                        y += C.bands[(size_t) i].process(x);
-
-                    // tiny high-passed "air"
-                    const float hp = x - hp_x1;
-                    hp_y += hp_a * (hp - hp_y);
-                    hp_x1 = x;
-
-                    float wet = (y + 0.15f * hp_y) * C.outTrim.getNextValue();
-
-                    // gentle broadband speech bed (HP 120, LP 12k), mixed low
-                    const float d_hp = x - sp_hp_x1;
-                    sp_hp_y += sp_hp_a * (d_hp - sp_hp_y);
-                    sp_hp_x1 = x;
-                    sp_lp_y += sp_lp_a * (sp_hp_y - sp_lp_y);
-                    wet += 0.1f * sp_lp_y;
-
-                    if (!std::isfinite(wet))
-                    {
-                        // hard-reset bands if anything blew up
-                        for (int i = 0; i < C.nActive; ++i) C.bands[(size_t) i].reset();
-                        hp_y = 0.f; sp_hp_y = 0.f; sp_lp_y = 0.f;
-                        wet = 0.f;
-                    }
-
-                    out[idx] = wet;
-                }
-            }
-
-            // store filter states
-            C.hp_y = tinyDenormGuard(hp_y);
-            C.hp_x1 = hp_x1;
-            C.sp_hp_y = tinyDenormGuard(sp_hp_y);
-            C.sp_hp_x1 = sp_hp_x1;
-            C.sp_lp_y = tinyDenormGuard(sp_lp_y);
-        }
-
-        // final dry/wet
-        const float m = mixSm.getNextValue();
-        if (m < 0.999f)
-        {
-            for (int ci = 0; ci < chs; ++ci)
-            {
-                float* w = buffer.getWritePointer(ci);
-                const float* d = dryTmp.getReadPointer(ci);
-                for (int n = 0; n < ns; ++n)
-                {
-                    const float s = (1.f - m) * d[n] + m * w[n];
-                    w[n] = std::isfinite(s) ? s : 0.f;
-                }
-            }
-        }
-    }
-};
-
-// ===== out-of-line ctor/dtor (after Impl is complete) =====
-FormantShifter::FormantShifter() : impl(std::make_unique<Impl>()) {}
-FormantShifter::~FormantShifter() noexcept = default;
-
-// ===== thin wrappers =====
-void FormantShifter::prepare(double sampleRate, int maxBlockSize, int numChannels)
+void FormantShifter::Channel::buildFrame()
 {
-    juce::ignoreUnused(maxBlockSize);
-    impl->prepare(sampleRate, maxBlockSize, numChannels);
+    float* dst = frameTime.getWritePointer(0);
+    const float* f = fifo.getReadPointer(0);
+    const int fs = fifo.getNumSamples();
+
+    // we take fftSize samples ending hopSize behind fifoWrite
+    int endPos = fifoWrite - hopSize;
+    while (endPos < 0) endPos += fs;
+
+    for (int n = 0; n < fftSize; ++n)
+    {
+        int idx = endPos - (fftSize - 1 - n);
+        while (idx < 0)   idx += fs;
+        while (idx >= fs) idx -= fs;
+
+        dst[n] = f[idx] * window[n];
+    }
+
+    // consume hopSize samples
+    fifoCount = std::max(0, fifoCount - hopSize);
+}
+
+void FormantShifter::Channel::forwardFFT()
+{
+    auto* io  = fftIO.getData();
+    auto* tim = frameTime.getReadPointer(0);
+
+    // time -> complex buffer
+    for (int n = 0; n < fftSize; ++n)
+    {
+        io[n].real(tim[n]);
+        io[n].imag(0.0f);
+    }
+
+    // forward FFT in-place
+    fft.perform(io, io, false);
+
+    for (int k = 0; k < fftSize; ++k)
+    {
+        const float re = io[k].real();
+        const float im = io[k].imag();
+        const float m  = std::sqrt(re*re + im*im) + 1.0e-24f;
+
+        mag[k]   = m;
+        phase[k] = std::atan2(im, re);
+    }
+}
+
+void FormantShifter::Channel::computeEnvelope()
+{
+    // simple 1-pole LP on log|X|
+    float prev = std::log(mag[0]);
+    envOrig[0] = prev;
+
+    for (int k = 1; k < fftSize; ++k)
+    {
+        float here = std::log(mag[k]);
+        prev = envSmooth * prev + (1.0f - envSmooth) * here;
+        envOrig[k] = prev;
+    }
+}
+
+void FormantShifter::Channel::warpEnvelope (float ratio)
+{
+    const float lastBin = (float)(fftSize - 1);
+
+    for (int k = 0; k < fftSize; ++k)
+    {
+        float src = (float) k / ratio;
+        if (src < 0.0f)      src = 0.0f;
+        if (src > lastBin)   src = lastBin;
+
+        int   i0 = (int) std::floor(src);
+        int   i1 = juce::jmin(i0 + 1, fftSize - 1);
+        float f  = src - (float) i0;
+
+        float v0 = envOrig[i0];
+        float v1 = envOrig[i1];
+        envWarp[k] = v0 + f * (v1 - v0);
+    }
+}
+
+void FormantShifter::Channel::buildShiftedSpectrum()
+{
+    for (int k = 0; k < fftSize; ++k)
+    {
+        float logMag    = std::log(mag[k] + 1.0e-24f);
+        float logNewMag = logMag - envOrig[k] + envWarp[k];
+        float newMag    = std::exp(logNewMag);
+
+        float ph = phase[k];
+        float re = newMag * std::cos(ph);
+        float im = newMag * std::sin(ph);
+
+        specOut[k].real(re);
+        specOut[k].imag(im);
+    }
+}
+
+void FormantShifter::Channel::inverseFFTandOLA()
+{
+    auto* io = fftIO.getData();
+
+    // move specOut (std::complex<float>) into fftIO (juce::dsp::Complex<float>)
+    for (int k = 0; k < fftSize; ++k)
+    {
+        io[k].real(specOut[k].real());
+        io[k].imag(specOut[k].imag());
+    }
+
+    // inverse FFT in-place (JUCE does NOT normalise)
+    fft.perform(io, io, true);
+
+    // time-domain, apply window AND 1/fftSize scaling
+    float* outTD = ifftTime.getData();
+    const float invN = 1.0f / (float) fftSize;
+    for (int n = 0; n < fftSize; ++n)
+        outTD[n] = io[n].real() * window[n] * invN;
+
+    float* olaData = ola.getWritePointer(0);
+    float* wData   = olaWeight.getWritePointer(0);
+    const int os   = ola.getNumSamples();
+
+    // overlap-add AND accumulate window^2 weights
+    for (int n = 0; n < fftSize; ++n)
+    {
+        const int idx = (olaWrite + n) % os;
+        olaData[idx] += outTD[n];
+        wData[idx]   += window[n] * window[n];
+    }
+
+    // advance write pointer by hop
+    olaWrite = (olaWrite + hopSize) % os;
+}
+
+void FormantShifter::Channel::pull (float* dst, int n)
+{
+    float* olaData = ola.getWritePointer(0);
+    float* wData   = olaWeight.getWritePointer(0);
+    const int os   = ola.getNumSamples();
+
+    for (int i = 0; i < n; ++i)
+    {
+        const float w = wData[olaRead];
+        float v = (w > 1.0e-12f) ? (olaData[olaRead] / w) : 0.0f;
+
+        dst[i] = std::isfinite(v) ? antiDenorm(v) : 0.0f;
+
+        // consume
+        olaData[olaRead] = 0.0f;
+        wData[olaRead]   = 0.0f;
+
+        olaRead = (olaRead + 1) % os;
+    }
+}
+
+//============================================================
+// FormantShifter public
+//============================================================
+
+FormantShifter::FormantShifter()
+{
+    // choose buffer sizes (independent of prepare() so they're allocated up front)
+    const int fifoSize = fftSize * 2;
+    const int olaSize  = fftSize * 4;
+
+    for (int c = 0; c < maxCh; ++c)
+        ch[c].init(fifoSize, olaSize);
+}
+
+void FormantShifter::prepare (double sampleRate, int /*maxBlockSize*/, int numChannels)
+{
+    sr  = sampleRate;
+    nCh = juce::jlimit(1, maxCh, numChannels);
+    reset();
 }
 
 void FormantShifter::reset()
 {
-    impl->reset();
+    // re-init clears state
+    const int fifoSize = fftSize * 2;
+    const int olaSize  = fftSize * 4;
+
+    for (int c = 0; c < nCh; ++c)
+        ch[c].init(fifoSize, olaSize);
 }
 
-void FormantShifter::setShiftAmount(float a) noexcept
+void FormantShifter::setShiftAmount (float amount)
 {
-    impl->setShiftAmount(a);
+    shiftAmount = juce::jlimit(-50.0f, 50.0f, amount);
 }
 
-void FormantShifter::setMix(float m) noexcept
+void FormantShifter::setMix (float mix)
 {
-    impl->setMix(m);
+    mixVal = juce::jlimit(0.0f, 1.0f, mix);
 }
 
-void FormantShifter::setFormantFrequencies(int ch, const std::vector<float>& freqsHz)
+void FormantShifter::processBlock (juce::AudioBuffer<float>& buffer) noexcept
 {
-    impl->setFormantFrequencies(ch, freqsHz);
-}
+    const int numSamples = buffer.getNumSamples();
+    const int chans      = std::min(nCh, buffer.getNumChannels());
+    if (numSamples <= 0 || chans <= 0)
+        return;
 
-void FormantShifter::processBlock(juce::AudioBuffer<float>& buffer) noexcept
-{
-    impl->processBlock(buffer);
+    // keep dry for mix
+    juce::AudioBuffer<float> dryCopy;
+    dryCopy.makeCopyOf(buffer, true);
+
+    // push incoming audio into per-channel FIFOs
+    for (int c = 0; c < chans; ++c)
+        ch[c].pushSamples(buffer.getReadPointer(c), numSamples);
+
+    // generate as many new shifted frames as possible
+    const float ratio = amountToRatio(shiftAmount);
+
+    for (;;)
+    {
+        bool allReady = true;
+        for (int c = 0; c < chans; ++c)
+            allReady = allReady && ch[c].haveFrame();
+
+        if (!allReady)
+            break;
+
+        for (int c = 0; c < chans; ++c)
+        {
+            auto& cc = ch[c];
+            cc.buildFrame();
+            cc.forwardFFT();
+            cc.computeEnvelope();
+            cc.warpEnvelope(ratio);
+            cc.buildShiftedSpectrum();
+            cc.inverseFFTandOLA();
+        }
+    }
+
+    // pull wet audio and mix with dry
+    for (int c = 0; c < chans; ++c)
+    {
+        juce::HeapBlock<float> wetTmp;
+        wetTmp.allocate(numSamples, true);
+        ch[c].pull(wetTmp.getData(), numSamples);
+
+        float* out = buffer.getWritePointer(c);
+        const float* dry = dryCopy.getReadPointer(c);
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float y = (1.0f - mixVal) * dry[i] + mixVal * wetTmp[i];
+            out[i] = std::isfinite(y) ? y : 0.0f;
+        }
+    }
+
+    // clear any channels beyond nCh
+    for (int c = chans; c < buffer.getNumChannels(); ++c)
+        buffer.clear(c, 0, numSamples);
 }

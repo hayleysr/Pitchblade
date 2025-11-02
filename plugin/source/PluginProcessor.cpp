@@ -194,6 +194,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
+    equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
 
 	//effect node building - reyna

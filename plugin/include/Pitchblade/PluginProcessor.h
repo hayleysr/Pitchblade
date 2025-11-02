@@ -11,6 +11,7 @@
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
 #include "Pitchblade/effects/FormantShifter.h"      //huda
+#include "Pitchblade/effects/Equalizer.h"           //huda
 
 class EffectNode;
 
@@ -76,6 +77,8 @@ public:
     DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
 
     FormantShifter& getFormantShifter() { return formantShifter; }
+    Equalizer& getEqualizer() {return equalizer; }
+
 
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
@@ -92,6 +95,8 @@ private:
     std::vector<float> latestFormants;      // Vector to store formants - huda
     PitchDetector pitchProcessor;           //hayley
     FormantShifter formantShifter;          //huda
+    Equalizer equalizer;           //huda
+
 
     bool bypassed = false;
 
