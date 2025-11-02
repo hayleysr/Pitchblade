@@ -5,6 +5,7 @@
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h" 
 #include "Pitchblade/effects/PitchCorrector.h"
+#include "Pitchblade/ui/LevelMeter.h"
 
 class PitchPanel : public juce::Component,
                    private juce::Timer          // Update UI at regular intervals
@@ -19,6 +20,8 @@ private:
 
     void drawStaticContent(juce::Graphics& g);
     void drawDynamicLabels(juce::Graphics& g);
+
+    LevelMeter leftLevelMeter, rightLevelMeter;
 
     juce::Rectangle<int> bounds;
 
