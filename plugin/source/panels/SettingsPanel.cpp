@@ -26,7 +26,7 @@ void SettingsPanel::paint(juce::Graphics& g){
     g.setColour(Colors::accent);
     g.setFont(20.0f);
 
-    g.drawText("Settings Panel",getLocalBounds(),juce::Justification::centred,1);
+    //g.drawText("Settings Panel",getLocalBounds(),juce::Justification::centred,1);
 }
 
 void SettingsPanel::resized(){
