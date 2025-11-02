@@ -3,17 +3,38 @@
 #include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
 //Initializing by setting the parameters as defined
-RealTimeGraphVisualizer::RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz, bool isLog, int numOfYAxisLabels){
+RealTimeGraphVisualizer::RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range, int updateIntervalHz, bool isLog, int numOfYAxisLabels)
+    : apvts(vts)
+{
     yAxisLabel = label;
     yAxisRange = range;
     startTimerHz(updateIntervalHz);
     isLogarithmic = isLog;
     numYAxisLabels = numOfYAxisLabels;
+
+    //Listen to framerate parameter
+    apvts.addParameterListener("GLOBAL_FRAMERATE",this);
+
+    int initialIndex = *apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+
+    switch(initialIndex){
+        case 0:
+            startTimerHz(5);
+        case 1:
+            startTimerHz(15);
+        case 2:
+            startTimerHz(30);
+        case 3:
+            startTimerHz(60);
+        default:
+            startTimerHz(30);
+    }
 }
 
 //Ensuring that the timer can't do anything if the visualizer is destroyed
 RealTimeGraphVisualizer::~RealTimeGraphVisualizer(){
     stopTimer();
+    apvts.removeParameterListener("GLOBAL_FRAMERATE",this);
 }
 
 //big function to handle all visual stuff
@@ -234,5 +255,24 @@ float RealTimeGraphVisualizer::mapValuetoY(float value) const{
         return juce::jmap(logValue, logStart, logEnd, graphB, graphY);
     }else{
         return juce::jmap(value,start,end,graphB,graphY);
+    }
+}
+
+//If the user changes the FPS in the settings, change it
+void RealTimeGraphVisualizer::parameterChanged(const juce::String& parameterID, float newValue){
+    if(parameterID == "GLOBAL_FRAMERATE"){
+        stopTimer();
+        switch((int)newValue){
+        case 0:
+            startTimerHz(5);
+        case 1:
+            startTimerHz(15);
+        case 2:
+            startTimerHz(30);
+        case 3:
+            startTimerHz(60);
+        default:
+            startTimerHz(30);
+    }
     }
 }

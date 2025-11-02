@@ -11,7 +11,7 @@
 //This visualizer class is a generic visualizer for any data stream. Its primary functionality is as a first-in, first-out queue, displaying a fixed number of recent data points
 //It uses a timer to gather new data and repaint itself on a regular interval
 //Its y-axis is customizable, and it has an optional horizontal dotted line, which can be used to display user-defined thresholds.
-class RealTimeGraphVisualizer : public juce::Component, public juce::Timer{
+class RealTimeGraphVisualizer : public juce::Component, public juce::Timer, public juce::AudioProcessorValueTreeState::Listener{
 private:
     //Draws y-axis labels and bounding box for the graph
     void drawLabels(juce::Graphics& g);
@@ -63,9 +63,12 @@ private:
 
     //Number of y axis labels to draw
     int numYAxisLabels = 4;
+
+    //Value tree state
+    juce::AudioProcessorValueTreeState& apvts;
 public:
     //Constructor. Label is the text next to the y-axis. Range is the minimum and maximum values for the y-axis. Update interval is the refresh rate in hz
-    RealTimeGraphVisualizer(const juce::String& label, juce::Range<float> range, int updateIntervalHz = 30,bool isLog = false, int numOfYAxisLabels = 5);
+    RealTimeGraphVisualizer(juce::AudioProcessorValueTreeState& vts, const juce::String& label, juce::Range<float> range, int updateIntervalHz = 30,bool isLog = false, int numOfYAxisLabels = 5);
     ~RealTimeGraphVisualizer() override;
 
     void paint(juce::Graphics& g) override;
@@ -80,4 +83,7 @@ public:
 
     //Sets a horizontal dotted line at a specific y-value. Can be hidden by setting enabled to false
     void setThreshold(float yValue, bool enabled = true);
+
+    //Update FPS
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
 };

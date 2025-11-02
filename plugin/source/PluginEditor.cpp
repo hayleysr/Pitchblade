@@ -23,7 +23,8 @@
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p): AudioProcessorEditor(&p),processorRef(p), 
                                                                     daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
-                                                                    visualizer(p, p.getEffectNodes())
+                                                                    visualizer(p, p.getEffectNodes()),
+                                                                    settingsPanel(p)
 {   
     //Austin
     //Stuff for the settings panel. Making a listener and setting it to invisible to start

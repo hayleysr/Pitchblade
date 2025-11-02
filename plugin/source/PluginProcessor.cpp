@@ -75,6 +75,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
 
+    //Settings Panel: austin
+    params.push_back(std::make_unique<juce::AudioParameterInt>(
+        "GLOBAL_FRAMERATE", "Global Framerate", 1, 4, 3));
+
     return { params.begin(), params.end() };
 }
 
