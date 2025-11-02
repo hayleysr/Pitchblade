@@ -20,14 +20,19 @@ RealTimeGraphVisualizer::RealTimeGraphVisualizer(juce::AudioProcessorValueTreeSt
     switch(initialIndex){
         case 0:
             startTimerHz(5);
+            break;
         case 1:
             startTimerHz(15);
+            break;
         case 2:
             startTimerHz(30);
+            break;
         case 3:
             startTimerHz(60);
+            break;
         default:
             startTimerHz(30);
+            break;
     }
 }
 
@@ -265,14 +270,19 @@ void RealTimeGraphVisualizer::parameterChanged(const juce::String& parameterID, 
         switch((int)newValue){
         case 0:
             startTimerHz(5);
+            break;
         case 1:
             startTimerHz(15);
+            break;
         case 2:
             startTimerHz(30);
+            break;
         case 3:
             startTimerHz(60);
+            break;
         default:
             startTimerHz(30);
+            break;
     }
     }
 }
