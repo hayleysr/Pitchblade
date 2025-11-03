@@ -41,11 +41,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
     // Gain : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "GAIN", "Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
+        "GAIN", "Gain", juce::NormalisableRange<float>(-48.0f, 48.0f, 0.1f), 0.0f));
 
     // Noise gate : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f), -48.0f));
+        "GATE_THRESHOLD", "Gate Threshold", juce::NormalisableRange<float>(-100.0f, 0.0f, 0.1f), -100.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GATE_ATTACK", "Gate Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 1.0f), 25.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -53,7 +53,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
     // Compressor : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "COMP_THRESHOLD", "Compressor Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+        "COMP_THRESHOLD", "Compressor Threshold", juce::NormalisableRange<float>(-100.0f, 0.0f, 0.1f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "COMP_RATIO", "Compressor Ratio", juce::NormalisableRange<float>(1.0f, 10.0f, 0.1f), 1.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -65,7 +65,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
     //De-Esser : austin
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 0.0f));
+        "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-100.0f, 0.0f, 0.1f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_RATIO", "DeEsser Ratio", juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f), 4.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -74,6 +74,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
+    //Settings Panel: austin
+    params.push_back(std::make_unique<juce::AudioParameterInt>(
+        "GLOBAL_FRAMERATE", "Global Framerate", 1, 4, 3));
 
     return { params.begin(), params.end() };
 }
