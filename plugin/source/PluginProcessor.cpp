@@ -81,15 +81,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 ///// reorder request from UI thread///////////////////////////////////////
 // will instead store names of nodes in new order, and then apply reorder on audio thread 
 void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames) {
-	std::lock_guard<std::mutex> lock(audioMutex);   //lock mutex for thread safety
+	std::lock_guard<std::recursive_mutex> lock(audioMutex);   //lock mutex for thread safety
 	pendingOrderNames = newOrderNames;              //store new order
 	reorderRequested.store(true);                   //set flag to apply reorder
-    applyPendingReorder();
 }
 
 ////// Apply pendingreorder onto audio thread 
 //reconnecting of effect nodes based on pending order names - reyna 
 void AudioPluginAudioProcessor::applyPendingReorder() {
+    std::scoped_lock lock(audioMutex);
 	if (!reorderRequested.exchange(false))  //check and reset flag
         return;
 	// Debug output of pending rows
@@ -244,11 +244,11 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
 // layout request from UI thread 
 // stores new rows and applies on audio thread - reyna
 void AudioPluginAudioProcessor::requestLayout(const std::vector<Row>& newRows) {
-    std::lock_guard<std::mutex> lock(audioMutex);
+    std::lock_guard<std::recursive_mutex> lock(audioMutex);
     pendingRows = newRows;
     layoutRequested.store(true);
-    applyPendingLayout(); // apply now (mirrors requestReorder)
 }
+
 // helper to find node by name in list
 static std::shared_ptr<EffectNode> findByName(const std::vector<std::shared_ptr<EffectNode>>& list, const juce::String& name) {
     for (auto& n : list) if (n && n->effectName == name) return n;
@@ -258,6 +258,7 @@ static std::shared_ptr<EffectNode> findByName(const std::vector<std::shared_ptr<
 // apply pending layout on audio thread
 // reconnect effect nodes based on pending rows
 void AudioPluginAudioProcessor::applyPendingLayout() {
+	std::scoped_lock lock(audioMutex);   // lock mutex for thread safety
     if (!layoutRequested.exchange(false))
         return;
 
@@ -459,7 +460,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     juce::ignoreUnused (midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
-	// reordering chain if requested - reyna
+    applyPendingLayout();
     applyPendingReorder();
 
     // indivdual bypass checker reyna

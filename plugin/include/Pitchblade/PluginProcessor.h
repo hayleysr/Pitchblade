@@ -60,6 +60,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 	std::vector<std::shared_ptr<EffectNode>>& getEffectNodes() { return effectNodes; }  //getter for effect nodes
+	std::recursive_mutex& getMutex() { return audioMutex; }         // getter for audio mutex
 
     //============================== DSP processors 
 
@@ -105,7 +106,8 @@ private:
     std::shared_ptr<EffectNode> rootNode;
 
     //reorder queue
-	std::mutex audioMutex;                           
+	//std::mutex audioMutex;    
+	std::recursive_mutex audioMutex;                    // mutex for audio thread safety
 	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
 	std::vector<juce::String> pendingOrderNames;        // new order to apply
 

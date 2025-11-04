@@ -134,6 +134,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 		processorRef.requestLayout(procRows);                       // request layout update
 		processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
 
+        visualizer.clearVisualizer();   // safely clear old node references
+
 		// refresh effect panel tabs
         effectPanel.refreshTabs();
         visualizer.refreshTabs();
@@ -150,6 +152,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 // RIGHT btn
                 row->rightButton.onClick = [this, name = row->rightEffectName]() {
                         if (name.isEmpty()) return;
+                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
                         auto& nodes = processorRef.getEffectNodes();
                         // find the index by name, then open that tab
                         for (int n = 0; n < (int)nodes.size(); ++n) {

@@ -37,18 +37,9 @@ public:
                 button.repaint();
             };
 
-        // dropdown for chaining mode
+        // button for chaining mode
         modeButton.setButtonText("M");  
-        modeButton.onClick = [this]() {
-                // cycle through modes for testing
-                chainModeId++;
-                if (chainModeId > 4) {
-                    chainModeId = 1;
-                }
-                if (onModeChanged) {
-                    onModeChanged(myIndex, chainModeId);
-                }
-            };
+
         modeButton.setWantsKeyboardFocus(false);
         addAndMakeVisible(modeButton);
 
