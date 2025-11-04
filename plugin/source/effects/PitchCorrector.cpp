@@ -54,7 +54,7 @@ int PitchCorrector::quantizeToScale(int note){
             }
         }
     }
-    targetNote = closestNote;
+    targetPitch = closestNote;
     return closestNote;
 }
 float PitchCorrector::noteToFrequency(int midi){
@@ -62,7 +62,7 @@ float PitchCorrector::noteToFrequency(int midi){
 }
 
 std::string PitchCorrector::getTargetNoteName(){
-    int index = (int)targetNote % 12;
+    int index = (int)targetPitch % 12;
     if (index < 0) index += 12;
     return aNoteNames[index];
 }

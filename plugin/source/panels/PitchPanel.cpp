@@ -3,14 +3,27 @@
 
 PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
     : processor(proc),
-    leftLevelMeter(std::make_unique<LevelMeter>([&]() {
-    return std::abs(processor.getPitchCorrector().getCurrentPitch() -
-                    processor.getPitchCorrector().getTargetPitch());})),
-    rightLevelMeter(std::make_unique<LevelMeter>([&]() {
-    return std::abs(processor.getPitchCorrector().getCurrentPitch() -
-                    processor.getPitchCorrector().getTargetPitch());})),
+    leftLevelMeter(
+        std::make_unique<LevelMeter>(
+            [&](){
+                return std::min(0.f, processor.getPitchCorrector().getSemitoneError());
+            },
+            -100.f, 0.f, RotationMode::LEFT
+        )
+    ),
+    rightLevelMeter(
+        std::make_unique<LevelMeter>(
+            [&](){
+                return std::max(0.f, processor.getPitchCorrector().getSemitoneError());
+            },
+            0.f, 100.f, RotationMode::RIGHT
+        )
+    )
 {
     startTimerHz(8);    // Update 4x/second
+
+    addAndMakeVisible(leftLevelMeter.get());
+    addAndMakeVisible(rightLevelMeter.get());
 
     /*
     //doesn't update
@@ -28,12 +41,18 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
 void PitchPanel::resized()
 {
     auto area = getLocalBounds().reduced(10);
+
+    auto y = bounds.getCentreY() + bounds.getHeight() * 0.25;
+    juce::Rectangle<int> leftBounds (bounds.getX(), y, bounds.getCentreX() - bounds.getX(), bounds.getHeight() / 6);
+    juce::Rectangle<int> rightBounds (bounds.getCentreX(), y, bounds.getRight() - bounds.getCentreX(), bounds.getHeight() / 6);
+
+    leftLevelMeter->setBounds(leftBounds);
+    rightLevelMeter->setBounds(rightBounds);
 }
 
 void PitchPanel::paint(juce::Graphics& g)
 {
-    
-    bounds = getLocalBounds();
+    bounds = getLocalBounds().toFloat();
     drawStaticContent(g);
     drawDynamicLabels(g);
     /*

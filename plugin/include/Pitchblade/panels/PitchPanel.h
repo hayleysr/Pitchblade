@@ -21,9 +21,9 @@ private:
     void drawStaticContent(juce::Graphics& g);
     void drawDynamicLabels(juce::Graphics& g);
 
-    LevelMeter leftLevelMeter, rightLevelMeter;
+    std::unique_ptr<LevelMeter> leftLevelMeter, rightLevelMeter;
 
-    juce::Rectangle<int> bounds;
+    juce::Rectangle<float> bounds;
 
     AudioPluginAudioProcessor& processor;
 

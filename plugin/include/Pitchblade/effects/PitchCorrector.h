@@ -22,7 +22,8 @@ public:
     void setSmoothing(float);
 
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
-    float getTargetPitch() { return targetNote; }
+    float getTargetPitch() { return targetPitch; }
+    float getSemitoneError() { return 1200.0f * std::log2(pitchDetector.getCurrentPitch() / targetPitch); }
     std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
     std::string getTargetNoteName();
 
@@ -44,7 +45,7 @@ private:
     float currentRatio = 1.0f;
     float smoothing = 1.0f;
 
-    int targetNote;
+    int targetPitch;
     std::string targetNoteName = "A";
 
     std::string aNoteNames[12] = {
