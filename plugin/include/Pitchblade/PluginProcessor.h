@@ -60,6 +60,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 	std::vector<std::shared_ptr<EffectNode>>& getEffectNodes() { return effectNodes; }  //getter for effect nodes
+	std::recursive_mutex& getMutex() { return audioMutex; }         // getter for audio mutex
 
     //============================== DSP processors 
 
@@ -79,6 +80,9 @@ public:
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
 
     int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
+
+	struct Row { juce::String left, right; };               // processing chain row
+	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
 
 private:
     //============================== 
@@ -102,9 +106,15 @@ private:
     std::shared_ptr<EffectNode> rootNode;
 
     //reorder queue
-	std::mutex audioMutex;                           
+	//std::mutex audioMutex;    
+	std::recursive_mutex audioMutex;                    // mutex for audio thread safety
 	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
 	std::vector<juce::String> pendingOrderNames;        // new order to apply
+
+	//layout  rows
+	std::vector<Row> pendingRows;   // new layout to apply
+    std::atomic<bool> layoutRequested{ false };
+    void applyPendingLayout();
 
     void applyPendingReorder();
 
