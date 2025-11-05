@@ -72,6 +72,7 @@ target_sources(${PROJECT_NAME}
         source/panels/PitchPanel.cpp
         source/panels/CompressorPanel.cpp
         source/panels/DeEsserPanel.cpp
+        source/panels/DeNoiserPanel.cpp
         source/panels/SettingsPanel.cpp
 
         source/effects/GainProcessor.cpp
@@ -82,6 +83,7 @@ target_sources(${PROJECT_NAME}
         source/effects/PitchShifter.cpp
         source/effects/CompressorProcessor.cpp
         source/effects/DeEsserProcessor.cpp
+        source/effects/DeNoiserProcessor.cpp
 
 )
 
