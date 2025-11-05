@@ -44,6 +44,9 @@ void CompressorProcessor::updateAttackAndRelease(){
 
 // The main processing loop. This operates very similarly to the noise gate
 void CompressorProcessor::process(juce::AudioBuffer<float>& buffer){
+
+    juce::ScopedNoDenormals noDenormals;
+
     // Gathering information on the buffer
     const int numSamples = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
@@ -91,4 +94,5 @@ void CompressorProcessor::process(juce::AudioBuffer<float>& buffer){
             channelData[i] *= gainMultiplier;
         }
     }
+
 }

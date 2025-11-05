@@ -90,7 +90,7 @@ public:
     explicit NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) {
         // initialize default properties
         if (!getMutableNodeState().hasProperty("GateThreshold"))
-            getMutableNodeState().setProperty("GateThreshold", -48.0f, nullptr);
+            getMutableNodeState().setProperty("GateThreshold", -100.0f, nullptr);
         if (!getMutableNodeState().hasProperty("GateAttack"))
             getMutableNodeState().setProperty("GateAttack", 25.0f, nullptr);
         if (!getMutableNodeState().hasProperty("GateRelease"))
@@ -110,7 +110,7 @@ public:
 
         juce::ignoreUnused(proc);
 
-        const float threshold = (float)getNodeState().getProperty("GateThreshold", -48.0f);
+        const float threshold = (float)getNodeState().getProperty("GateThreshold", -100.0f);
         const float attack = (float)getNodeState().getProperty("GateAttack", 25.0f);
         const float release = (float)getNodeState().getProperty("GateRelease", 100.0f);
 
