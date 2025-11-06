@@ -11,6 +11,7 @@
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
+#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/panels/EffectNode.h"
 //Austin
@@ -33,6 +34,11 @@ public:
     //Austin
     void buttonClicked(juce::Button* button) override;
 
+	// getters for presets and settings panels - reyna 
+    DaisyChain& getDaisyChain() { return daisyChain; }
+    EffectPanel& getEffectPanel() { return effectPanel; }
+    VisualizerPanel& getVisualizer() { return visualizer; }
+
 private:
     // This reference is provided as a quick way for your editor to access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
@@ -47,6 +53,9 @@ private:
 
     TooltipManager tooltipManager;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
+
+    PresetsPanel presetsPanel;
+    bool isShowingPresets = false;
 
     //Austin added this
     SettingsPanel settingsPanel;

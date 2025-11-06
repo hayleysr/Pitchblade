@@ -53,6 +53,10 @@ public:
 
 	 virtual std::shared_ptr<EffectNode> clone() const = 0;      // duplicate node
 
+     // XML serialization
+     virtual std::unique_ptr<juce::XmlElement> toXml() const = 0;
+     virtual void loadFromXml(const juce::XmlElement& xml) = 0;
+
     ///////////////////////////// Accessors
 
 	const juce::String& getNodeType()  const { return nodeType; }           // type of node

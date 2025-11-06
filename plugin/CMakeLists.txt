@@ -64,6 +64,7 @@ target_sources(${PROJECT_NAME}
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
         source/ui/RealTimeGraphVisualizer.cpp
+        source/panels/PresetsPanel.cpp
 
         #remember to add your panel and processors here
         source/panels/GainPanel.cpp

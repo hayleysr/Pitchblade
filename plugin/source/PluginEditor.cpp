@@ -10,6 +10,7 @@
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/panels/SettingsPanel.h"
+#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include "Pitchblade/panels/EffectNode.h"
@@ -35,7 +36,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                                                                     daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
                                                                     visualizer(p, p.getEffectNodes()),
-                                                                    settingsPanel(p)
+                                                                    settingsPanel(p), presetsPanel(p)
 {   
     //Austin
     //Stuff for the settings panel. Making a listener and setting it to invisible to start
@@ -52,6 +53,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+
+    addChildComponent(presetsPanel);
+    presetsPanel.setVisible(false);
+    topBar.presetButton.addListener(this);
 
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
@@ -179,7 +184,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                             effectPanel.setVisible(true);
                         }
                 };
-                    };
+    
                 // RIGHT btn
                 row->rightButton.onClick = [this, name = row->rightEffectName]() {
                         if (name.isEmpty()) return;
@@ -231,6 +236,8 @@ void AudioPluginAudioProcessorEditor::resized()
     //Austin
     //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
     settingsPanel.setBounds(area);
+	// reyna presets panel
+    presetsPanel.setBounds(getLocalBounds().withTrimmedLeft(200).withTrimmedTop(40));
 
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);
@@ -253,4 +260,14 @@ void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button){
         visualizer.setVisible(!isShowingSettings);
         effectPanel.setVisible(!isShowingSettings);
     }
+
+    // reyna: preset button
+    if (button == &topBar.presetButton) {
+        isShowingPresets = !isShowingPresets;
+        presetsPanel.setVisible(isShowingPresets);
+        visualizer.setVisible(!isShowingPresets);
+        effectPanel.setVisible(!isShowingPresets);
+        settingsPanel.setVisible(false);
+    }
+
 }

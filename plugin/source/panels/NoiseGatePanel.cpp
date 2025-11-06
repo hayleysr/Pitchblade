@@ -136,3 +136,20 @@ void NoiseGatePanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce:
             releaseSlider.setValue((float)tree.getProperty("GateRelease"), juce::dontSendNotification);
     }
 }
+
+// XML serialization - reyna
+std::unique_ptr<juce::XmlElement> NoiseGateNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("NoiseGateNode");
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("GateThreshold", (float)getNodeState().getProperty("GATE_THRESHOLD", -100.0f));
+    xml->setAttribute("GateAttack", (float)getNodeState().getProperty("GATE_ATTACK", 25.0f));
+    xml->setAttribute("GateRelease", (float)getNodeState().getProperty("GATE_RELEASE", 100.0f));
+    return xml;
+}
+
+void NoiseGateNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+    s.setProperty("GATE_THRESHOLD", (float)xml.getDoubleAttribute("GateThreshold", -100.0f), nullptr);
+    s.setProperty("GATE_ATTACK", (float)xml.getDoubleAttribute("GateAttack", 25.0f), nullptr);
+    s.setProperty("GATE_RELEASE", (float)xml.getDoubleAttribute("GateRelease", 100.0f), nullptr);
+}
