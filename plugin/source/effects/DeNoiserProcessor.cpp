@@ -130,18 +130,40 @@ void DeNoiserProcessor::processFrame(){
     //Storing the value of isLearning within this context so that the next part happens faster
     bool learning = isLearning;
 
+    //Was having crackling issues, and I thought that separating the special cases (first and last bins) would help
+    //Using curly brackets to separate it so I can use variable names without worrying if they are repeated later on
+    {
+        float magnitude0 = fftData[0];
+        float magnitude1024 = fftData[1];
+
+        float noiseMag0 = noiseProfile[0];
+        float noiseMag1024 = noiseProfile[numBins - 1];
+
+        if(learning){
+            noiseProfile[0] += magnitude0;
+            noiseProfile[numBins - 1] += magnitude1024;
+        }else{
+            float reduction0 = noiseMag0 * (reductionAmount * 2.0f);
+            float reduction1024 = noiseMag1024 * (reductionAmount * 2.0f);
+
+            float reducedMag0 = std::max(0.0f,magnitude0-reduction0);
+            float reducedMag1024 = std::max(0.0f,magnitude1024-reduction1024);
+
+            float floor0 = magnitude0 * (1.0f - reductionAmount);
+            float floor1024 = magnitude1024 * (1.0f - reductionAmount);
+            
+            fftData[0] = std::max(reducedMag0,floor0);
+            fftData[1] = std::max(reducedMag1024,floor1024);
+        }
+    }
+
     //Cycling through
-    for(int i = 0; i < numBins; i++){
+    for(int i = 1; i < (numBins-1); i++){
         float real;
         float imag;
         //Unpacking parts for the ith frequency bins
-        if(i==0 || (i == (numBins - 1))){
-            real = fftData[i];
-            imag = 0.0f;
-        }else{
-            real = fftData[i * 2];
-            imag = fftData[i * 2 + 1];
-        }
+        real = fftData[i * 2];
+        imag = fftData[i * 2 + 1];
 
         //Magnitude is the strength of the frequency
         float magnitude = std::sqrt(real * real + imag * imag);
@@ -171,15 +193,11 @@ void DeNoiserProcessor::processFrame(){
         }
 
         //Reconstruct the frequencies
-        //If statement handles the special first and last bins, which have 0 for imag
-        if(i == 0 || i == numBins - 1){
-            fftData[i] = magnitude;
-        }else{
-            //Calculate new real part
-            fftData[i * 2] = magnitude * std::cos(phase);
-            //Calculate new imag part
-            fftData[i * 2 + 1] = magnitude * std::sin(phase);
-        }
+        //Calculate new real part
+        fftData[i * 2] = magnitude * std::cos(phase);
+        //Calculate new imag part
+        fftData[i * 2 + 1] = magnitude * std::sin(phase);
+
     }
 
     //increment noiseProfileSamples if it is learning for use in averaging later on
