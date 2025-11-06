@@ -27,7 +27,7 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 
 	//reynas changes - adding value tree functionality
 	const float startDb = (float)localState.getProperty("Gain", 0.0f);      // get starting gain from local state, if none, default to 0.0f
-	gainSlider.setRange(-24.0, 24.0, 0.1);                                  // set slider range
+	gainSlider.setRange(-48.0, 48.0, 0.1);                                  // set slider range
 	gainSlider.setValue(startDb, juce::dontSendNotification);               // set slider to match starting gain
 
 	// update value tree on slider change

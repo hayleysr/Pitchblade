@@ -62,7 +62,7 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     ///////////////////
     //reynas changes - adding value tree functionality
     const float startThresholdDb = (float)localState.getProperty("GateThreshold", 0.0f);      // get starting gain from local state, if none, default to 0.0f
-    thresholdSlider.setRange(-80.0, -48.0, 0.1);                                        // set slider range
+    thresholdSlider.setRange(-100.0, 0.0, 0.1);                                        // set slider range
     thresholdSlider.setValue(startThresholdDb, juce::dontSendNotification);                      // set slider to match starting gain
     thresholdSlider.onValueChange = [this]() {
         localState.setProperty("GateThreshold", (float)thresholdSlider.getValue(), nullptr);
