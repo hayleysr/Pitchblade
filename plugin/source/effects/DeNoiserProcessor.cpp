@@ -21,6 +21,7 @@ void DeNoiserProcessor::prepare(const double sRate){
     std::fill(inputBuffer.begin(),inputBuffer.end(),0.0f);
     std::fill(outputBuffer.begin(),outputBuffer.end(),0.0f);
     std::fill(noiseProfile.begin(),noiseProfile.end(),0.0f);
+    std::fill(fftData.begin(),fftData.end(),0.0f);
 
     inputBufferPos = 0;
     outputBufferPos = 0;
@@ -93,15 +94,21 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
             std::fill(inputBuffer.data() + overlap,inputBuffer.data() + fftSize, 0.0f);
             //Reset the write pointer
             inputBufferPos = overlap;
-        }
 
-        //If the output buffer's position is equal to the size of the fft, then do the same as above but for the output, preparing the cleaned audio to be sent out
-        if(outputBufferPos == fftSize){
-            //Shift output buffer
+            //Moving output buffer logic up to see if it fixes the choppy audio
             std::memmove(outputBuffer.data(),outputBuffer.data() + hopSize,overlap * sizeof(float));
             std::fill(outputBuffer.data() + overlap,outputBuffer.data() + fftSize,0.0f);
             outputBufferPos = 0;
         }
+
+        //Moved this stuff up because there was choppy audio
+        // //If the output buffer's position is equal to the size of the fft, then do the same as above but for the output, preparing the cleaned audio to be sent out
+        // if(outputBufferPos == fftSize){
+        //     //Shift output buffer
+        //     std::memmove(outputBuffer.data(),outputBuffer.data() + hopSize,overlap * sizeof(float));
+        //     std::fill(outputBuffer.data() + overlap,outputBuffer.data() + fftSize,0.0f);
+        //     outputBufferPos = 0;
+        // }
     }
 }
 

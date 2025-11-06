@@ -41,8 +41,8 @@ DeNoiserPanel::DeNoiserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& s
     //New status label
     statusLabel.setText("Learning. Do not make noise.", juce::dontSendNotification);
     statusLabel.setJustificationType(juce::Justification::centred);
-    statusLabel.setVisible(false);
     addAndMakeVisible(statusLabel);
+    statusLabel.setVisible(false);
 
     //Reduction slider
     reductionSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
