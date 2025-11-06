@@ -28,12 +28,12 @@ void LevelMeter::paint(juce::Graphics& g)
 void LevelMeter::resized()
 {
     const auto bounds = getLocalBounds().toFloat();
-    ColourGradient gradient{ Colors::accent, bounds.getBottomLeft(), Colors::buttonActive, bounds.getTopLeft(), false};
-    gradient.addColour(0.5, Colors::panel);
+    ColourGradient gradient{ Colors::accent, bounds.getBottomLeft(), Colors::accent, bounds.getTopLeft(), false};
+    gradient.addColour(0.5, Colors::accent);
 
     auto levelBounds = getLocalBounds();
     unsigned int levelWidth, levelHeight;
-    if(rotationMode == RotationMode::RIGHT || RotationMode::LEFT)
+    if(rotationMode == RotationMode::RIGHT || rotationMode == RotationMode::LEFT)
         levelWidth = levelBounds.getHeight() / numLevels;
     else
         levelHeight = levelBounds.getWidth() / numLevels;
@@ -66,7 +66,7 @@ void Level::paint(juce::Graphics& g)
     if(active){
         g.setColour(color);
     }else{
-        g.setColour(Colors::background);
+        g.setColour(Colors::button);
     }
 
     const float delta = 4.f;
@@ -74,7 +74,7 @@ void Level::paint(juce::Graphics& g)
     const auto side = jmin(bounds.getWidth(), bounds.getHeight());
     const auto levelFillBounds = Rectangle<float>{ bounds.getX(), bounds.getY(), side, side };
     g.fillRoundedRectangle(levelFillBounds, delta);
-    g.setColour(Colors::buttonActive);
+    g.setColour(Colors::accent);
     g.drawRoundedRectangle(levelFillBounds, delta, 1.f);
     if (active){
         g.setGradientFill(ColourGradient{ color.withAlpha(0.3f), levelFillBounds.getCentre(), color.withLightness(1.5f).withAlpha(0.f), {}, true });

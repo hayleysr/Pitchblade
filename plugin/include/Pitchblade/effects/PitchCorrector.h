@@ -23,7 +23,7 @@ public:
 
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
     float getTargetPitch() { return targetPitch; }
-    float getSemitoneError() { return 1200.0f * std::log2(pitchDetector.getCurrentPitch() / targetPitch); }
+    float getSemitoneError();
     std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
     std::string getTargetNoteName();
 

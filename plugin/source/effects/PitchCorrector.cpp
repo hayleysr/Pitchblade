@@ -21,7 +21,7 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
 
     float detectedNote = pitchDetector.getCurrentMidiNote();
     int quantizedNote = quantizeToScale(std::round(detectedNote)); //determine target note
-    float targetPitch = noteToFrequency(quantizedNote);
+    targetPitch = noteToFrequency(quantizedNote);
 
     // Update ratio with smoothing
     float targetRatio = targetPitch / detectedPitch;
@@ -54,11 +54,25 @@ int PitchCorrector::quantizeToScale(int note){
             }
         }
     }
-    targetPitch = closestNote;
     return closestNote;
 }
 float PitchCorrector::noteToFrequency(int midi){
     return 440.0f * std::pow(2.0f, (midi - 69) / 12.0f);
+}
+
+float PitchCorrector::getSemitoneError(){
+    float currentPitch = pitchDetector.getCurrentPitch();
+    if(currentPitch <= 0.f || targetPitch <= 0.f) return 0.f;
+
+    float cents = 1200.0f * std::log2(currentPitch / targetPitch); 
+
+    //clamping
+    if(cents > 200.f) cents = 200.f;
+    if(cents < -200.f) cents = -200.f;
+
+    DBG("Current Pitch: " << currentPitch << "\nTarget Pitch:" << targetPitch);
+    DBG(cents);
+    return cents;
 }
 
 std::string PitchCorrector::getTargetNoteName(){

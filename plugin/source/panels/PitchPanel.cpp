@@ -8,7 +8,7 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
             [&](){
                 return std::min(0.f, processor.getPitchCorrector().getSemitoneError());
             },
-            -100.f, 0.f, RotationMode::LEFT
+            0.f, 100.f, RotationMode::LEFT
         )
     ),
     rightLevelMeter(
@@ -20,7 +20,7 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
         )
     )
 {
-    startTimerHz(8);    // Update 4x/second
+    startTimerHz(8);
 
     addAndMakeVisible(leftLevelMeter.get());
     addAndMakeVisible(rightLevelMeter.get());
@@ -40,14 +40,21 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
 
 void PitchPanel::resized()
 {
-    auto area = getLocalBounds().reduced(10);
+    auto localBounds = getLocalBounds().reduced(10);
 
-    auto y = bounds.getCentreY() + bounds.getHeight() * 0.25;
-    juce::Rectangle<int> leftBounds (bounds.getX(), y, bounds.getCentreX() - bounds.getX(), bounds.getHeight() / 6);
-    juce::Rectangle<int> rightBounds (bounds.getCentreX(), y, bounds.getRight() - bounds.getCentreX(), bounds.getHeight() / 6);
+    auto y = localBounds.getCentreY() + localBounds.getHeight() * 0.25;
+    // juce::Rectangle<int> leftBounds (0, y + 100, localBounds.getWidth(), localBounds.getHeight());
+    // juce::Rectangle<int> rightBounds (0, y, localBounds.getWidth(), localBounds.getHeight());
 
-    leftLevelMeter->setBounds(leftBounds);
-    rightLevelMeter->setBounds(rightBounds);
+    // leftLevelMeter->setBounds(leftBounds);
+    // rightLevelMeter->setBounds(rightBounds);
+
+    auto leftArea  = localBounds.removeFromLeft(localBounds.getWidth() / 2).reduced(40);
+    auto rightArea = localBounds.reduced(40);
+
+    leftLevelMeter->setBounds(leftArea.withY(y).withHeight(localBounds.getHeight()));
+    rightLevelMeter->setBounds(rightArea.withY(y).withHeight(localBounds.getHeight()));
+
 }
 
 void PitchPanel::paint(juce::Graphics& g)
