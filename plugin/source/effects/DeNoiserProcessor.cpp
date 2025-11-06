@@ -100,7 +100,7 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
             //Shift output buffer
             std::memmove(outputBuffer.data(),outputBuffer.data() + hopSize,overlap * sizeof(float));
             std::fill(outputBuffer.data() + overlap,outputBuffer.data() + fftSize,0.0f);
-            outputBufferPos = overlap;
+            outputBufferPos = 0;
         }
     }
 }
