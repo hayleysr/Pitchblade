@@ -21,6 +21,9 @@ private:
     //Sample rate
     double sampleRate = 44100.0;
 
+    //This increases the power of the reduction even further. I found that 2.0x wasn't enough, so I made a constant that can be altered in this header to fine-tune it
+    const float POWER_MULTIPLIER = 4.0f;
+
     // FFT and Overlap add parameters
     static constexpr int fftOrder = 11;
     static constexpr int fftSize = 2048;

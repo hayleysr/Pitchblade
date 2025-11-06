@@ -143,8 +143,8 @@ void DeNoiserProcessor::processFrame(){
             noiseProfile[0] += magnitude0;
             noiseProfile[numBins - 1] += magnitude1024;
         }else{
-            float reduction0 = noiseMag0 * (reductionAmount * 2.0f);
-            float reduction1024 = noiseMag1024 * (reductionAmount * 2.0f);
+            float reduction0 = noiseMag0 * (reductionAmount * POWER_MULTIPLIER);
+            float reduction1024 = noiseMag1024 * (reductionAmount * POWER_MULTIPLIER);
 
             float reducedMag0 = std::max(0.0f,magnitude0-reduction0);
             float reducedMag1024 = std::max(0.0f,magnitude1024-reduction1024);
@@ -178,8 +178,8 @@ void DeNoiserProcessor::processFrame(){
             //This part is the actual denoising part that uses the noiseProfile and reductionAmount as keys to determine how much and what to reduce
             float noiseMag = noiseProfile[i];
             //Calculates the amount to subtract from a given frequency based on the average magnitude during learning.
-            //Doubling allows the sweet spot to be close to 50% of the slider with the ability to subtract more if desired 
-            float reduction = noiseMag * (reductionAmount * 2.0f);
+            //Multiplying allows the sweet spot to be close to 50% of the slider with the ability to subtract more if desired 
+            float reduction = noiseMag * (reductionAmount * POWER_MULTIPLIER);
 
             //Make reduce the magnitude of the frequency using the reduction. If that results in a value below 0, just use 0 instead
             float reducedMag = std::max(0.0f, magnitude - reduction);
