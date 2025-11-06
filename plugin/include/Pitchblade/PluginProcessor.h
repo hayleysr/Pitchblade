@@ -9,6 +9,7 @@
 #include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
+#include "Pitchblade/effects/DeNoiserProcessor.h"   //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
 
 class EffectNode;
@@ -73,6 +74,7 @@ public:
     PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
     DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+    DeNoiserProcessor& getDeNoiserProcessor() {return deNoiserProcessor; }
 
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
@@ -95,6 +97,7 @@ private:
 
     CompressorProcessor compressorProcessor; //Austin
     DeEsserProcessor deEsserProcessor;      //Austin
+    DeNoiserProcessor deNoiserProcessor;    //Austin
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;

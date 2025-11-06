@@ -7,6 +7,7 @@
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/panels/CompressorPanel.h"
 #include "Pitchblade/panels/DeEsserPanel.h"
+#include "Pitchblade/panels/DeNoiserPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 
@@ -74,6 +75,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
+    //De-Noiser : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DENOISER_REDUCTION", "DeNoiser Reduction", juce::NormalisableRange<float>(0.0f,1.0f,0.01f),0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "DENOISER_LEARN", "DeNoiser Learn", false));
 
     //Settings Panel: austin
     params.push_back(std::make_unique<juce::AudioParameterInt>(
@@ -206,6 +213,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
     effectNodes.push_back(std::make_shared<CompressorNode>(*this));
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+    effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 

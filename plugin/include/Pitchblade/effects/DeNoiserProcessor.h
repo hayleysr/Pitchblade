@@ -39,8 +39,6 @@ private:
     //Buffers for processing
     std::vector<float> fftData;
     std::vector<float> noiseProfile;
-    std::vector<float> lastInputPhase;
-    std::vector<float> lastOutputPhase;
 
     //Internal counters
     int samplesProcessed = 0;

@@ -108,9 +108,9 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
 //Processing of the frame, either for learning or cleaning data
 void DeNoiserProcessor::processFrame(){
     //Window the input buffer
-    for(int i = 0;i < fftSize; i++){
-        fftData[i] = inputBuffer[i] * window.getWindowingTable()[i];
-    }
+    std::copy(inputBuffer.begin(),inputBuffer.end(),fftData.begin());
+    window.multiplyWithWindowingTable(fftData.data(),fftSize);
+
     //Clear imaginary part
     std::fill(fftData.data() + fftSize,fftData.data() + fftSize * 2, 0.0f);
 
@@ -183,12 +183,14 @@ void DeNoiserProcessor::processFrame(){
     //Performing the inverse FFT function! This is putting those pieces back together into an actual bit of audio!
     forwardFFT.performRealOnlyInverseTransform(fftData.data());
 
-    //Window and overlap add to output buffer, basically making it so the output doesn't sound choppy
-    for(int i = 0; i < fftSize; i++){
-        //Apply window and normalize for overlap add
-        float outputSample = fftData[i] * window.getWindowingTable()[i] * (float)fftSize;
+    //Apply the window to the processed audio sitting in fftData
+    window.multiplyWithWindowingTable(fftData.data(),fftSize);
 
-        //Add to the output buffer
-        outputBuffer[i] += outputSample;
+    //Normalize the audio so its level is correct
+    juce::FloatVectorOperations::multiply(fftData.data(),(float)fftSize,fftSize);
+
+    //Add the processed sample back to the output buffer
+    for(int i = 0; i < fftSize; i++){
+        outputBuffer[i] += fftData[i];
     }
 }
