@@ -41,10 +41,12 @@ void PitchCorrector::setSmoothing(float smoothingAmt){
 int PitchCorrector::quantizeToScale(int note){
     if (scale.empty()) return note;
 
+    int detectedOctave = note / 12;
     int closestNote = note;
     int minDist = INT_MAX;
 
-    for (int octave = 0; octave < 8; ++octave) {
+    for (int octave = detectedOctave - 1; octave <= detectedOctave + 1; ++octave) {
+        if(octave < 0 || octave > 8) continue;
         for (int scaleNote : scale[scaleType]) {
             int candidate = scaleNote + octave * 12;
             int dist = std::abs(candidate - note);
@@ -58,6 +60,10 @@ int PitchCorrector::quantizeToScale(int note){
 }
 float PitchCorrector::noteToFrequency(int midi){
     return 440.0f * std::pow(2.0f, (midi - 69) / 12.0f);
+}
+int PitchCorrector::frequencyToNote(int freq){
+    float midi = 69.0f + 12.0f * std::log2(freq / 440.0f);
+    return (int)std::round(midi);
 }
 
 float PitchCorrector::getSemitoneError(){
@@ -75,8 +81,19 @@ float PitchCorrector::getSemitoneError(){
     return cents;
 }
 
-std::string PitchCorrector::getTargetNoteName(){
-    int index = (int)targetPitch % 12;
+std::string PitchCorrector::getCurrentNoteName(){
+    float currentPitch = pitchDetector.getCurrentPitch();
+    int pitch = frequencyToNote(currentPitch);
+    int index = pitch % 12;
     if (index < 0) index += 12;
+    DBG("Current Frequency: " << currentPitch << " Name:" << aNoteNames[index]);
+    return aNoteNames[index];
+}
+
+std::string PitchCorrector::getTargetNoteName(){
+    int pitch = frequencyToNote(targetPitch);
+    int index = pitch % 12;
+    if (index < 0) index += 12;
+    DBG("Target Frequency: " << targetPitch << " Name:" << aNoteNames[index]);
     return aNoteNames[index];
 }

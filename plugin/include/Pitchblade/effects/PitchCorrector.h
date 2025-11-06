@@ -24,12 +24,13 @@ public:
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
     float getTargetPitch() { return targetPitch; }
     float getSemitoneError();
-    std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
+    std::string getCurrentNoteName();
     std::string getTargetNoteName();
 
 private:
     int quantizeToScale(int);
     static float noteToFrequency(int midi);
+    static int frequencyToNote(int freq);
 
     PitchDetector pitchDetector;
     PitchShifter pitchShifter;
@@ -46,11 +47,11 @@ private:
     float smoothing = 1.0f;
 
     int targetPitch;
-    std::string targetNoteName = "A";
+    std::string targetNoteName = "C";
 
     std::string aNoteNames[12] = {
-        "A", "A#", "B", "C", "C#", "D", 
-        "D#", "E", "F", "F#", "G", "G#"
+        "C", "C#", "D", "D#", "E", "F", 
+        "F#", "G", "G#", "A", "A#", "B"
     };
 
     double sampleRate;
