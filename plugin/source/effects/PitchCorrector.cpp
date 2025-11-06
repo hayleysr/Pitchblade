@@ -75,9 +75,7 @@ float PitchCorrector::getSemitoneError(){
     //clamping
     if(cents > 200.f) cents = 200.f;
     if(cents < -200.f) cents = -200.f;
-
-    DBG("Current Pitch: " << currentPitch << "\nTarget Pitch:" << targetPitch);
-    DBG(cents);
+    
     return cents;
 }
 
@@ -86,7 +84,6 @@ std::string PitchCorrector::getCurrentNoteName(){
     int pitch = frequencyToNote(currentPitch);
     int index = pitch % 12;
     if (index < 0) index += 12;
-    DBG("Current Frequency: " << currentPitch << " Name:" << aNoteNames[index]);
     return aNoteNames[index];
 }
 
@@ -94,6 +91,5 @@ std::string PitchCorrector::getTargetNoteName(){
     int pitch = frequencyToNote(targetPitch);
     int index = pitch % 12;
     if (index < 0) index += 12;
-    DBG("Target Frequency: " << targetPitch << " Name:" << aNoteNames[index]);
     return aNoteNames[index];
 }

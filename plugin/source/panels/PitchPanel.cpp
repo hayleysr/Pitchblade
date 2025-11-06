@@ -8,7 +8,7 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
             [&](){
                 return std::min(0.f, processor.getPitchCorrector().getSemitoneError());
             },
-            0.f, 100.f, RotationMode::LEFT
+            0.f, -100.f, RotationMode::LEFT
         )
     ),
     rightLevelMeter(
