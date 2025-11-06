@@ -187,7 +187,7 @@ void DeNoiserProcessor::processFrame(){
     window.multiplyWithWindowingTable(fftData.data(),fftSize);
 
     //Normalize the audio so its level is correct
-    juce::FloatVectorOperations::multiply(fftData.data(),(float)fftSize,fftSize);
+    juce::FloatVectorOperations::multiply(fftData.data(),1.0f/1.5f,fftSize);
 
     //Add the processed sample back to the output buffer
     for(int i = 0; i < fftSize; i++){
