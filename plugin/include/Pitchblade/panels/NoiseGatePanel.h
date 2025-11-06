@@ -30,10 +30,10 @@ private:
     // Labels
     juce::Label noiseGateLabel, thresholdLabel, attackLabel, releaseLabel;
 
-	// attachments to link sliders to the apvts parameters
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
-	std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
+	//// attachments to link sliders to the apvts parameters
+ //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
+ //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
+	//std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
 
     juce::ValueTree localState;
 
@@ -88,6 +88,12 @@ class NoiseGateNode : public EffectNode {
 public:
 	//create node with name n reference to main processor
     explicit NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) {
+        
+        if (!processor.apvts.state.hasType("EffectNodes")) {    
+			processor.apvts.state = juce::ValueTree("EffectNodes"); // ensure EffectNodes tree exists - reyna
+        }
+
+		auto& state = getMutableNodeState();    // get mutable state - reyna
         // initialize default properties
         if (!getMutableNodeState().hasProperty("GateThreshold"))
             getMutableNodeState().setProperty("GateThreshold", -100.0f, nullptr);
@@ -100,6 +106,8 @@ public:
             processor.apvts.state = juce::ValueTree("EffectNodes");
         // add this node to processor state tree
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+
+        processor.apvts.state.addChild(state, -1, nullptr); // add to processor state tree
 
         //Preparing the gate
         gateDSP.prepare(proc.getSampleRate());
