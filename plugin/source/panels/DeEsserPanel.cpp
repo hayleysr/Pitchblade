@@ -73,7 +73,7 @@ DeEsserPanel::DeEsserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& sta
     ///////////////////
     // Link sliders to local state properties
     const float startThresholdDb = (float)localState.getProperty("DeEsserThreshold", 0.0f);
-    thresholdSlider.setRange(-60.0, 0.0, 0.1);
+    thresholdSlider.setRange(-100.0, 0.0, 0.1);
     thresholdSlider.setValue(startThresholdDb, juce::dontSendNotification);
     thresholdSlider.onValueChange = [this]() {
         localState.setProperty("DeEsserThreshold", (float)thresholdSlider.getValue(), nullptr);

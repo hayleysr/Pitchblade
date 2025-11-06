@@ -64,6 +64,7 @@ target_sources(${PROJECT_NAME}
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
         source/ui/LevelMeter.cpp
+        source/ui/RealTimeGraphVisualizer.cpp
 
         #remember to add your panel and processors here
         source/panels/GainPanel.cpp
@@ -72,6 +73,7 @@ target_sources(${PROJECT_NAME}
         source/panels/PitchPanel.cpp
         source/panels/CompressorPanel.cpp
         source/panels/DeEsserPanel.cpp
+        source/panels/SettingsPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp

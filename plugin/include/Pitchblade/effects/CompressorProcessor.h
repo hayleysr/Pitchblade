@@ -5,6 +5,9 @@
 #include <juce_dsp/juce_dsp.h>
 #include <JuceHeader.h>
 
+//This is needed to pass the real-time audio level to the UI for the graph
+#include <atomic>
+
 //Defining the class that handles the compressor logic
 class CompressorProcessor
 {
@@ -48,5 +51,8 @@ public:
 
     //processes the input audio buffer to apply compression
     void process(juce::AudioBuffer<float>& buffer);
+
+    //Store the latest output level in dB for the visualizer
+    std::atomic<float> currentOutputLevelDb {-100.0f};
 
 };
