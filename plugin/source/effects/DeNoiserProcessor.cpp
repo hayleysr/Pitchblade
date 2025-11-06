@@ -51,6 +51,20 @@ void DeNoiserProcessor::setLearning(bool learning){
             }
         }
 
+        //Attempt to make the resulting sound less staticky
+        //Before this, the noise profile has a lot of peaks, but it's a singular number for each bin
+        //Noise, however, goes up and down. I'm thinking that might be the issue? Let's see
+        //Trying to smooth it all out
+        // std::vector<float> profileCopy = noiseProfile;
+
+        // for(int i = 1;i < noiseProfile.size()-1;i++){
+        //     float prevBin = profileCopy[i-1];
+        //     float thisBin = profileCopy[i];
+        //     float nextBin = profileCopy[i+1];
+
+        //     noiseProfile[i] = (prevBin+thisBin+nextBin) / 3;
+        // }
+
         isLearning = false;
     }
 }
@@ -114,6 +128,7 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
 
 //Processing of the frame, either for learning or cleaning data
 void DeNoiserProcessor::processFrame(){
+    juce::ScopedNoDenormals noDenormals; //I really hope this fixes the static
     //Window the input buffer
     std::copy(inputBuffer.begin(),inputBuffer.end(),fftData.begin());
     window.multiplyWithWindowingTable(fftData.data(),fftSize);
@@ -149,8 +164,8 @@ void DeNoiserProcessor::processFrame(){
             float reducedMag0 = std::max(0.0f,magnitude0-reduction0);
             float reducedMag1024 = std::max(0.0f,magnitude1024-reduction1024);
 
-            float floor0 = magnitude0 * (1.0f - reductionAmount);
-            float floor1024 = magnitude1024 * (1.0f - reductionAmount);
+            float floor0 = magnitude0 * 0.02f;
+            float floor1024 = magnitude1024 * 0.02f;
             
             fftData[0] = std::max(reducedMag0,floor0);
             fftData[1] = std::max(reducedMag1024,floor1024);
@@ -186,7 +201,7 @@ void DeNoiserProcessor::processFrame(){
 
             //If the sound is complete silence, then don't completely make it empty. Give a little bit of noise (can be removed with noise gate)
             //This is to prevent artifacting in the sound 
-            float floor = magnitude * (1.0f - reductionAmount);
+            float floor = magnitude * 0.02f;
 
             //This is the final decision, and it chooses the greater value between the reducedMag and the floor value
             magnitude = std::max(reducedMag,floor);
