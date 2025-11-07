@@ -46,36 +46,61 @@ private:
 
 // Creating visualizer node for compressor
 #include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
-class CompressorVisualizer : public juce::Component, private juce::Timer
-{
-public:
-    explicit CompressorVisualizer(AudioPluginAudioProcessor& proc) : processor(proc){
-        startTimerHz(30); //refresh 30fps
-    }
+class CompressorNode;
 
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(juce::Colours::black);
-        g.setColour(juce::Colours::aqua);
-
-        // get compressor values
-        float thresholdValue = processor.apvts.getRawParameterValue("COMP_THRESHOLD")->load();
-        float ratioValue = processor.apvts.getRawParameterValue("COMP_RATIO")->load();
-        float attackValue = processor.apvts.getRawParameterValue("COMP_ATTACK")->load();
-        float releaseValue = processor.apvts.getRawParameterValue("COMP_RELEASE")->load();
-        float limiter = processor.apvts.getRawParameterValue("COMP_LIMITER_MODE")->load();
-        
-        // draw label
-        g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(20.0f, juce::Font::bold));
-        g.drawText("Compressor visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
-    }
+//Visualizer inherits from the graph, listens to state changes, and uses the timer to poll for new data
+class CompressorVisualizer : public RealTimeGraphVisualizer, public juce::ValueTree::Listener{
 private:
-    void timerCallback() override { repaint(); }
-
     AudioPluginAudioProcessor& processor;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorVisualizer)
+    CompressorNode& compressorNode;
+    juce::ValueTree localState;
+public:
+    explicit CompressorVisualizer(AudioPluginAudioProcessor& proc, CompressorNode& node, juce::ValueTree& state)
+        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f, 0.0f},false,6),
+            processor(proc),
+            compressorNode(node),
+            localState(state)
+    {
+        //Set initial threshold
+        float initialThreshold = (float)localState.getProperty("CompThreshold", 0.0f);
+        setThreshold(initialThreshold, true);
+
+        //Listen for changes
+        localState.addListener(this);
+
+        //Start timer
+        //startTimerHz(30);
+
+        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+
+        switch(initialIndex){
+            case 0:
+                startTimerHz(5);
+                break;
+            case 1:
+                startTimerHz(15);
+                break;
+            case 2:
+                startTimerHz(30);
+                break;
+            case 3:
+                startTimerHz(60);
+                break;
+            default:
+                startTimerHz(30);
+                break;
+        }
+    }
+
+    ~CompressorVisualizer() override;
+
+    //Update the graph
+    void timerCallback() override;
+
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+
 };
 
 //Austin (copying reyna's formatting)
@@ -141,6 +166,11 @@ public:
 
         // Process the audio buffer with the updated settings
         compressorDSP.process(buffer);
+
+        //Calculate output level after processing and store it
+        float peakAmplitude = buffer.getMagnitude(0,0,buffer.getNumSamples());
+        float levelDb = juce::Decibels::gainToDecibels(peakAmplitude,-100.0f);
+        compressorDSP.currentOutputLevelDb.store(levelDb);
     }
 
     // return UI panel linked to node
@@ -150,10 +180,15 @@ public:
 
     // return visualizer 
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<CompressorVisualizer>(proc);
+        return std::make_unique<CompressorVisualizer>(proc, *this, getMutableNodeState());
     }
 
-    ////////////////////////////////////////////////////////////
+    //Allows visualizer to get the shared value
+    std::atomic<float>& getOutputLevelAtomic(){
+        return compressorDSP.currentOutputLevelDb;
+    }
+
+    ////////////////////////////////////////////////////////////  reyna
 
     // clone node
     std::shared_ptr<EffectNode> clone() const override {
@@ -169,6 +204,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychain
         return clonePtr;
     }
+
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
 	//nodes own dsp processor + reference to main processor for param access

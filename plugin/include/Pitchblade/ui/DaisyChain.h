@@ -15,14 +15,24 @@ public:
     void resized() override;
     void paint(juce::Graphics&) override;
 	void setGlobalBypassVisual(bool globalBypassed);    // grayed out when global bypassed
-    bool globalBypassed = false;
+	void setChainControlsEnabled(bool enabled);         // enable/disable chain controls
 
 	//refeshes ui from effectnodes
     void rebuild();
     std::function<void()> onReorderFinished;
-	
-    std::vector<juce::String> getCurrentOrder() const { return effectNames; } //get current order of effects
-    juce::OwnedArray<DaisyChainItem> items;
+
+	// multiple rows support for double down chain mode. place two effects side by side will make them double down
+    struct Row {
+        juce::String left; juce::String right; bool hasRight() const {    // check if row has right effect
+            return right.isNotEmpty();
+        }
+    };
+    // rows instead of a flat name list
+    // helper accessors
+    const std::vector<Row>& getCurrentLayout() const { return rows; }  // new layout model
+    std::vector<juce::String> getCurrentOrder() const;      // flatten rows for old API
+
+	juce::OwnedArray<DaisyChainItem> items; // ui rows
 
 	//add + copy buttons
     juce::TextButton addButton{ "Add" };
@@ -33,12 +43,32 @@ public:
     void showDuplicateMenu();
     void showDeleteMenu();
 
+	// lock reordering and drag/drop when viewing settings/presets
+    void setReorderLocked(bool locked);
+    bool isReorderLocked() const { return reorderLocked; }
+
+    // called when a daisyChainItem mouseUp happens
+    std::function<void()> onItemMouseUp;
+
+    void resetRowsToNodes(); // force rows to mirror processor/effectNodes for loading presets
+
 private:
-    void handleReorder(int fromIndex, const juce::String& targetName, int targetIndex);
+	// reorder handler for multi row support
+    // kind: -1 vertical insert, -2 right-slot insert (double row)
+    void handleReorder(int kind, const juce::String& dragName, int targetRow);
+
 	std::shared_ptr<EffectNode> findNodeByName(const juce::String& name) const; // helper to find node by name
     std::vector<std::shared_ptr<EffectNode>>& effectNodes;  // refern to processor's chain
 
-	std::vector<juce::String> effectNames; // current order of effect names
+    std::vector<Row> rows;
+    juce::Viewport scrollArea;
+    juce::Component effectsContainer;
+    bool globalBypassed = false;
 
-    AudioPluginAudioProcessor& processorRef; // store processor reference
+	// top bar preset/settings panel state
+	bool reorderLocked = false;                     // lock reordering when viewing settings/presets
+	std::function<void()> onRequestClosePanels;     // request to close settings/presets panels
+	std::function<void()> onRequestUnlockChain;     // request to unlock chain for reordering
+
+    AudioPluginAudioProcessor& processorRef;        // store processor reference
 };

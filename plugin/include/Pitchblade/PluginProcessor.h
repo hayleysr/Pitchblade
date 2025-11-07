@@ -6,7 +6,7 @@
 #include "Pitchblade/effects/GainProcessor.h"       //Austin
 #include "Pitchblade/effects/FormantDetector.h"     //huda
 #include "Pitchblade/effects/NoiseGateProcessor.h"  //austin
-#include "Pitchblade/effects/PitchDetector.h"       //hayley
+#include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
@@ -62,6 +62,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 	std::vector<std::shared_ptr<EffectNode>>& getEffectNodes() { return effectNodes; }  //getter for effect nodes
+	std::recursive_mutex& getMutex() { return audioMutex; }         // getter for audio mutex
 
     //============================== DSP processors 
 
@@ -72,19 +73,28 @@ public:
         void setLatestFormants(const std::vector<float>& freqs) { latestFormants = freqs; }
         const std::vector<float>& getLatestFormants() { return latestFormants; }
 
-    PitchDetector& getPitchDetector() { return pitchProcessor; }
+    PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
-    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }  
 
     FormantShifter& getFormantShifter() { return formantShifter; }
     Equalizer& getEqualizer() {return equalizer; }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
 
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
 
     int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
+
+	struct Row { juce::String left, right; };               // processing chain row
+	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
+
+	// preset management
+    void savePresetToFile(const juce::File& file);
+    void loadPresetFromFile(const juce::File& file);
+    void loadDefaultPreset(const juce::String& type);
 
 private:
     //============================== 
@@ -111,9 +121,15 @@ private:
     std::shared_ptr<EffectNode> rootNode;
 
     //reorder queue
-	std::mutex audioMutex;                           
+	//std::mutex audioMutex;    
+	std::recursive_mutex audioMutex;                    // mutex for audio thread safety
 	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
 	std::vector<juce::String> pendingOrderNames;        // new order to apply
+
+	//layout  rows
+	std::vector<Row> pendingRows;   // new layout to apply
+    std::atomic<bool> layoutRequested{ false };
+    void applyPendingLayout();
 
     void applyPendingReorder();
 

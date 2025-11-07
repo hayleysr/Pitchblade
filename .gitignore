@@ -28,10 +28,7 @@ libs/
 **/Builds/
 
 [Bb]uild/
-[Dd]ebug/
-[Rr]elease/
 [Rr]eleases/
-x64/
 x86/
 [Bb]in/
 [Oo]bj/
@@ -52,3 +49,5 @@ ipch/
 .jucer
 
 /.gitignore
+/plugin/x64/Debug
+/plugin/include/Pitchblade/panels/HomePanel.h

@@ -110,6 +110,9 @@ public:
         return std::make_unique<GainVisualizer>(proc);
     }
 
+    //////////////////////////////////////////////  reyna
+
+	// clone node with copied state
     std::shared_ptr<EffectNode> clone() const override
 	{   
         auto copiedTree = getNodeState().createCopy();                      // Copy ValueTree state
@@ -124,6 +127,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychian
         return clonePtr;
     }
+
+	// XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
 	//nodes own dsp processor + reference to main processor for param access

@@ -314,6 +314,11 @@
     return dCurrentPitch;
  }
 
+ float PitchDetector::getCurrentMidiNote()
+{
+    return (int)(round(69.0f + 12.0f * log2(dCurrentPitch / 440.0f)));
+}
+
  /**
   * Returns number of semitones above or below reference pitch
   * f = f₀ * 2^(n/12)

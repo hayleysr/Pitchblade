@@ -79,7 +79,7 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     ///////////////////
     // Link sliders to local state properties
     const float startThresholdDb = (float)localState.getProperty("CompThreshold", 0.0f);
-    thresholdSlider.setRange(-60.0f, 0.0f, 0.1f);
+    thresholdSlider.setRange(-100.0f, 0.0f, 0.1f);
     thresholdSlider.setValue(startThresholdDb, juce::dontSendNotification);
     thresholdSlider.onValueChange = [this]() {
         localState.setProperty("CompThreshold", (float)thresholdSlider.getValue(), nullptr);
@@ -196,4 +196,52 @@ void CompressorPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce
             updateSliderVisibility();
         }
     }
+}
+
+CompressorVisualizer::~CompressorVisualizer(){
+        //Stop listening
+        if(localState.isValid()){
+            localState.removeListener(this);
+        }
+    }
+
+//Update the graph
+void CompressorVisualizer::timerCallback(){
+    float newDbLevel = compressorNode.getOutputLevelAtomic().load();
+
+    //Push it to graph
+    pushData(newDbLevel);
+
+    //Call the graph visualizer's timerCallback
+    RealTimeGraphVisualizer::timerCallback();
+}
+
+void CompressorVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if(tree==localState && property == juce::Identifier("CompThreshold")){
+        //Threshold slider changed, so update the line
+        float newThreshold = (float)localState.getProperty("CompThreshold",0.0f);
+        setThreshold(newThreshold,true);
+    }
+}
+
+// XML serialization for saving/loading state - reyna 
+
+std::unique_ptr<juce::XmlElement> CompressorNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("CompressorNode");
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("CompThreshold", (float)getNodeState().getProperty("COMP_THRESHOLD", 0.0f));
+    xml->setAttribute("CompRatio", (float)getNodeState().getProperty("COMP_RATIO", 3.0f));
+    xml->setAttribute("CompAttack", (float)getNodeState().getProperty("COMP_ATTACK", 50.0f));
+    xml->setAttribute("CompRelease", (float)getNodeState().getProperty("COMP_RELEASE", 250.0f));
+    xml->setAttribute("CompLimiterMode", (int)getNodeState().getProperty("COMP_LIMITER_MODE", 0));
+    return xml;
+}
+
+void CompressorNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+    s.setProperty("COMP_THRESHOLD", (float)xml.getDoubleAttribute("CompThreshold", 0.0f), nullptr);
+    s.setProperty("COMP_RATIO", (float)xml.getDoubleAttribute("CompRatio", 3.0f), nullptr);
+    s.setProperty("COMP_ATTACK", (float)xml.getDoubleAttribute("CompAttack", 50.0f), nullptr);
+    s.setProperty("COMP_RELEASE", (float)xml.getDoubleAttribute("CompRelease", 250.0f), nullptr);
+    s.setProperty("COMP_LIMITER_MODE", (int)xml.getIntAttribute("CompLimiterMode", 0), nullptr);
 }

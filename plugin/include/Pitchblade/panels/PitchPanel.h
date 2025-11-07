@@ -4,7 +4,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h" 
-#include "Pitchblade/effects/PitchDetector.h"
+#include "Pitchblade/effects/PitchCorrector.h"
 
 class PitchPanel : public juce::Component,
                    private juce::Timer          // Update UI at regular intervals
@@ -35,8 +35,8 @@ public:
     void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override
     {
         //pull current note
-        proc.getPitchDetector().processBlock(buffer);   
-        float pitchHz = proc.getPitchDetector().getCurrentPitch();
+        proc.getPitchCorrector().processBlock(buffer);   
+        float pitchHz = proc.getPitchCorrector().getCurrentPitch();
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override
@@ -44,10 +44,14 @@ public:
         return std::make_unique<PitchPanel>(proc);
     }
 
-    ////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////// reyna
 
     // clone node
         std::shared_ptr<EffectNode> clone() const override { return std::make_shared<PitchNode>(processor); }
+
+        // XML serialization for saving/loading
+        std::unique_ptr<juce::XmlElement> toXml() const override;
+        void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
     AudioPluginAudioProcessor& processor;

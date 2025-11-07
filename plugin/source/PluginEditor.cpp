@@ -4,12 +4,13 @@
 #include "Pitchblade/PluginEditor.h"
 #include "Pitchblade/ui/ColorPalette.h"
 
-
 // ui
 #include "Pitchblade/ui/TopBar.h"
 #include "Pitchblade/ui/DaisyChain.h"
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/panels/SettingsPanel.h"
+#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include "Pitchblade/panels/EffectNode.h"
@@ -19,11 +20,39 @@
 #include "Pitchblade/ui/TooltipManager.h"
 
 //==============================================================================
+// helper struct to convert DaisyChain::Row to processing row format 
+struct ProcRow { juce::String left, right; };
+static std::vector<ProcRow> toProcRows(const std::vector<DaisyChain::Row>& uiRows) {
+    std::vector<ProcRow> out;
+    out.reserve(uiRows.size());
+    for (auto& r : uiRows) {
+        out.push_back({ r.left, r.right });
+    }
+    return out;
+}
+
+//==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p): AudioProcessorEditor(&p),processorRef(p), 
                                                                     daisyChain(p, p.getEffectNodes()),
                                                                     effectPanel(p, p.getEffectNodes()), 
-                                                                    visualizer(p, p.getEffectNodes())
-{   // gui frontend / ui reyna ///////////////////////////////
+                                                                    visualizer(p, p.getEffectNodes()),
+                                                                    settingsPanel(p), presetsPanel(p)
+{   
+    //Austin
+    //Stuff for the settings panel. Making a listener and setting it to invisible to start
+    addAndMakeVisible(settingsPanel);
+    settingsPanel.setAlwaysOnTop(true);
+    settingsPanel.setVisible(false);
+    topBar.settingsButton.addListener(this);
+
+	// reyna presets panel 
+    addChildComponent(presetsPanel);
+    presetsPanel.setAlwaysOnTop(true);
+    presetsPanel.setVisible(false);
+    topBar.presetButton.addListener(this);
+
+    
+    // gui frontend / ui reyna ///////////////////////////////
 	setLookAndFeel(nullptr),    //reset look and feel
 	setSize(800, 600);          //set editor size
 	setLookAndFeel(&customLF);  //apply custom look and feel globally
@@ -32,6 +61,12 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(daisyChain);
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
+
+	// lock daisychain reordering when mouse is down - reyna
+    daisyChain.onItemMouseUp = [this]() {
+        closeOverlaysIfOpen();
+        daisyChain.setReorderLocked(false);
+        };
 
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
@@ -90,7 +125,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // Top bar bypass daisychains
     topBar.bypassButton.setClickingTogglesState(false);
     topBar.bypassButton.onClick = [this]() {
-
         const bool newState = !processorRef.isBypassed();
         processorRef.setBypassed(newState);
 
@@ -106,28 +140,192 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         };
 
 	//connect DaisyChain buttons to EffectPanel
-    for (int i = 0; i < daisyChain.items.size(); ++i)
-    {
-        daisyChain.items[i]->button.onClick = [this, i]()
-            {
-                effectPanel.showEffect(i);
-				visualizer.showVisualizer(i);       //connect visualizer to daisychain
+    for (int i = 0; i < daisyChain.items.size(); ++i) {
+
+        if (auto* row = daisyChain.items[i]) {
+            const juce::String effectName = row->getName();
+
+            row->button.onClick = [this, effectName]() {
+                // Find node by effect name
+                std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+                auto& nodes = processorRef.getEffectNodes();
+                for (int n = 0; n < (int)nodes.size(); ++n) {
+                    if (nodes[n] && nodes[n]->effectName == effectName) {
+                        effectPanel.showEffect(n);
+                        visualizer.showVisualizer(n);
+                        break;
+                    }
+                }
+                closeOverlaysIfOpen();
+
+                //Austin
+                //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
+                if (isShowingSettings || isShowingPresets) {
+                    isShowingSettings = false;
+                    settingsPanel.setVisible(false);
+
+                    visualizer.setVisible(true);
+                    effectPanel.setVisible(true);
+
+                    // reyna presets panel. close if open daisychain
+                    isShowingPresets = false;
+                    presetsPanel.setVisible(false);
+                    visualizer.setVisible(true);
+                    effectPanel.setVisible(true);
+                }
             };
     }
-    //keeps daiychain reordering consistant
-    daisyChain.onReorderFinished = [this, applyRowTooltips]() {
-            processorRef.requestReorder(daisyChain.getCurrentOrder());  //getting current ui order for reorder 
-            effectPanel.refreshTabs();
-            visualizer.refreshTabs();
-            for (int i = 0; i < daisyChain.items.size(); ++i) {
-                daisyChain.items[i]->button.onClick = [this, i]() {
-                        effectPanel.showEffect(i); 
-                        visualizer.showVisualizer(i);
-                };
+        //keeps daiychain ui reordering consistant with processor ////////////////////////////
+        daisyChain.onReorderFinished = [this, applyRowTooltips]() {
+            // new API for multiple rows
+            const auto& rows = daisyChain.getCurrentLayout();       // get current layout
+            std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
+            procRows.reserve(rows.size());
+            for (const auto& r : rows) {                            // convert to processing rows
+                procRows.push_back({ r.left, r.right });
             }
-			applyRowTooltips();     // reapply tooltips after reorder
-        };
+            processorRef.requestLayout(procRows);                       // request layout update
 
+            // close presets if open - reyna
+            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getTopLevelComponent())) {
+                if (editor->isPresetsVisible())
+                    editor->closeOverlaysIfOpen();
+            }
+
+            processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
+
+            visualizer.clearVisualizer();   // safely clear old node references
+            // reconnect buttons after reorder
+            for (int i = 0; i < daisyChain.items.size(); ++i) {
+                // for single and double rows
+                if (auto* row = daisyChain.items[i]) {
+                    const juce::String leftName = row->getName();
+                    // LEFT btn
+                    row->button.onClick = [this, leftName]() {
+                        closeOverlaysIfOpen();
+                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+                        auto& nodes = processorRef.getEffectNodes();
+
+                        for (int n = 0; n < (int)nodes.size(); ++n) {
+                            if (nodes[n] && nodes[n]->effectName == leftName) {
+                                effectPanel.showEffect(n);
+                                visualizer.showVisualizer(n);
+                                break;
+                            }
+                        }
+
+                        //Austin
+                        //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
+                        if (isShowingSettings) {
+                            isShowingSettings = false;
+                            settingsPanel.setVisible(false);
+
+                            visualizer.setVisible(true);
+                            effectPanel.setVisible(true);
+                        }
+
+                        // reyna presets panel. close if open daisychain
+                        if (isShowingPresets) {
+                            isShowingPresets = false;
+                            presetsPanel.setVisible(false);
+                            visualizer.setVisible(true);
+                            effectPanel.setVisible(true);
+                        }
+                        };
+
+                    // RIGHT btn
+                    row->rightButton.onClick = [this, name = row->rightEffectName]() {
+                        if (name.isEmpty()) return;
+                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+                        auto& nodes = processorRef.getEffectNodes();
+                        // find the index by name, then open that tab
+                        for (int n = 0; n < (int)nodes.size(); ++n) {
+                            if (nodes[n] && nodes[n]->effectName == name) {
+                                effectPanel.showEffect(n);
+                                visualizer.showVisualizer(n);
+                                break;
+                            }
+                        }
+                    };
+                }
+
+            }
+            applyRowTooltips();     // reapply tooltips after reorder
+            };
+            
+
+        presetsPanel.onPresetActionFinished = [this]() {
+            // keep preset page visible
+            isShowingPresets = true;
+            presetsPanel.setVisible(true);
+
+            //rebuild ui after preset data is updated
+            juce::MessageManager::callAsync([this]() {
+                daisyChain.resetRowsToNodes();
+
+                // full UI rebuild after preset operation
+                rebuildAndSyncUI();
+            
+                // keep daisychain grayed out when presets panel is open
+                if (isShowingPresets) {
+                    daisyChain.setChainControlsEnabled(false);
+                    daisyChain.setReorderLocked(true);
+                }
+            });     
+        };
+    }
+}
+
+
+
+// reyna - rebuild daisy chain and effect panel ui to sync with processor
+void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
+
+    //daisyChain.resetRowsToNodes();    // rows matches current effectNodes for daisychain ui
+    daisyChain.rebuild();             // rebuild rows + reset callbacks
+    effectPanel.refreshTabs();        // rebind tab components
+    visualizer.refreshTabs();         // sync visualizers
+    resized();                        
+    repaint();
+
+    // reconnect DaisyChain buttons to EffectPanel + Visualizer
+    for (int i = 0; i < daisyChain.items.size(); ++i) {
+        if (auto* row = daisyChain.items[i]) {
+
+            const juce::String effectName = row->getName(); // find rows left effect name
+            row->button.onClick = [this, effectName]() {
+
+                std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+                auto& nodes = processorRef.getEffectNodes();
+
+                // Find the actual effect index by its name
+                for (int n = 0; n < (int)nodes.size(); ++n) {
+                    if (nodes[n] && nodes[n]->effectName == effectName) {
+                        effectPanel.showEffect(n);
+                        visualizer.showVisualizer(n);
+                        break;
+                    }
+                }
+            };
+            // handle right side if double row
+            if (!row->rightEffectName.isEmpty()) {
+                const juce::String rightName = row->rightEffectName;
+                row->rightButton.onClick = [this, rightName]() {
+                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+                        auto& nodes = processorRef.getEffectNodes();
+
+                        for (int n = 0; n < (int)nodes.size(); ++n) {
+                            if (nodes[n] && nodes[n]->effectName == rightName) {
+                                effectPanel.showEffect(n);
+                                visualizer.showVisualizer(n);
+                                break;
+                            }
+                        }
+                    };
+            }
+        }
+    }
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
@@ -153,13 +351,171 @@ void AudioPluginAudioProcessorEditor::resized()
     auto top = area.removeFromTop(40);
     topBar.setBounds(top);
     //daisychain width
-    auto left = area.removeFromLeft(190);
+    auto left = area.removeFromLeft(200);
     daisyChain.setBounds(left);
+
+    //Austin
+    //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
+    settingsPanel.setBounds(area);
+	// reyna presets panel
+    presetsPanel.setBounds(getLocalBounds().withTrimmedLeft(200).withTrimmedTop(40));
+
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);
     effectPanel.setBounds(center);
     //visualizer
     visualizer.setBounds(area);
+}
+
+//Austin
+//Check to see if the settings button was clicked, and then 
+void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button){
+    if(button == &topBar.settingsButton){
+        //Toggle state
+        isShowingSettings = !isShowingSettings;
+
+        // reyna - updated how daisychain will lock 
+		// Lock or unlock daisychain reordering based on settings visibility
+        daisyChain.setChainControlsEnabled(!isShowingSettings);
+
+        ////show or hide the panels based on the state of the settings
+        settingsPanel.setVisible(isShowingSettings);
+        effectPanel.setVisible(!isShowingSettings);
+        visualizer.setVisible(!isShowingSettings);
+        presetsPanel.setVisible(false);
+        isShowingPresets = false;
+
+		// enable/disable daisychain buttons based on settings visibility
+        topBar.setButtonActive(topBar.settingsButton, isShowingSettings);
+        topBar.setButtonActive(topBar.presetButton, false);
+        daisyChain.setReorderLocked(isShowingSettings);
+
+        if (isShowingSettings)
+            topBar.setButtonActive(topBar.presetButton, false);
+    }
+
+    // reyna: preset button
+    if (button == &topBar.presetButton) {
+        isShowingPresets = !isShowingPresets;
+        daisyChain.setChainControlsEnabled(!isShowingPresets);
+
+        presetsPanel.setVisible(isShowingPresets);
+        visualizer.setVisible(!isShowingPresets);
+        effectPanel.setVisible(!isShowingPresets);
+        settingsPanel.setVisible(false);
+        isShowingSettings = false;
+
+        topBar.setButtonActive(topBar.presetButton, isShowingPresets);
+        topBar.setButtonActive(topBar.settingsButton, false);
+        daisyChain.setReorderLocked(isShowingPresets);
+
+        if (isShowingPresets)
+            topBar.setButtonActive(topBar.settingsButton, false);
+    }
+
+    repaint();
+    return;
+}
+
+///////////////////////////////////////////////////top bar functions
+// reyna settings panel functions
+void AudioPluginAudioProcessorEditor::showSettings() {
+    closeOverlaysIfOpen();                          //close presets first
+    daisyChain.setReorderLocked(true);              // lock daisychain
+    isShowingPresets = !isShowingPresets;           // set flag
+
+    if (isShowingSettings) {
+        // closing settings
+        isShowingSettings = false;
+        settingsPanel.setVisible(false);
+        daisyChain.setReorderLocked(false);                        // allow drag/move again
+        topBar.setButtonActive(topBar.settingsButton, false);      // unpink button
+        visualizer.setVisible(true);
+        effectPanel.setVisible(true);
+    } else {
+        // opening settings
+        isShowingSettings = true;
+        settingsPanel.setVisible(true);
+        daisyChain.setReorderLocked(true);                         // disable drag/move
+        topBar.setButtonActive(topBar.settingsButton, true);       // turn button pink
+        visualizer.setVisible(false);
+        effectPanel.setVisible(false);
+    }
+
+    addAndMakeVisible(presetsBackdrop);
+    addAndMakeVisible(settingsPanel);
+    // lock reordering while Settings is up
+    daisyChain.setReorderLocked(true);
+
+    resized();
+    repaint();
+}
+
+// reyna presets panel functions
+void AudioPluginAudioProcessorEditor::showPresets() {
+    closeOverlaysIfOpen();                    // close settings first
+	daisyChain.setReorderLocked(true);  // lock daisychain
+	isShowingPresets = !isShowingPresets;            // set flag
+
+    if (isShowingPresets) {
+        // closing presets
+        isShowingPresets = false;
+        presetsPanel.setVisible(false);
+        daisyChain.setReorderLocked(false);
+        topBar.setButtonActive(topBar.presetButton, false);
+        visualizer.setVisible(true);
+        effectPanel.setVisible(true);
+    } else {
+        // opening presets
+        isShowingPresets = true;
+        presetsPanel.setVisible(true);
+        daisyChain.setReorderLocked(true);
+        topBar.setButtonActive(topBar.presetButton, true);
+        visualizer.setVisible(false);
+        effectPanel.setVisible(false);
+    }
+
+	// hide other panels
+    addAndMakeVisible(presetsBackdrop);
+    addAndMakeVisible(presetsPanel);
+	// lock daisychain during preset operations
+    daisyChain.setReorderLocked(true);
+
+    resized();
+    repaint();
+}
+
+// reyna - close both overlays if any are open
+void AudioPluginAudioProcessorEditor::closeOverlaysIfOpen() {
+    if (isShowingSettings) {
+        isShowingSettings = false;
+        settingsPanel.setVisible(false);
+        topBar.setButtonActive(topBar.settingsButton, false);
+    }
+    if (isShowingPresets) {
+        isShowingPresets = false;
+        presetsPanel.setVisible(false);
+        topBar.setButtonActive(topBar.presetButton, false);
+    }
+
+    daisyChain.setChainControlsEnabled(true);
+    daisyChain.setReorderLocked(false);
+    visualizer.setVisible(true);
+    effectPanel.setVisible(true);
+
+    // restore daisychain mode button colors
+    for (auto* row : daisyChain.items) {
+        if (row)
+            row->updateModeVisual();   
+    }
+    daisyChain.repaint();
+}
 
 
+bool AudioPluginAudioProcessorEditor::isPresetsVisible() const {
+    return isShowingPresets && presetsPanel.isVisible();
+}
+
+bool AudioPluginAudioProcessorEditor::isSettingsVisible() const { 
+    return isShowingSettings && settingsPanel.isVisible();
 }

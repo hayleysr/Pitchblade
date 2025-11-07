@@ -30,6 +30,7 @@
         float getCurrentPitch();
         float getSemitoneError();
         float getCurrentNote();
+        float getCurrentMidiNote();
         std::string getCurrentNoteName();
 
         // Destructor
