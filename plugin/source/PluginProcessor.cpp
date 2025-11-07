@@ -88,6 +88,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterInt>(
         "GLOBAL_FRAMERATE", "Global Framerate", 1, 4, 3));
 
+    //Pitch Shifter: hayley
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_RETUNE_SPEED", "Pitch Retune Speed", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_CORRECTION_RATIO", "Pitch Correction Ratio", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_WAVER", "Pitch Waver", juce::NormalisableRange<float>(0.0f, 20.0f, 1.0f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_TRANSITION", "Pitch Note Transition", juce::NormalisableRange<float>(0.0f, 50.0f, 1.0f), 20.0f));
+
     return { params.begin(), params.end() };
 
 }

@@ -30,7 +30,8 @@ public:
 private:
     int quantizeToScale(int);
     static float noteToFrequency(int midi);
-    static int frequencyToNote(int freq);
+    static float frequencyToNote(int freq);
+    float applyParameters(float &midi);
 
     PitchDetector pitchDetector;
     PitchShifter pitchShifter;
@@ -43,12 +44,31 @@ private:
     };
     int scaleType = 0;
 
+    // Parameters
     float currentRatio = 1.0f;
+    float noteTransition;
+    float retuneSpeed;
+    float waver;
+    //Parameters helpers
     float smoothing = 1.0f;
+    float waverPhase = 0.f;
+    float prevMidi;
+    float lastStableMidi;
 
-    int targetPitch;
+    // Hz
+    float targetPitch;
+    float correctedPitch;
+
+    // Midi
+    float currentMidi;
+    float targetMidi;
+    float semitoneErrorMidi;
+    float correctedMidi;
+
+
+    
+    // Note name params
     std::string targetNoteName = "C";
-
     std::string aNoteNames[12] = {
         "C", "C#", "D", "D#", "E", "F", 
         "F#", "G", "G#", "A", "A#", "B"
