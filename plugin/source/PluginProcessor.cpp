@@ -241,6 +241,12 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
         }
     }
     juce::Logger::outputDebugString("===============================================");
+
+    // rebuild ui
+    juce::MessageManager::callAsync([this]() {
+            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+                editor->rebuildAndSyncUI();
+        });
 }
 
 
@@ -332,7 +338,84 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.front();
     }
+
+    // rebuild ui
+    juce::MessageManager::callAsync([this]() {
+            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+                editor->rebuildAndSyncUI();
+        });
 }
+
+//==============================================================================
+
+// preset save/load - reyna
+void AudioPluginAudioProcessor::savePresetToFile(const juce::File& file) {
+	std::lock_guard<std::recursive_mutex> lock(audioMutex);             // lock mutex for thread safety
+
+	// create XML root
+    juce::XmlElement presetRoot("PitchbladePreset");
+    presetRoot.setAttribute("version", 1.0);
+
+    // save each active node explicitly
+    juce::XmlElement* nodes = new juce::XmlElement("EffectNodes");
+    for (auto& node : effectNodes) {
+        if (!node) continue;
+
+		auto nodeXml = node->toXml(); //effectnode subclass toXml
+        if (nodeXml != nullptr)
+            nodes->addChildElement(nodeXml.release());
+    }
+	// add nodes to root
+    presetRoot.addChildElement(nodes);
+
+    // also store global params
+    juce::XmlElement* globals = new juce::XmlElement("GlobalParameters");
+    globals->setAttribute("GLOBAL_FRAMERATE",
+        (int)*apvts.getRawParameterValue("GLOBAL_FRAMERATE"));
+    presetRoot.addChildElement(globals);
+
+    file.getParentDirectory().createDirectory();
+    presetRoot.writeTo(file);
+    juce::Logger::outputDebugString("Saved preset to: " + file.getFullPathName());
+}
+
+void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
+	std::lock_guard<std::recursive_mutex> lock(audioMutex);                 // lock mutex for thread safety
+	std::unique_ptr<juce::XmlElement> xml(juce::XmlDocument::parse(file));  // parse XML from file
+    if (!xml) return;
+	// load global params
+    auto* nodes = xml->getChildByName("EffectNodes");
+    if (!nodes) return;
+
+    // clear existing nodes before rebuilding
+    effectNodes.clear();
+
+	// load each node
+    forEachXmlChildElement(*nodes, nodeXml) {
+        auto name = nodeXml->getTagName();
+        std::shared_ptr<EffectNode> node;
+
+        if      (name == "GainNode")        node = std::make_shared<GainNode>(*this);
+        else if (name == "NoiseGateNode")   node = std::make_shared<NoiseGateNode>(*this);
+        else if (name == "CompressorNode")  node = std::make_shared<CompressorNode>(*this);
+        else if (name == "DeEsserNode")     node = std::make_shared<DeEsserNode>(*this);
+        else continue;
+
+        node->loadFromXml(*nodeXml);
+
+        auto& vt = node->getMutableNodeState(); // node API from EffectNode
+        vt.setProperty("uuid", juce::Uuid().toString(), nullptr);
+        effectNodes.push_back(node);
+    }
+
+    // update ui
+    juce::MessageManager::callAsync([this]() {
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+            editor->rebuildAndSyncUI();
+        });
+    juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+}
+
 
 
 //==============================================================================
@@ -503,14 +586,25 @@ void AudioPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    // juce::ignoreUnused (destData);
+
+	// reyna: use APVTS to save state
+	// create an XML representation of our state
+    auto xml = apvts.copyState().createXml();
+    copyXmlToBinary(*xml, destData);
 }
 
 void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    // juce::ignoreUnused (data, sizeInBytes);
+
+    //reyna
+    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
+    if (xml) {
+        apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    }
 }
 
 //==============================================================================
@@ -518,6 +612,43 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new AudioPluginAudioProcessor();
+}
+
+//==============================================================================
+
+// Default preset loader - reyna
+void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
+    std::lock_guard<std::recursive_mutex> lock(audioMutex);
+
+    juce::Logger::outputDebugString("Loading default preset type: " + type);
+
+	// reset the current effectNodes vector to default
+    effectNodes.clear();
+
+    // Add the default effects in their intended order
+    effectNodes.push_back(std::make_shared<GainNode>(*this));
+    effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
+    effectNodes.push_back(std::make_shared<CompressorNode>(*this));
+    effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+    effectNodes.push_back(std::make_shared<FormantNode>(*this));
+    effectNodes.push_back(std::make_shared<PitchNode>(*this));
+
+    // connect in order gain > noiseGate > compressor > deEsser > fFormant > pitch
+    for (auto& node : effectNodes)
+        if (node) node->clearConnections();
+
+    for (int i = 0; i + 1 < (int)effectNodes.size(); ++i)
+        effectNodes[i]->connectTo(effectNodes[i + 1]);
+
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+    rootNode = effectNodes.front();
+
+	// update ui
+    juce::MessageManager::callAsync([this]() {
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+			editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
+        });
+    juce::Logger::outputDebugString("default preset loaded ");
 }
 
 //==============================================================================

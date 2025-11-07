@@ -33,13 +33,6 @@ static juce::String makeUniqueName(const juce::String& baseName, const std::vect
     return newName;
 }
 
-// helper to check if two nodes are both double down chain mode, so they can be on same row side by side
-static bool areDoubleDownPair(const std::shared_ptr<EffectNode>& a, const std::shared_ptr<EffectNode>& b) {
-    if (!a || !b) { return false;  }
-    return (a->chainMode == ChainMode::DoubleDown && b->chainMode == ChainMode::DoubleDown);
-}
-
-
 DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes) :processorRef(proc), effectNodes(nodes) {
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
@@ -83,6 +76,27 @@ static int toModeIdFromNode(const std::shared_ptr<EffectNode>& n) {
     return juce::jlimit(1, 4, id);
 }
 
+//helper to find name in rows - rowIndex, isRightCell, found
+static std::tuple<int, bool, bool> findRowAndSide(const std::vector<DaisyChain::Row>& rows, const juce::String& name) {
+    for (int i = 0; i < (int)rows.size(); ++i) {
+        if (rows[i].left == name)  return { i, false, true };
+        if (rows[i].right == name) return { i, true , true };
+    }
+    return { -1, false, false };
+}
+
+//reset rows to match effectNodes vector
+void DaisyChain::resetRowsToNodes() {
+    std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+    rows.clear();
+    for (auto& n : effectNodes) {
+        if (!n) continue;
+        Row r; r.left = n->effectName;
+        rows.push_back(std::move(r));
+    }
+}
+
+
 void DaisyChain::rebuild() {
     // clear UI rows
     for (auto* it : items) effectsContainer.removeChildComponent(it);
@@ -97,6 +111,13 @@ void DaisyChain::rebuild() {
 		auto* row = new DaisyChainItem(rowData.left, i);    // create row with effect name
         effectsContainer.addAndMakeVisible(row);
         items.add(row);
+
+        // prevent drag when overlays are open
+        row->canDrag = [this]() { return !isReorderLocked(); };
+        // close overlays and unlock when the user releases on the chain
+        row->onAnyInteraction = [this]() {
+                if (onItemMouseUp) onItemMouseUp();   // forward to editor
+            };
 
         // LEFT node //////////////
         auto nodeLeft = findNodeByName(rowData.left);
@@ -173,7 +194,15 @@ void DaisyChain::rebuild() {
         };
 
         row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback ui
+			if (reorderLocked) return; // prevent reordering if locked
             handleReorder(kind, dragName, targetRow);
+            };
+
+        // disable dragging when reorder is locked
+        row->setInterceptsMouseClicks(true, true);
+        row->onAnyInteraction = [this]() {
+            if (reorderLocked)
+                return; // ignore drag attempts
             };
     };
 
@@ -191,60 +220,66 @@ void DaisyChain::rebuild() {
 
 //reorders the global effects list and rebuilds UI
 void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targetRow) {
-	if (rows.empty()) return;                                       // nothing to reorder
-    targetRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);   // clamp target row to current bounds
+    if (reorderLocked || rows.empty()) return;
 
-	// remove dragged name from current rows
-    auto removeFromRows = [&](const juce::String& name) -> bool {
-        for (int r = 0; r < (int)rows.size(); ++r) {
-			auto& row = rows[r];                         // check left and right slots
+    // clamp target row
+    targetRow = juce::jlimit(0, (int)rows.size(), targetRow);
 
-            if (row.left == name) {
-				if (row.hasRight()) { 
-                    row.left = row.right; row.right.clear(); 
-                } else {
-                    rows.erase(rows.begin() + r);       // shift right to left if exists
-                } 
-                return true;                            // remove row if single
-            } if (row.right == name) {  
-                row.right.clear();  
-                return true;
-            }
-        }
-        return false;
-    };
+    // locate source name
+    auto [srcRow, srcIsRight, found] = findRowAndSide(rows, dragName);
+    if (!found) return;
 
-    // attempt removal
-    if (!removeFromRows(dragName)) { return; }
-
-	// reclamp target row after removal
-    if (!rows.empty()) {
-        targetRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);
-    }
-
-    // drop into right slot to form a double row
-	if (kind == -2) {           // -1 right-slot insert (double row), -2 left-slot insert (new single row)
-		if (rows.empty()) {     // if no rows exist, just add
-            rows.push_back({ dragName, {} });
+    // remove source 
+    const bool sourceAboveTarget = (srcRow >= 0 && srcRow < targetRow); {
+        auto& r = rows[(size_t)srcRow];
+        if (!srcIsRight) 
+            // removing left
+            if (r.hasRight()) { r.left = r.right; r.right.clear(); 
+        } else { 
+                rows.erase(rows.begin() + srcRow); 
         } else {
-            auto& t = rows[targetRow];                     // target row
-            if (!t.hasRight()) {
-                t.right = dragName;                       // make it a double row
-            } else {
-                rows.insert(rows.begin() + targetRow + 1, { dragName, {} }); // already double, go below
-            }
-        }
-    } else { 
-        if (rows.empty()) {
-                rows.push_back({ dragName, {} });
-		} else { // vertical insert, make a new single row at target
-                rows.insert(rows.begin() + targetRow, { dragName });
+            // removing right side of a double
+            r.right.clear();
         }
     }
-	// rebuild ui asynchronously to avoid conflicts during drag
+
+    // if delete a whole row and it was above the target, target ++ 1
+    if (sourceAboveTarget && targetRow > 0) targetRow--;
+
+    // check if row is empty
+    if (rows.empty()) {
+        // always create a new single row
+        rows.push_back({ dragName, {} });
+        juce::MessageManager::callAsync([this]() {
+            rebuild();
+            if (onReorderFinished) onReorderFinished();
+            });
+        return;
+    }
+
+    //  -2 create double row
+    if (kind == -2)
+    {
+        // inserting into right slot of targetRow if possible
+        // else create a brand new row below targetRow
+        const int safeRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);
+        auto& t = rows[(size_t)safeRow];
+        if (!t.hasRight() && t.left != dragName) {
+            t.right = dragName; // becomes a double row
+        } else {
+            // target already double so add a new single row below
+            rows.insert(rows.begin() + juce::jlimit(0, (int)rows.size(), safeRow + 1), { dragName, {} });
+        }
+    } else {
+        // -1 create single row
+        // vertical insert 
+        targetRow = juce::jlimit(0, (int)rows.size(), targetRow);
+        rows.insert(rows.begin() + targetRow, { dragName, {} });
+    }
+
+    // rebuild asynchronously 
     juce::MessageManager::callAsync([this]() {
         rebuild();
-        //reorder effect nodes to match new order at end
         if (onReorderFinished) onReorderFinished();
         });
 }
@@ -314,6 +349,12 @@ void DaisyChain::paint(juce::Graphics& g) {
 
     if (items.size() <= 1)
         return;
+
+    // grey overlay when reordering is locked
+    if (reorderLocked) {
+        g.setColour(juce::Colours::black.withAlpha(0.2f));
+        g.fillAll();
+    }
 
     // small path icons for chain arrows
     auto drawDownArrow = [&](juce::Graphics& gr, juce::Point<float> c) {
@@ -451,10 +492,80 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
     }
 }
 
+// enable/disable chain controls (for locking during preset/settings)
+void DaisyChain::setChainControlsEnabled(bool enabled) {
+    addButton.setEnabled(enabled);
+    duplicateButton.setEnabled(enabled);
+    deleteButton.setEnabled(enabled);
+    
+    for (auto* item : items) {
+        item->setInterceptsMouseClicks(enabled, enabled);
+        item->grip.setInterceptsMouseClicks(enabled, enabled);
+        item->rightGrip.setInterceptsMouseClicks(enabled, enabled);
+    }
+}
+
+// lock reordering and drag/drop when viewing settings/presets
+void DaisyChain::setReorderLocked(bool locked) {
+    reorderLocked = locked;
+    // disable add/copy/delete
+    addButton.setEnabled(!locked);
+    duplicateButton.setEnabled(!locked);
+    deleteButton.setEnabled(!locked);
+
+    // disable all chain item interactions
+    for (auto* row : items) {
+        if (!row) continue;
+        // disable drag and all clicks
+        row->setInterceptsMouseClicks(!locked, !locked);
+        row->bypass.setEnabled(!locked);
+        row->modeButton.setEnabled(!locked);
+        row->button.setEnabled(!locked);
+        row->rightButton.setEnabled(!locked);
+        row->rightBypass.setEnabled(!locked);
+        row->rightMode.setEnabled(!locked);
+
+        if (locked) {
+            // gray-out when locked 
+            row->button.setAlpha(0.6f);
+            row->rightButton.setAlpha(0.6f);
+            row->modeButton.setAlpha(0.6f);
+            row->rightMode.setAlpha(0.6f);
+            row->bypass.setAlpha(0.6f);
+            row->rightBypass.setAlpha(0.6f);
+        } else {
+            // restore full opacity
+            row->button.setAlpha(1.0f);
+            row->rightButton.setAlpha(1.0f);
+            row->modeButton.setAlpha(1.0f);
+            row->rightMode.setAlpha(1.0f);
+            row->bypass.setAlpha(1.0f);
+            row->rightBypass.setAlpha(1.0f);
+
+            // clear colour overrides
+            row->modeButton.removeColour(juce::TextButton::buttonColourId);
+            row->rightMode.removeColour(juce::TextButton::buttonColourId);
+            row->button.removeColour(juce::TextButton::buttonColourId);
+            row->rightButton.removeColour(juce::TextButton::buttonColourId);
+
+            // re-apply colors
+            row->updateModeVisual();                               // chain-mode colours
+            row->updateBypassVisual(row->bypassed);                // left bypass colour
+            if (row->isDoubleRow) {
+                row->updateSecondaryBypassVisual(row->rightBypassed); // right bypass colour
+                row->updateRightModeVisual();                       // update right mode button color    
+            }
+        }
+    }
+    repaint();
+
+}
+
 //////////////////////////////////// menus ///////////////////////////////////////////////////////////
 
 // menu to add new effect nodes
 void DaisyChain::showAddMenu() {
+	if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu;       // create menu manually add all effects
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
@@ -499,6 +610,7 @@ void DaisyChain::showAddMenu() {
 
 // menu to duplicate existing effect nodes
 void DaisyChain::showDuplicateMenu() {
+    if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu; // create menu with existing effect names
 	{   // lock processor mutex for thread safety
         //std::lock_guard<std::mutex> lg(processorRef.getMutex());
@@ -543,6 +655,7 @@ void DaisyChain::showDuplicateMenu() {
 }
 // menu to delete existing effect nodes
 void DaisyChain::showDeleteMenu() {
+    if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu;   // create menu with existing effect names
     {   // lock processor mutex for thread safety
         //std::lock_guard<std::mutex> lg(processorRef.getMutex());

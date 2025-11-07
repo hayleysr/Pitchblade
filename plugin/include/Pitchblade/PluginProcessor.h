@@ -75,7 +75,8 @@ public:
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
     DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
 
-    //reyna 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
+
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
 
@@ -83,6 +84,11 @@ public:
 
 	struct Row { juce::String left, right; };               // processing chain row
 	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
+
+	// preset management
+    void savePresetToFile(const juce::File& file);
+    void loadPresetFromFile(const juce::File& file);
+    void loadDefaultPreset(const juce::String& type);
 
 private:
     //============================== 
