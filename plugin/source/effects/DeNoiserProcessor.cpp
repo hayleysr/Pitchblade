@@ -100,6 +100,11 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
         //Process frame
         //If the input buffer's position is equal to the size of the fft, then send it off for processing
         if(inputBufferPos == fftSize){
+            //Moving output buffer logic up to see if it fixes the choppy audio. It's like gambling
+            std::memmove(outputBuffer.data(),outputBuffer.data() + hopSize,overlap * sizeof(float));
+            std::fill(outputBuffer.data() + overlap,outputBuffer.data() + fftSize,0.0f);
+            outputBufferPos = 0;
+            
             processFrame();
 
             //Shift input buffer to prepare for the next samples
@@ -108,11 +113,6 @@ void DeNoiserProcessor::process(juce::AudioBuffer<float>& buffer){
             std::fill(inputBuffer.data() + overlap,inputBuffer.data() + fftSize, 0.0f);
             //Reset the write pointer
             inputBufferPos = overlap;
-
-            //Moving output buffer logic up to see if it fixes the choppy audio
-            std::memmove(outputBuffer.data(),outputBuffer.data() + hopSize,overlap * sizeof(float));
-            std::fill(outputBuffer.data() + overlap,outputBuffer.data() + fftSize,0.0f);
-            outputBufferPos = 0;
         }
 
         //Moved this stuff up because there was choppy audio
