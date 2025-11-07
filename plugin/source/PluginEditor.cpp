@@ -276,6 +276,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 }
 
 
+
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
