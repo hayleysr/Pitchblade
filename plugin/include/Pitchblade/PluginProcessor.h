@@ -103,7 +103,7 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
-    PitchDetector pitchProcessor;           //hayley
+    PitchCorrector  pitchProcessor;           //hayley
     FormantShifter formantShifter;          //huda
     Equalizer equalizer;           //huda
 

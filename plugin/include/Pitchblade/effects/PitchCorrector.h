@@ -25,6 +25,8 @@ public:
     float getTargetPitch() { return closestNote; }
     std::string getCurrentNoteName() { return pitchDetector.getCurrentNoteName(); }
 
+    PitchDetector& getDetector();
+
 private:
     int quantizeToScale(int);
     static float noteToFrequency(int midi);

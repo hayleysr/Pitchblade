@@ -30,7 +30,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         }
     }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){}
+AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){
+    suspendProcessing(true);
+}
 
 //============================================================================== reyna
 // ui stuff: global APVTS perameter layout 
@@ -72,8 +74,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
-        //PARAM_FORMANT_SHIFT, "Formant",
-        //juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        PARAM_FORMANT_SHIFT, "Formant",
+        juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_MIX, "Dry/Wet",
@@ -247,11 +250,18 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     }
     juce::Logger::outputDebugString("===============================================");
 
-    // rebuild ui
-    juce::MessageManager::callAsync([this]() {
-            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-                editor->rebuildAndSyncUI();
-        });
+    //// rebuild ui
+    //juce::MessageManager::callAsync([this]() {
+    //        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    //            editor->rebuildAndSyncUI();
+    //    });
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+    }
 }
 
 
@@ -345,10 +355,21 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
     }
 
     // rebuild ui
-    juce::MessageManager::callAsync([this]() {
+    /*juce::MessageManager::callAsync([this]() {
             if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
                 editor->rebuildAndSyncUI();
-        });
+        });*/
+        // rebuild UI safely without capturing a raw this
+
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+    }
+
 }
 
 //==============================================================================
@@ -413,12 +434,22 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         effectNodes.push_back(node);
     }
 
-    // update ui
-    juce::MessageManager::callAsync([this]() {
-        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-            editor->rebuildAndSyncUI();
-        });
-    juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+    //// update ui
+    //juce::MessageManager::callAsync([this]() {
+    //    if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    //        editor->rebuildAndSyncUI();
+    //    });
+    //juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+        juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+    }
+
 }
 
 
@@ -493,7 +524,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     compressorProcessor.prepare(sampleRate);                    //Austin
     deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    pitchProcessor.prepare(sampleRate, samplesPerBlock, 4);     //hayley
+    pitchProcessor.prepare(sampleRate, samplesPerBlock);     //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
@@ -652,11 +683,20 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     rootNode = effectNodes.front();
 
 	// update ui
-    juce::MessageManager::callAsync([this]() {
-        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-			editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
-        });
-    juce::Logger::outputDebugString("default preset loaded ");
+   // juce::MessageManager::callAsync([this]() {
+   //     if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+			//editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
+   //     });
+   // juce::Logger::outputDebugString("default preset loaded ");
+
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+        juce::Logger::outputDebugString("default preset loaded ");
+    }
 }
 
 //==============================================================================
