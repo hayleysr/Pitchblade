@@ -1,8 +1,15 @@
 #include "Pitchblade/effects/PitchCorrector.h"
 
-void PitchCorrector::prepare(double sampleRate, int blockSize){
+void PitchCorrector::prepare(double sampleRate, int blockSize)
+{
+    this->sampleRate = sampleRate;
+    retuneSpeed = 0.3f;
+    noteTransition = 50.f;
+    waver = 0.f;
+
     pitchDetector.prepare(sampleRate, blockSize, 4);
     pitchShifter.prepare(sampleRate, blockSize);
+
     currentRatio = 1.0f;    //high correction
     currentMidi = 0.0f;
     prevMidi = 69.f;        //A4
@@ -12,7 +19,6 @@ void PitchCorrector::prepare(double sampleRate, int blockSize){
 }
 void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     // Process pitch detection
-    prevMidi = currentMidi;
     auto numSamples = buffer.getNumSamples();
     monoBuffer.copyFrom(0, 0, buffer, 0, 0 ,buffer.getNumSamples());
     pitchDetector.processBlock(monoBuffer);
@@ -28,6 +34,7 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
 
     float detectedNote = pitchDetector.getCurrentMidiNote();
     targetMidi = (float)quantizeToScale((int)std::round(detectedNote)); //determine target note
+    targetPitch = noteToFrequency(targetMidi);
     semitoneErrorMidi = targetMidi - currentMidi;
 
     correctedMidi = applyParameters(targetMidi);
@@ -46,16 +53,15 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
 float PitchCorrector::applyParameters(float &midi){
 
     // Note Transition: only update if change is above a particular threshold
-    if(std::abs(currentMidi - lastStableMidi) > noteTransition / 100.f)
+    if(std::abs(midi - lastStableMidi) > noteTransition / 100.f)
         lastStableMidi = midi;
-    float activeTargetMidi = prevMidi;
-    
-    // Correction: apply ratio
-    float correctedMidi = currentMidi + currentRatio * (targetMidi - currentMidi);
+        
+    float activeTargetMidi = lastStableMidi;
 
     // Retune speed: apply smoothing
-    correctedMidi = prevMidi + retuneSpeed * (correctedMidi - prevMidi);
-    prevMidi = correctedMidi;
+    float retunedMidi = prevMidi + retuneSpeed * (activeTargetMidi - prevMidi);
+
+    prevMidi = retunedMidi;
 
     // Waver
     if(waver > 0.0f){
@@ -63,10 +69,10 @@ float PitchCorrector::applyParameters(float &midi){
 
         waverPhase += (2.0f * juce::MathConstants<float>::pi * 6.f) / sampleRate; // Healthy vibrato is 5-6.5 Hz
         if (waverPhase > juce::MathConstants<float>::twoPi) waverPhase -= juce::MathConstants<float>::twoPi;
-        correctedMidi += std::sin(waverPhase) * waverSemitone;
+        retunedMidi += std::sin(waverPhase) * waverSemitone;
     }
 
-    return correctedMidi;
+    return retunedMidi;
 }
 
 void PitchCorrector::setScale(int scaleType){
@@ -96,12 +102,12 @@ int PitchCorrector::quantizeToScale(int note){
     }
     return closestNote;
 }
-float PitchCorrector::noteToFrequency(int midi){
+float PitchCorrector::noteToFrequency(float midi){
     return 440.0f * std::pow(2.0f, (midi - 69.f) / 12.0f);
 }
-float PitchCorrector::frequencyToNote(int freq){
+float PitchCorrector::frequencyToNote(float freq){
     float midi = 69.0f + 12.0f * std::log2(freq / 440.0f);
-    return std::round(midi);
+    return midi;
 }
 
 float PitchCorrector::getSemitoneError(){

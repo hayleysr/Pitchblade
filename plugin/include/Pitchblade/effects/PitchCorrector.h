@@ -29,8 +29,8 @@ public:
 
 private:
     int quantizeToScale(int);
-    static float noteToFrequency(int midi);
-    static float frequencyToNote(int freq);
+    static float noteToFrequency(float midi);
+    static float frequencyToNote(float freq);
     float applyParameters(float &midi);
 
     PitchDetector pitchDetector;
@@ -64,8 +64,6 @@ private:
     float targetMidi;
     float semitoneErrorMidi;
     float correctedMidi;
-
-
     
     // Note name params
     std::string targetNoteName = "C";
