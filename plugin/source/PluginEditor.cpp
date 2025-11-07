@@ -40,9 +40,17 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 {   
     //Austin
     //Stuff for the settings panel. Making a listener and setting it to invisible to start
-    addChildComponent(settingsPanel);
+    addAndMakeVisible(settingsPanel);
+    settingsPanel.setAlwaysOnTop(true);
     settingsPanel.setVisible(false);
     topBar.settingsButton.addListener(this);
+
+	// reyna presets panel 
+    addChildComponent(presetsPanel);
+    presetsPanel.setAlwaysOnTop(true);
+    presetsPanel.setVisible(false);
+    topBar.presetButton.addListener(this);
+
     
     // gui frontend / ui reyna ///////////////////////////////
 	setLookAndFeel(nullptr),    //reset look and feel
@@ -54,9 +62,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(effectPanel);
     addAndMakeVisible(visualizer);
 
-    addChildComponent(presetsPanel);
-    presetsPanel.setVisible(false);
-    topBar.presetButton.addListener(this);
+	// lock daisychain reordering when mouse is down - reyna
+    daisyChain.onItemMouseUp = [this]() {
+        closeOverlaysIfOpen();
+        daisyChain.setReorderLocked(false);
+        };
 
     effectPanel.refreshTabs();
     visualizer.refreshTabs();
@@ -137,13 +147,19 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
                 //Austin
                 //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
-                if(isShowingSettings){
+                if(isShowingSettings || isShowingPresets){
                     isShowingSettings = false;
                     settingsPanel.setVisible(false);
 
                     visualizer.setVisible(true);
                     effectPanel.setVisible(true);
-                }
+
+                    // reyna presets panel. close if open daisychain
+                    isShowingPresets = false;
+                    presetsPanel.setVisible(false);
+                    visualizer.setVisible(true);
+                    effectPanel.setVisible(true);
+                } 
             };
     }
 	//keeps daiychain ui reordering consistant with processor ////////////////////////////
@@ -156,9 +172,20 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             procRows.push_back({ r.left, r.right });
         }
 		processorRef.requestLayout(procRows);                       // request layout update
+
+		// close presets if open - reyna
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getTopLevelComponent())) {
+            if (editor->isPresetsVisible())
+                editor->closeOverlaysIfOpen();
+        }
+
 		processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
 
         visualizer.clearVisualizer();   // safely clear old node references
+		// full ui rebuild after reorder
+        if (auto* editor2 = dynamic_cast<AudioPluginAudioProcessorEditor*>(getTopLevelComponent())) {
+            editor2->rebuildAndSyncUI();
+        }
 
 		// refresh effect panel tabs
         effectPanel.refreshTabs();
@@ -170,6 +197,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             if (auto* row = daisyChain.items[i]) {
                 // LEFT btn
                 row->button.onClick = [this, i]() {
+                        closeOverlaysIfOpen();
                         effectPanel.showEffect(i);
                         visualizer.showVisualizer(i);
 
@@ -180,6 +208,14 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                             isShowingSettings = false;
                             settingsPanel.setVisible(false);
 
+                            visualizer.setVisible(true);
+                            effectPanel.setVisible(true);
+                        }
+
+						// reyna presets panel. close if open daisychain
+                        if (isShowingPresets) {
+                            isShowingPresets = false;
+                            presetsPanel.setVisible(false);
                             visualizer.setVisible(true);
                             effectPanel.setVisible(true);
                         }
@@ -205,6 +241,37 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 			applyRowTooltips();     // reapply tooltips after reorder
         };
 
+    presetsPanel.onPresetActionFinished = [this]() {
+        isShowingPresets = false;
+        presetsPanel.setVisible(false);
+        visualizer.setVisible(true);
+        effectPanel.setVisible(true);
+
+        // full UI rebuild after preset operation
+        rebuildAndSyncUI();
+        };
+}
+
+
+// reyna - rebuild daisy chain and effect panel ui to sync with processor
+void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
+
+    daisyChain.rebuild();             // rebuild rows + reset callbacks
+    effectPanel.refreshTabs();        // rebind tab components
+    visualizer.refreshTabs();         // sync visualizers
+    resized();                        
+    repaint();
+
+    // reconnect DaisyChain buttons to EffectPanel + Visualizer
+    for (int i = 0; i < daisyChain.items.size(); ++i) {
+        if (auto* row = daisyChain.items[i]) {
+            row->button.onClick = [this, i]() {
+                effectPanel.showEffect(i);
+                visualizer.showVisualizer(i);
+                };
+        }
+    }
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
@@ -244,8 +311,6 @@ void AudioPluginAudioProcessorEditor::resized()
     effectPanel.setBounds(center);
     //visualizer
     visualizer.setBounds(area);
-
-
 }
 
 //Austin
@@ -255,19 +320,148 @@ void AudioPluginAudioProcessorEditor::buttonClicked(juce::Button* button){
         //Toggle state
         isShowingSettings = !isShowingSettings;
 
-        //Show or hide the panels based on the state of the settings
+        // reyna - updated how daisychain will lock 
+		// Lock or unlock daisychain reordering based on settings visibility
+        daisyChain.setChainControlsEnabled(!isShowingSettings);
+
+        ////show or hide the panels based on the state of the settings
         settingsPanel.setVisible(isShowingSettings);
-        visualizer.setVisible(!isShowingSettings);
         effectPanel.setVisible(!isShowingSettings);
+        visualizer.setVisible(!isShowingSettings);
+        presetsPanel.setVisible(false);
+        isShowingPresets = false;
+
+		// enable/disable daisychain buttons based on settings visibility
+        topBar.setButtonActive(topBar.settingsButton, isShowingSettings);
+        topBar.setButtonActive(topBar.presetButton, false);
+        daisyChain.setReorderLocked(isShowingSettings);
+
+        if (isShowingSettings)
+            topBar.setButtonActive(topBar.presetButton, false);
     }
 
     // reyna: preset button
     if (button == &topBar.presetButton) {
         isShowingPresets = !isShowingPresets;
+        daisyChain.setChainControlsEnabled(!isShowingPresets);
+
         presetsPanel.setVisible(isShowingPresets);
         visualizer.setVisible(!isShowingPresets);
         effectPanel.setVisible(!isShowingPresets);
         settingsPanel.setVisible(false);
+        isShowingSettings = false;
+
+        topBar.setButtonActive(topBar.presetButton, isShowingPresets);
+        topBar.setButtonActive(topBar.settingsButton, false);
+        daisyChain.setReorderLocked(isShowingPresets);
+
+        if (isShowingPresets)
+            topBar.setButtonActive(topBar.settingsButton, false);
     }
 
+    repaint();
+    return;
+}
+
+///////////////////////////////////////////////////top bar functions
+// reyna settings panel functions
+void AudioPluginAudioProcessorEditor::showSettings() {
+    closeOverlaysIfOpen();                          //close presets first
+    daisyChain.setReorderLocked(true);              // lock daisychain
+    isShowingPresets = !isShowingPresets;           // set flag
+
+    if (isShowingSettings) {
+        // closing settings
+        isShowingSettings = false;
+        settingsPanel.setVisible(false);
+        daisyChain.setReorderLocked(false);                        // allow drag/move again
+        topBar.setButtonActive(topBar.settingsButton, false);      // unpink button
+        visualizer.setVisible(true);
+        effectPanel.setVisible(true);
+    } else {
+        // opening settings
+        isShowingSettings = true;
+        settingsPanel.setVisible(true);
+        daisyChain.setReorderLocked(true);                         // disable drag/move
+        topBar.setButtonActive(topBar.settingsButton, true);       // turn button pink
+        visualizer.setVisible(false);
+        effectPanel.setVisible(false);
+    }
+
+    addAndMakeVisible(presetsBackdrop);
+    addAndMakeVisible(settingsPanel);
+    // lock reordering while Settings is up
+    daisyChain.setReorderLocked(true);
+
+    resized();
+    repaint();
+}
+
+// reyna presets panel functions
+void AudioPluginAudioProcessorEditor::showPresets() {
+    closeOverlaysIfOpen();                    // close settings first
+	daisyChain.setReorderLocked(true);  // lock daisychain
+	isShowingPresets = !isShowingPresets;            // set flag
+
+    if (isShowingPresets) {
+        // closing presets
+        isShowingPresets = false;
+        presetsPanel.setVisible(false);
+        daisyChain.setReorderLocked(false);
+        topBar.setButtonActive(topBar.presetButton, false);
+        visualizer.setVisible(true);
+        effectPanel.setVisible(true);
+    } else {
+        // opening presets
+        isShowingPresets = true;
+        presetsPanel.setVisible(true);
+        daisyChain.setReorderLocked(true);
+        topBar.setButtonActive(topBar.presetButton, true);
+        visualizer.setVisible(false);
+        effectPanel.setVisible(false);
+    }
+
+	// hide other panels
+    addAndMakeVisible(presetsBackdrop);
+    addAndMakeVisible(presetsPanel);
+	// lock daisychain during preset operations
+    daisyChain.setReorderLocked(true);
+
+    resized();
+    repaint();
+}
+
+// reyna - close both overlays if any are open
+void AudioPluginAudioProcessorEditor::closeOverlaysIfOpen() {
+    if (isShowingSettings) {
+        isShowingSettings = false;
+        settingsPanel.setVisible(false);
+        topBar.setButtonActive(topBar.settingsButton, false);
+    }
+    if (isShowingPresets) {
+        isShowingPresets = false;
+        presetsPanel.setVisible(false);
+        topBar.setButtonActive(topBar.presetButton, false);
+    }
+
+    daisyChain.setChainControlsEnabled(true);
+    daisyChain.setReorderLocked(false);
+    visualizer.setVisible(true);
+    effectPanel.setVisible(true);
+
+    // restore daisychain mode button colors
+    for (auto* row : daisyChain.items) {
+        if (row)
+            row->updateModeVisual();   
+    }
+    daisyChain.repaint();
+}
+
+
+bool AudioPluginAudioProcessorEditor::isPresetsVisible() const {
+    return isShowingPresets && presetsPanel.isVisible();
+}
+
+bool AudioPluginAudioProcessorEditor::isSettingsVisible() const { 
+    return isShowingSettings && settingsPanel.isVisible();
 }

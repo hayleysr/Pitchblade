@@ -395,13 +395,9 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
 
     // update ui
     juce::MessageManager::callAsync([this]() {
-        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
-            editor->getDaisyChain().rebuild();
-            editor->getEffectPanel().refreshTabs();
-            editor->getVisualizer().refreshTabs();
-        }
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+            editor->rebuildAndSyncUI();
         });
-
     juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
 }
 
@@ -634,11 +630,8 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
 
 	// update ui
     juce::MessageManager::callAsync([this]() {
-        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
-            editor->getDaisyChain().rebuild();
-            editor->getEffectPanel().refreshTabs();
-            editor->getVisualizer().refreshTabs();
-        }
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+			editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
         });
     juce::Logger::outputDebugString("default preset loaded ");
 }

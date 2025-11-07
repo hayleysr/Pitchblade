@@ -55,6 +55,7 @@ void PresetsPanel::handleSavePreset() {
             }
             chooser.reset();
         });
+	if (onPresetActionFinished) onPresetActionFinished();   // callback after preset action
 }
 
 void PresetsPanel::handleLoadPreset() {
@@ -75,10 +76,12 @@ void PresetsPanel::handleLoadPreset() {
             }
             chooser.reset();
         });
+    if (onPresetActionFinished) onPresetActionFinished();
 }
 
 void PresetsPanel::handleDefaultPreset() {
 	// reset to default preset defined in AudioPluginAudioProcessor
     processor.loadDefaultPreset("Default");
     juce::Logger::outputDebugString("Loaded default preset (All Effects)");
+    if (onPresetActionFinished) onPresetActionFinished();  
 }

@@ -33,13 +33,6 @@ static juce::String makeUniqueName(const juce::String& baseName, const std::vect
     return newName;
 }
 
-// helper to check if two nodes are both double down chain mode, so they can be on same row side by side
-static bool areDoubleDownPair(const std::shared_ptr<EffectNode>& a, const std::shared_ptr<EffectNode>& b) {
-    if (!a || !b) { return false;  }
-    return (a->chainMode == ChainMode::DoubleDown && b->chainMode == ChainMode::DoubleDown);
-}
-
-
 DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes) :processorRef(proc), effectNodes(nodes) {
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
@@ -97,6 +90,13 @@ void DaisyChain::rebuild() {
 		auto* row = new DaisyChainItem(rowData.left, i);    // create row with effect name
         effectsContainer.addAndMakeVisible(row);
         items.add(row);
+
+        // prevent drag when overlays are open
+        row->canDrag = [this]() { return !isReorderLocked(); };
+        // close overlays and unlock when the user releases on the chain
+        row->onAnyInteraction = [this]() {
+                if (onItemMouseUp) onItemMouseUp();   // forward to editor
+            };
 
         // LEFT node //////////////
         auto nodeLeft = findNodeByName(rowData.left);
@@ -173,7 +173,15 @@ void DaisyChain::rebuild() {
         };
 
         row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback ui
+			if (reorderLocked) return; // prevent reordering if locked
             handleReorder(kind, dragName, targetRow);
+            };
+
+        // disable dragging when reorder is locked
+        row->setInterceptsMouseClicks(true, true);
+        row->onAnyInteraction = [this]() {
+            if (reorderLocked)
+                return; // ignore drag attempts
             };
     };
 
@@ -191,7 +199,8 @@ void DaisyChain::rebuild() {
 
 //reorders the global effects list and rebuilds UI
 void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targetRow) {
-	if (rows.empty()) return;                                       // nothing to reorder
+	if (reorderLocked) return;        // prevent reordering if daisychain order locked
+	if (rows.empty()) return;         // nothing to reorder
     targetRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);   // clamp target row to current bounds
 
 	// remove dragged name from current rows
@@ -314,6 +323,12 @@ void DaisyChain::paint(juce::Graphics& g) {
 
     if (items.size() <= 1)
         return;
+
+    // grey overlay when reordering is locked
+    if (reorderLocked) {
+        g.setColour(juce::Colours::black.withAlpha(0.2f));
+        g.fillAll();
+    }
 
     // small path icons for chain arrows
     auto drawDownArrow = [&](juce::Graphics& gr, juce::Point<float> c) {
@@ -451,10 +466,79 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
     }
 }
 
+// enable/disable chain controls (for locking during preset/settings)
+void DaisyChain::setChainControlsEnabled(bool enabled) {
+    addButton.setEnabled(enabled);
+    duplicateButton.setEnabled(enabled);
+    deleteButton.setEnabled(enabled);
+    
+    for (auto* item : items) {
+        item->setInterceptsMouseClicks(enabled, enabled);
+        item->grip.setInterceptsMouseClicks(enabled, enabled);
+        item->rightGrip.setInterceptsMouseClicks(enabled, enabled);
+    }
+}
+
+// lock reordering and drag/drop when viewing settings/presets
+void DaisyChain::setReorderLocked(bool locked) {
+    reorderLocked = locked;
+    // disable add/copy/delete
+    addButton.setEnabled(!locked);
+    duplicateButton.setEnabled(!locked);
+    deleteButton.setEnabled(!locked);
+
+    // disable all chain item interactions
+    for (auto* row : items) {
+        if (!row) continue;
+        // disable drag and all clicks
+        row->setInterceptsMouseClicks(!locked, !locked);
+        row->bypass.setEnabled(!locked);
+        row->modeButton.setEnabled(!locked);
+        row->button.setEnabled(!locked);
+        row->rightButton.setEnabled(!locked);
+        row->rightBypass.setEnabled(!locked);
+        row->rightMode.setEnabled(!locked);
+
+        if (locked) {
+            // gray-out when locked 
+            row->button.setAlpha(0.6f);
+            row->rightButton.setAlpha(0.6f);
+            row->modeButton.setAlpha(0.6f);
+            row->rightMode.setAlpha(0.6f);
+            row->bypass.setAlpha(0.6f);
+            row->rightBypass.setAlpha(0.6f);
+        } else {
+            // restore full opacity
+            row->button.setAlpha(1.0f);
+            row->rightButton.setAlpha(1.0f);
+            row->modeButton.setAlpha(1.0f);
+            row->rightMode.setAlpha(1.0f);
+            row->bypass.setAlpha(1.0f);
+            row->rightBypass.setAlpha(1.0f);
+
+            // clear colour overrides
+            row->modeButton.removeColour(juce::TextButton::buttonColourId);
+            row->rightMode.removeColour(juce::TextButton::buttonColourId);
+            row->button.removeColour(juce::TextButton::buttonColourId);
+            row->rightButton.removeColour(juce::TextButton::buttonColourId);
+
+            // re-apply colors
+            row->updateModeVisual();                               // chain-mode colours
+            row->updateBypassVisual(row->bypassed);                // left bypass colour
+            if (row->isDoubleRow) {
+                row->updateSecondaryBypassVisual(row->rightBypassed); // right bypass colour
+            }
+        }
+    }
+    repaint();
+
+}
+
 //////////////////////////////////// menus ///////////////////////////////////////////////////////////
 
 // menu to add new effect nodes
 void DaisyChain::showAddMenu() {
+	if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu;       // create menu manually add all effects
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
@@ -499,6 +583,7 @@ void DaisyChain::showAddMenu() {
 
 // menu to duplicate existing effect nodes
 void DaisyChain::showDuplicateMenu() {
+    if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu; // create menu with existing effect names
 	{   // lock processor mutex for thread safety
         //std::lock_guard<std::mutex> lg(processorRef.getMutex());
@@ -543,6 +628,7 @@ void DaisyChain::showDuplicateMenu() {
 }
 // menu to delete existing effect nodes
 void DaisyChain::showDeleteMenu() {
+    if (reorderLocked) return;  // prevent adding if locked
 	juce::PopupMenu menu;   // create menu with existing effect names
     {   // lock processor mutex for thread safety
         //std::lock_guard<std::mutex> lg(processorRef.getMutex());

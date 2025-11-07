@@ -15,6 +15,7 @@ public:
     void resized() override;
     void paint(juce::Graphics&) override;
 	void setGlobalBypassVisual(bool globalBypassed);    // grayed out when global bypassed
+	void setChainControlsEnabled(bool enabled);         // enable/disable chain controls
 
 	//refeshes ui from effectnodes
     void rebuild();
@@ -42,6 +43,13 @@ public:
     void showDuplicateMenu();
     void showDeleteMenu();
 
+	// lock reordering and drag/drop when viewing settings/presets
+    void setReorderLocked(bool locked);
+    bool isReorderLocked() const { return reorderLocked; }
+
+    // called when a daisyChainItem mouseUp happens
+    std::function<void()> onItemMouseUp;
+
 private:
 	// reorder handler for multi row support
     // kind: -1 vertical insert, -2 right-slot insert (double row)
@@ -55,5 +63,10 @@ private:
     juce::Component effectsContainer;
     bool globalBypassed = false;
 
-    AudioPluginAudioProcessor& processorRef; // store processor reference
+	// top bar preset/settings panel state
+	bool reorderLocked = false;                     // lock reordering when viewing settings/presets
+	std::function<void()> onRequestClosePanels;     // request to close settings/presets panels
+	std::function<void()> onRequestUnlockChain;     // request to unlock chain for reordering
+
+    AudioPluginAudioProcessor& processorRef;        // store processor reference
 };

@@ -15,6 +15,8 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    std::function<void()> onPresetActionFinished; // callback after preset action
+
 private:
     AudioPluginAudioProcessor& processor;
 
