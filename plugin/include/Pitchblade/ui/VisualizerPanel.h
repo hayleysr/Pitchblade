@@ -14,6 +14,7 @@ public:
     void paint(juce::Graphics& g) override;
 
     void showVisualizer(int index);
+	void clearVisualizer();
     void refreshTabs();
 
 private:
