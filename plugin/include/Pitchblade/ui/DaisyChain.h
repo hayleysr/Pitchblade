@@ -50,6 +50,8 @@ public:
     // called when a daisyChainItem mouseUp happens
     std::function<void()> onItemMouseUp;
 
+    void resetRowsToNodes(); // force rows to mirror processor/effectNodes for loading presets
+
 private:
 	// reorder handler for multi row support
     // kind: -1 vertical insert, -2 right-slot insert (double row)

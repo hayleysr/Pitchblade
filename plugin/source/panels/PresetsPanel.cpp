@@ -13,6 +13,18 @@ PresetsPanel::PresetsPanel(AudioPluginAudioProcessor& proc) : processor(proc) {
     saveButton.onClick = [this]() { handleSavePreset(); };
     loadButton.onClick = [this]() { handleLoadPreset(); };
     defaultButton.onClick = [this]() { handleDefaultPreset(); };
+
+    // preset change confirmation message
+    addAndMakeVisible(statusLabel);
+    statusLabel.setJustificationType(juce::Justification::centred);
+    statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    statusLabel.setText("", juce::dontSendNotification);
+
+    statusLabel.setText("Preset loaded successfully!", juce::dontSendNotification);
+    juce::Timer::callAfterDelay(2000, [this]() {
+        statusLabel.setText("", juce::dontSendNotification); 
+        });
+
 }
 
 void PresetsPanel::paint(juce::Graphics& g) {
@@ -29,6 +41,10 @@ void PresetsPanel::resized() {
     saveButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
     loadButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
     defaultButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
+
+    // Status label
+    area.removeFromTop(10);
+    statusLabel.setBounds(area.removeFromTop(30));
 }
 
 /////////////////////////////////
@@ -44,14 +60,17 @@ void PresetsPanel::handleSavePreset() {
     chooser = std::make_unique<juce::FileChooser>("Save Preset", initialDir, "*.xml");
 
 	// launch save dialog
-    chooser->launchAsync(juce::FileBrowserComponent::saveMode |
-        juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser& c)
-        {
+    chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,[this](const juce::FileChooser& c) {
             auto result = c.getResult();
             if (result != juce::File{}) {
                 processor.savePresetToFile(result);
-                juce::Logger::outputDebugString("Preset saved: " + result.getFullPathName());
+                // update label
+                statusLabel.setText("Preset saved!", juce::dontSendNotification);
+                juce::MessageManager::callAsync([this]() {
+                    if (onPresetActionFinished) onPresetActionFinished();
+                    });
+            } else {
+                statusLabel.setText("Save canceled", juce::dontSendNotification);
             }
             chooser.reset();
         });
@@ -59,20 +78,24 @@ void PresetsPanel::handleSavePreset() {
 }
 
 void PresetsPanel::handleLoadPreset() {
-    auto initialDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-        .getChildFile("Pitchblade/Presets");
+    auto initialDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Pitchblade/Presets");
     initialDir.createDirectory();
 
     chooser = std::make_unique<juce::FileChooser>("Load Preset", initialDir, "*.xml");
 
     chooser->launchAsync(juce::FileBrowserComponent::openMode |
         juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser& c)
-        {
+        [this](const juce::FileChooser& c) {
             auto result = c.getResult();
             if (result.existsAsFile()) {
                 processor.loadPresetFromFile(result);
-                juce::Logger::outputDebugString("Preset loaded: " + result.getFullPathName());
+                // label 
+                statusLabel.setText("Preset loaded!", juce::dontSendNotification);
+                juce::MessageManager::callAsync([this]() {
+                    if (onPresetActionFinished) onPresetActionFinished();
+                    });
+            } else {
+                statusLabel.setText("Load canceled", juce::dontSendNotification);
             }
             chooser.reset();
         });
@@ -82,6 +105,9 @@ void PresetsPanel::handleLoadPreset() {
 void PresetsPanel::handleDefaultPreset() {
 	// reset to default preset defined in AudioPluginAudioProcessor
     processor.loadDefaultPreset("Default");
-    juce::Logger::outputDebugString("Loaded default preset (All Effects)");
-    if (onPresetActionFinished) onPresetActionFinished();  
+    statusLabel.setText("Default preset loaded", juce::dontSendNotification);
+
+    juce::MessageManager::callAsync([this]() {
+        if (onPresetActionFinished) onPresetActionFinished();
+        });
 }

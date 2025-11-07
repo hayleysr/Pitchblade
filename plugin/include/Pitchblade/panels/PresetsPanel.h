@@ -23,6 +23,7 @@ private:
     juce::TextButton saveButton{ "Save Preset" };
     juce::TextButton loadButton{ "Load Preset" };
     juce::TextButton defaultButton{ "Use Default Preset" };
+    juce::Label statusLabel;    // for switching presets, mesg to let u know if it worked
 
 	// file chooser for loading/saving presets
     std::unique_ptr<juce::FileChooser> chooser;

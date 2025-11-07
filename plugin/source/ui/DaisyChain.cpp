@@ -76,6 +76,27 @@ static int toModeIdFromNode(const std::shared_ptr<EffectNode>& n) {
     return juce::jlimit(1, 4, id);
 }
 
+//helper to find name in rows - rowIndex, isRightCell, found
+static std::tuple<int, bool, bool> findRowAndSide(const std::vector<DaisyChain::Row>& rows, const juce::String& name) {
+    for (int i = 0; i < (int)rows.size(); ++i) {
+        if (rows[i].left == name)  return { i, false, true };
+        if (rows[i].right == name) return { i, true , true };
+    }
+    return { -1, false, false };
+}
+
+//reset rows to match effectNodes vector
+void DaisyChain::resetRowsToNodes() {
+    std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
+    rows.clear();
+    for (auto& n : effectNodes) {
+        if (!n) continue;
+        Row r; r.left = n->effectName;
+        rows.push_back(std::move(r));
+    }
+}
+
+
 void DaisyChain::rebuild() {
     // clear UI rows
     for (auto* it : items) effectsContainer.removeChildComponent(it);
@@ -199,61 +220,66 @@ void DaisyChain::rebuild() {
 
 //reorders the global effects list and rebuilds UI
 void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targetRow) {
-	if (reorderLocked) return;        // prevent reordering if daisychain order locked
-	if (rows.empty()) return;         // nothing to reorder
-    targetRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);   // clamp target row to current bounds
+    if (reorderLocked || rows.empty()) return;
 
-	// remove dragged name from current rows
-    auto removeFromRows = [&](const juce::String& name) -> bool {
-        for (int r = 0; r < (int)rows.size(); ++r) {
-			auto& row = rows[r];                         // check left and right slots
+    // clamp target row
+    targetRow = juce::jlimit(0, (int)rows.size(), targetRow);
 
-            if (row.left == name) {
-				if (row.hasRight()) { 
-                    row.left = row.right; row.right.clear(); 
-                } else {
-                    rows.erase(rows.begin() + r);       // shift right to left if exists
-                } 
-                return true;                            // remove row if single
-            } if (row.right == name) {  
-                row.right.clear();  
-                return true;
-            }
-        }
-        return false;
-    };
+    // locate source name
+    auto [srcRow, srcIsRight, found] = findRowAndSide(rows, dragName);
+    if (!found) return;
 
-    // attempt removal
-    if (!removeFromRows(dragName)) { return; }
-
-	// reclamp target row after removal
-    if (!rows.empty()) {
-        targetRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);
-    }
-
-    // drop into right slot to form a double row
-	if (kind == -2) {           // -1 right-slot insert (double row), -2 left-slot insert (new single row)
-		if (rows.empty()) {     // if no rows exist, just add
-            rows.push_back({ dragName, {} });
+    // remove source 
+    const bool sourceAboveTarget = (srcRow >= 0 && srcRow < targetRow); {
+        auto& r = rows[(size_t)srcRow];
+        if (!srcIsRight) 
+            // removing left
+            if (r.hasRight()) { r.left = r.right; r.right.clear(); 
+        } else { 
+                rows.erase(rows.begin() + srcRow); 
         } else {
-            auto& t = rows[targetRow];                     // target row
-            if (!t.hasRight()) {
-                t.right = dragName;                       // make it a double row
-            } else {
-                rows.insert(rows.begin() + targetRow + 1, { dragName, {} }); // already double, go below
-            }
-        }
-    } else { 
-        if (rows.empty()) {
-                rows.push_back({ dragName, {} });
-		} else { // vertical insert, make a new single row at target
-                rows.insert(rows.begin() + targetRow, { dragName });
+            // removing right side of a double
+            r.right.clear();
         }
     }
-	// rebuild ui asynchronously to avoid conflicts during drag
+
+    // if delete a whole row and it was above the target, target ++ 1
+    if (sourceAboveTarget && targetRow > 0) targetRow--;
+
+    // check if row is empty
+    if (rows.empty()) {
+        // always create a new single row
+        rows.push_back({ dragName, {} });
+        juce::MessageManager::callAsync([this]() {
+            rebuild();
+            if (onReorderFinished) onReorderFinished();
+            });
+        return;
+    }
+
+    //  -2 create double row
+    if (kind == -2)
+    {
+        // inserting into right slot of targetRow if possible
+        // else create a brand new row below targetRow
+        const int safeRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);
+        auto& t = rows[(size_t)safeRow];
+        if (!t.hasRight() && t.left != dragName) {
+            t.right = dragName; // becomes a double row
+        } else {
+            // target already double so add a new single row below
+            rows.insert(rows.begin() + juce::jlimit(0, (int)rows.size(), safeRow + 1), { dragName, {} });
+        }
+    } else {
+        // -1 create single row
+        // vertical insert 
+        targetRow = juce::jlimit(0, (int)rows.size(), targetRow);
+        rows.insert(rows.begin() + targetRow, { dragName, {} });
+    }
+
+    // rebuild asynchronously 
     juce::MessageManager::callAsync([this]() {
         rebuild();
-        //reorder effect nodes to match new order at end
         if (onReorderFinished) onReorderFinished();
         });
 }
@@ -527,6 +553,7 @@ void DaisyChain::setReorderLocked(bool locked) {
             row->updateBypassVisual(row->bypassed);                // left bypass colour
             if (row->isDoubleRow) {
                 row->updateSecondaryBypassVisual(row->rightBypassed); // right bypass colour
+                row->updateRightModeVisual();                       // update right mode button color    
             }
         }
     }

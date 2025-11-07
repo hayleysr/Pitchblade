@@ -241,6 +241,12 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
         }
     }
     juce::Logger::outputDebugString("===============================================");
+
+    // rebuild ui
+    juce::MessageManager::callAsync([this]() {
+            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+                editor->rebuildAndSyncUI();
+        });
 }
 
 
@@ -332,6 +338,12 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.front();
     }
+
+    // rebuild ui
+    juce::MessageManager::callAsync([this]() {
+            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+                editor->rebuildAndSyncUI();
+        });
 }
 
 //==============================================================================
@@ -390,6 +402,9 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else continue;
 
         node->loadFromXml(*nodeXml);
+
+        auto& vt = node->getMutableNodeState(); // node API from EffectNode
+        vt.setProperty("uuid", juce::Uuid().toString(), nullptr);
         effectNodes.push_back(node);
     }
 
