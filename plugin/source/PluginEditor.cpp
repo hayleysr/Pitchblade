@@ -175,17 +175,16 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 }
             };
     }
-	//keeps daiychain ui reordering consistant with processor ////////////////////////////
-    daisyChain.onReorderFinished = [this, applyRowTooltips]() {
-		// new API for multiple rows
-		const auto& rows = daisyChain.getCurrentLayout();       // get current layout
-		std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
-        procRows.reserve(rows.size());
-		for (const auto& r : rows) {                            // convert to processing rows
-            procRows.push_back({ r.left, r.right });
-        }
-		processorRef.requestLayout(procRows);                       // request layout update
-		processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
+        //keeps daiychain ui reordering consistant with processor ////////////////////////////
+        daisyChain.onReorderFinished = [this, applyRowTooltips]() {
+            // new API for multiple rows
+            const auto& rows = daisyChain.getCurrentLayout();       // get current layout
+            std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
+            procRows.reserve(rows.size());
+            for (const auto& r : rows) {                            // convert to processing rows
+                procRows.push_back({ r.left, r.right });
+            }
+            processorRef.requestLayout(procRows);                       // request layout update
 
             // close presets if open - reyna
             if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getTopLevelComponent())) {
@@ -193,18 +192,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     editor->closeOverlaysIfOpen();
             }
 
-		// refresh effect panel tabs
-        effectPanel.refreshTabs();
-        visualizer.refreshTabs();
-
-		// reconnect buttons after reorder
-        for (int i = 0; i < daisyChain.items.size(); ++i) {
-			// for single and double rows
-            if (auto* row = daisyChain.items[i]) {
-                // LEFT btn
-                row->button.onClick = [this, i]() {
-                        effectPanel.showEffect(i);
-                        visualizer.showVisualizer(i);
             processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
 
             visualizer.clearVisualizer();   // safely clear old node references
@@ -219,32 +206,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                         std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
                         auto& nodes = processorRef.getEffectNodes();
 
-                      
-        // refresh effect panel tabs
-        //effectPanel.refreshTabs();
-        //visualizer.refreshTabs();
-
-        // reconnect buttons after reorder
-       // for (int i = 0; i < daisyChain.items.size(); ++i) {
-            // for single and double rows
-         //   if (auto* row = daisyChain.items[i]) {
-                // LEFT btn
-         //       row->button.onClick = [this, i]() {
-         //           effectPanel.showEffect(i);
-         //           visualizer.showVisualizer(i);
-
-                        //Austin
-                        //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
-                        if(isShowingSettings){
-                            isShowingSettings = false;
-                            settingsPanel.setVisible(false);
-         //               for (int n = 0; n < (int)nodes.size(); ++n) {
-         //                   if (nodes[n] && nodes[n]->effectName == leftName) {
-         //                       effectPanel.showEffect(n);
-         //                       visualizer.showVisualizer(n);
-         //                       break;
-         //                   }
-         //               }
+                        for (int n = 0; n < (int)nodes.size(); ++n) {
+                            if (nodes[n] && nodes[n]->effectName == leftName) {
+                                effectPanel.showEffect(n);
+                                visualizer.showVisualizer(n);
+                                break;
+                            }
+                        }
 
                         //Austin
                         //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
@@ -252,26 +220,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                             isShowingSettings = false;
                             settingsPanel.setVisible(false);
 
-                            visualizer.setVisible(true);
-                            effectPanel.setVisible(true);
-                        }
-                };
-                    };
-                // RIGHT btn
-                row->rightButton.onClick = [this, name = row->rightEffectName]() {
-                        if (name.isEmpty()) return;
-                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
-                        auto& nodes = processorRef.getEffectNodes();
-                        // find the index by name, then open that tab
-                        for (int n = 0; n < (int)nodes.size(); ++n) {
-                            if (nodes[n] && nodes[n]->effectName == name) {
-                                effectPanel.showEffect(n);
-                                visualizer.showVisualizer(n);
-                                break;
-                            }
-                        }
-                    };
-            }
                             visualizer.setVisible(true);
                             effectPanel.setVisible(true);
                         }
@@ -298,15 +246,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                                 break;
                             }
                         }
-                        };
+                    };
                 }
 
-        }
-			applyRowTooltips();     // reapply tooltips after reorder
-        };
             }
             applyRowTooltips();     // reapply tooltips after reorder
             };
+            
 
         presetsPanel.onPresetActionFinished = [this]() {
             // keep preset page visible
@@ -325,10 +271,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     daisyChain.setChainControlsEnabled(false);
                     daisyChain.setReorderLocked(true);
                 }
-            });
-
-        }
-        applyRowTooltips();     // reapply tooltips after reorder
+            });     
         };
     }
 }
