@@ -63,3 +63,9 @@ void GainPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Iden
         gainSlider.setValue((float)tree.getProperty("Gain"), juce::dontSendNotification);
 }
 
+// Update the graph by polling the node for the latest level
+    void GainVisualizer::timerCallback() {
+        float newDbLevel = gainNode.getOutputLevelAtomic().load();
+        pushData(newDbLevel);
+        RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+    }
