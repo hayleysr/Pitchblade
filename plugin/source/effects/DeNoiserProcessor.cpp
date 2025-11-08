@@ -12,6 +12,10 @@ DeNoiserProcessor::DeNoiserProcessor() :
     outputBuffer.resize(fftSize,0.0f);
     fftData.resize(fftSize * 2,0.0f);
     noiseProfile.resize(fftSize / 2 + 1,0.0f);
+
+    //Visualizer stuff
+    currentSpectrumData.resize(fftSize / 2 + 1);
+    noiseProfileData.resize(fftSize / 2 + 1);
 }
 
 void DeNoiserProcessor::prepare(const double sRate){
@@ -27,6 +31,10 @@ void DeNoiserProcessor::prepare(const double sRate){
     outputBufferPos = 0;
     samplesProcessed = 0;
     noiseProfileSamples = 0;
+
+    //Visualizer stuff
+    currentSpectrumData.resize(fftSize / 2 + 1);
+    noiseProfileData.resize(fftSize / 2 + 1);
 }
 
 //Setters for user controlled parameters
@@ -141,6 +149,10 @@ void DeNoiserProcessor::processFrame(){
 
     //Process magnitudes and phases so fftData contains complex numbers in packed format
     const int numBins = fftSize / 2 + 1;
+
+    //Visualizer temp vectors to avoid locking mutex during processing
+    std::vector<juce::Point<float>> spectrumSnapshot(numBins);
+    std::vector<juce::Point<float>> noiseSnapshot(numBins);
     
     //Storing the value of isLearning within this context so that the next part happens faster
     bool learning = isLearning;
@@ -170,6 +182,12 @@ void DeNoiserProcessor::processFrame(){
             fftData[0] = std::max(reducedMag0,floor0);
             fftData[1] = std::max(reducedMag1024,floor1024);
         }
+
+        //Gathering stuff for visualizer
+        spectrumSnapshot[0].setXY(20.0f,juce::Decibels::gainToDecibels(magnitude0,-100.0f));
+        spectrumSnapshot[numBins-1].setXY((float)(numBins - 1) * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(magnitude1024,-100.0f));
+        noiseSnapshot[0].setXY(20.0f,juce::Decibels::gainToDecibels(noiseMag0,-100.0f));
+        noiseSnapshot[numBins-1].setXY((float)(numBins - 1) * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(noiseMag1024,-100.0f));
     }
 
     //Cycling through
@@ -213,6 +231,10 @@ void DeNoiserProcessor::processFrame(){
         //Calculate new imag part
         fftData[i * 2 + 1] = magnitude * std::sin(phase);
 
+        //Visualizer stuff
+        spectrumSnapshot[i].setXY((float)i * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(magnitude, -100.0f));
+        noiseSnapshot[i].setXY((float)i * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(noiseProfile[i],-100.0f));
+
     }
 
     //increment noiseProfileSamples if it is learning for use in averaging later on
@@ -233,4 +255,56 @@ void DeNoiserProcessor::processFrame(){
     for(int i = 0; i < fftSize; i++){
         outputBuffer[i] += fftData[i];
     }
+
+    //The graph was too spikey, so I figured I'd apply some smoothing to make it more readable
+    const int smoothingAmount = 3;
+
+    //Stores smoothed stuff
+    std::vector<juce::Point<float>> smoothedSpectrum(numBins);
+    std::vector<juce::Point<float>> smoothedNoise(numBins);
+
+    //Smoothing
+    for (int i = 0; i < numBins; ++i)
+    {
+        float spectrumSum = 0.0f;
+        float noiseSum = 0.0f;
+        int numPoints = 0;
+
+        // Create a moving average
+        for (int j = -smoothingAmount; j <= smoothingAmount; ++j)
+        {
+            int index = i + j;
+            if (index >= 0 && index < numBins)
+            {
+                spectrumSum += spectrumSnapshot[index].getY();
+                noiseSum += noiseSnapshot[index].getY();
+                numPoints++;
+            }
+        }
+        
+        // Get the average and store it
+        // We keep the original frequency (X) but use the new averaged amplitude (Y)
+        smoothedSpectrum[i].setXY(spectrumSnapshot[i].getX(), spectrumSum / (float)numPoints);
+        smoothedNoise[i].setXY(noiseSnapshot[i].getX(), noiseSum / (float)numPoints);
+    }
+
+    //Lock the mutex and swap the data
+    {
+        juce::ScopedLock lock(dataMutex);
+        currentSpectrumData = std::move(smoothedSpectrum);
+        noiseProfileData = std::move(smoothedNoise);
+    }
+}
+
+//Visualizer getters
+std::vector<juce::Point<float>> DeNoiserProcessor::getSpectrumData()
+{
+    juce::ScopedLock lock(dataMutex);
+    return currentSpectrumData; // Returns a copy
+}
+
+std::vector<juce::Point<float>> DeNoiserProcessor::getNoiseProfileData()
+{
+    juce::ScopedLock lock(dataMutex);
+    return noiseProfileData; // Returns a copy
 }

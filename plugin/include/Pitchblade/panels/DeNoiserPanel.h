@@ -46,18 +46,18 @@ public:
 
 //Visualizer
 #include "Pitchblade/ui/VisualizerPanel.h"
-#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
+#include "Pitchblade/ui/FrequencyGraphVisualizer.h"
 
 class DeNoiserNode;
 //Not fully implemented. Just shows a placeholder
-class DeNoiserVisualizer : public RealTimeGraphVisualizer, public juce::ValueTree::Listener{
+class DeNoiserVisualizer : public FrequencyGraphVisualizer, public juce::ValueTree::Listener{
 private:
     AudioPluginAudioProcessor& processor;
     DeNoiserNode& deNoiserNode;
     juce::ValueTree localState;
 public:
     explicit DeNoiserVisualizer(AudioPluginAudioProcessor& proc, DeNoiserNode& node, juce::ValueTree& state)
-        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f,0.0f},false,6),
+        : FrequencyGraphVisualizer(proc.apvts, 5,2),
             processor(proc),
             deNoiserNode(node),
             localState(state)
@@ -133,6 +133,10 @@ public:
         self->processor.apvts.state.addChild(clonePtr->getMutableNodeState(),-1,nullptr);
         clonePtr->setDisplayName(effectName);
         return clonePtr;
+    }
+
+    DeNoiserProcessor& getDSP(){
+        return deNoiserDSP;
     }
 private:
     AudioPluginAudioProcessor& processor;

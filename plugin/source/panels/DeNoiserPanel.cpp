@@ -154,7 +154,15 @@ DeNoiserVisualizer::~DeNoiserVisualizer(){
 }
 
 void DeNoiserVisualizer::timerCallback(){
-    RealTimeGraphVisualizer::timerCallback();
+    //Get data from processor
+    auto spectrum = deNoiserNode.getDSP().getSpectrumData();
+    auto noise = deNoiserNode.getDSP().getNoiseProfileData();
+
+    //Push data to visualizer
+    updateSpectrumData(spectrum);
+    updateSecondarySpectrumData(noise);
+
+    FrequencyGraphVisualizer::timerCallback();
 }
 
 void DeNoiserVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
@@ -162,5 +170,5 @@ void DeNoiserVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const j
 }
 
 void DeNoiserVisualizer::paint(juce::Graphics& g){
-    RealTimeGraphVisualizer::paint(g);
+    FrequencyGraphVisualizer::paint(g);
 }

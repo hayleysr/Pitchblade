@@ -49,6 +49,11 @@ private:
 
     //Main processing for a single frame
     void processFrame();
+
+    //Storage for visualizer data
+    juce::CriticalSection dataMutex;
+    std::vector<juce::Point<float>> currentSpectrumData;
+    std::vector<juce::Point<float>> noiseProfileData;
 public:
     //Constructor
     DeNoiserProcessor();
@@ -62,4 +67,8 @@ public:
 
     //Processes the input audio buffer to apply denoising
     void process(juce::AudioBuffer<float>& buffer);
+
+    //Getters for visualizer data
+    std::vector<juce::Point<float>> getSpectrumData();
+    std::vector<juce::Point<float>> getNoiseProfileData();
 };
