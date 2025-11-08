@@ -580,7 +580,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
         if (root)
             root->processAndForward(*this, buffer);
     } else {
-        buffer.clear();
+        //Austin - this was causing absolutely no audio to go through when there was a global bypass, which is not intended functionality. I commented it out
+        //buffer.clear();
     }
 
     //juce boilerplate
