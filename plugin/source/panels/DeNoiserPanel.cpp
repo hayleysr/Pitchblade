@@ -177,11 +177,11 @@ void DeNoiserVisualizer::paint(juce::Graphics& g){
 std::unique_ptr<juce::XmlElement> DeNoiserNode::toXml() const {
     auto xml = std::make_unique<juce::XmlElement>("DeNoiserNode");
     xml->setAttribute("name", effectName);
-    xml->setAttribute("DenoiserReduction", (float)getNodeState().getProperty("DENOISER_REDUCTION", 0.0f));
+    xml->setAttribute("DenoiserReduction", (float)getNodeState().getProperty("DenoiserReduction", 0.0f));
     return xml;
 }
 
 void DeNoiserNode::loadFromXml(const juce::XmlElement& xml) {
     auto& s = getMutableNodeState();
-    s.setProperty("DENOISER_REDUCTION", (float)xml.getDoubleAttribute("DenoiserReduction", 0.0f), nullptr);
+    s.setProperty("DenoiserReduction", (float)xml.getDoubleAttribute("DenoiserReduction", 0.0f), nullptr);
 }

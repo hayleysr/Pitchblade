@@ -229,19 +229,24 @@ void CompressorVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const
 std::unique_ptr<juce::XmlElement> CompressorNode::toXml() const {
     auto xml = std::make_unique<juce::XmlElement>("CompressorNode");
     xml->setAttribute("name", effectName);
-    xml->setAttribute("CompThreshold", (float)getNodeState().getProperty("COMP_THRESHOLD", 0.0f));
-    xml->setAttribute("CompRatio", (float)getNodeState().getProperty("COMP_RATIO", 3.0f));
-    xml->setAttribute("CompAttack", (float)getNodeState().getProperty("COMP_ATTACK", 50.0f));
-    xml->setAttribute("CompRelease", (float)getNodeState().getProperty("COMP_RELEASE", 250.0f));
-    xml->setAttribute("CompLimiterMode", (int)getNodeState().getProperty("COMP_LIMITER_MODE", 0));
+    
+    // Austin - Fixed the local state property names to camelCase
+    xml->setAttribute("CompThreshold", (float)getNodeState().getProperty("CompThreshold", 0.0f));
+    xml->setAttribute("CompRatio", (float)getNodeState().getProperty("CompRatio", 3.0f));
+    xml->setAttribute("CompAttack", (float)getNodeState().getProperty("CompAttack", 50.0f));
+    xml->setAttribute("CompRelease", (float)getNodeState().getProperty("CompRelease", 250.0f));
+    xml->setAttribute("CompLimiterMode", (int)getNodeState().getProperty("CompLimiterMode", 0));
+    
     return xml;
 }
 
 void CompressorNode::loadFromXml(const juce::XmlElement& xml) {
     auto& s = getMutableNodeState();
-    s.setProperty("COMP_THRESHOLD", (float)xml.getDoubleAttribute("CompThreshold", 0.0f), nullptr);
-    s.setProperty("COMP_RATIO", (float)xml.getDoubleAttribute("CompRatio", 3.0f), nullptr);
-    s.setProperty("COMP_ATTACK", (float)xml.getDoubleAttribute("CompAttack", 50.0f), nullptr);
-    s.setProperty("COMP_RELEASE", (float)xml.getDoubleAttribute("CompRelease", 250.0f), nullptr);
-    s.setProperty("COMP_LIMITER_MODE", (int)xml.getIntAttribute("CompLimiterMode", 0), nullptr);
+
+    // Austin - Fixed the local state property names to camelCase
+    s.setProperty("CompThreshold", (float)xml.getDoubleAttribute("CompThreshold", 0.0f), nullptr);
+    s.setProperty("CompRatio", (float)xml.getDoubleAttribute("CompRatio", 3.0f), nullptr);
+    s.setProperty("CompAttack", (float)xml.getDoubleAttribute("CompAttack", 50.0f), nullptr);
+    s.setProperty("CompRelease", (float)xml.getDoubleAttribute("CompRelease", 250.0f), nullptr);
+    s.setProperty("CompLimiterMode", (int)xml.getIntAttribute("CompLimiterMode", 0), nullptr);
 }

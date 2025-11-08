@@ -214,19 +214,23 @@ void DeEsserVisualizer::paint(juce::Graphics& g){
 std::unique_ptr<juce::XmlElement> DeEsserNode::toXml() const {
     auto xml = std::make_unique<juce::XmlElement>("DeEsserNode");
     xml->setAttribute("name", effectName);
-    xml->setAttribute("DeEsserThreshold", (float)getNodeState().getProperty("DEESSER_THRESHOLD", 0.0f));
-    xml->setAttribute("DeEsserRatio", (float)getNodeState().getProperty("DEESSER_RATIO", 4.0f));
-    xml->setAttribute("DeEsserAttack", (float)getNodeState().getProperty("DEESSER_ATTACK", 5.0f));
-    xml->setAttribute("DeEsserRelease", (float)getNodeState().getProperty("DEESSER_RELEASE", 5.0f));
-    xml->setAttribute("DeEsserFrequency", (float)getNodeState().getProperty("DEESSER_FREQUENCY", 6000.0f));
+
+    // Austin - Fixed the local state property names to camelCase
+    xml->setAttribute("DeEsserThreshold", (float)getNodeState().getProperty("DeEsserThreshold", 0.0f));
+    xml->setAttribute("DeEsserRatio", (float)getNodeState().getProperty("DeEsserRatio", 4.0f));
+    xml->setAttribute("DeEsserAttack", (float)getNodeState().getProperty("DeEsserAttack", 5.0f));
+    xml->setAttribute("DeEsserRelease", (float)getNodeState().getProperty("DeEsserRelease", 5.0f));
+    xml->setAttribute("DeEsserFrequency", (float)getNodeState().getProperty("DeEsserFrequency", 6000.0f));
     return xml;
 }
 
 void DeEsserNode::loadFromXml(const juce::XmlElement& xml) {
     auto& s = getMutableNodeState();
-    s.setProperty("DEESSER_THRESHOLD", (float)xml.getDoubleAttribute("DeEsserThreshold", 0.0f), nullptr);
-    s.setProperty("DEESSER_RATIO", (float)xml.getDoubleAttribute("DeEsserRatio", 4.0f), nullptr);
-    s.setProperty("DEESSER_ATTACK", (float)xml.getDoubleAttribute("DeEsserAttack", 5.0f), nullptr);
-    s.setProperty("DEESSER_RELEASE", (float)xml.getDoubleAttribute("DeEsserRelease", 5.0f), nullptr);
-    s.setProperty("DEESSER_FREQUENCY", (float)xml.getDoubleAttribute("DeEsserFrequency", 6000.0f), nullptr);
+
+    // Austin - Fixed the local state property names to camelCase
+    s.setProperty("DeEsserThreshold", (float)xml.getDoubleAttribute("DeEsserThreshold", 0.0f), nullptr);
+    s.setProperty("DeEsserRatio", (float)xml.getDoubleAttribute("DeEsserRatio", 4.0f), nullptr);
+    s.setProperty("DeEsserAttack", (float)xml.getDoubleAttribute("DeEsserAttack", 5.0f), nullptr);
+    s.setProperty("DeEsserRelease", (float)xml.getDoubleAttribute("DeEsserRelease", 5.0f), nullptr);
+    s.setProperty("DeEsserFrequency", (float)xml.getDoubleAttribute("DeEsserFrequency", 6000.0f), nullptr);
 }
