@@ -10,6 +10,8 @@
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
+#include "Pitchblade/effects/FormantShifter.h"      //huda
+#include "Pitchblade/effects/Equalizer.h"           //huda
 
 class EffectNode;
 
@@ -73,10 +75,14 @@ public:
 
     PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
-    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }  
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
+    FormantShifter& getFormantShifter() { return formantShifter; }
+    Equalizer& getEqualizer() {return equalizer; }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
+
+    //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
 
@@ -97,7 +103,10 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
-    PitchCorrector pitchProcessor;          // To correct pitch - hayley
+    PitchCorrector  pitchProcessor;           //hayley
+    FormantShifter formantShifter;          //huda
+    Equalizer equalizer;           //huda
+
 
     bool bypassed = false;
 
