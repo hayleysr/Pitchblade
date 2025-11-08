@@ -3,6 +3,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
+#include <vector>
 
 class DeEsserProcessor{
 private:
@@ -31,6 +32,31 @@ private:
     void updateAttackAndRelease();
     //Updates the sidechain filter coefficients when frequency or sample rate changes
     void updateFilter();
+
+    //Visualizer stuff
+    // FFT and Overlap add parameters for visualizer
+    static constexpr int fftOrder = 11;
+    static constexpr int fftSize = 2048;
+    static constexpr int hopSize = fftSize / 4;
+    static constexpr int overlap = fftSize - hopSize;
+
+    juce::dsp::FFT forwardFFT;
+    juce::dsp::WindowingFunction<float> window;
+
+    //Buffers for visualizer FFT
+    std::vector<float> fftInputBuffer;
+    int fftInputBufferPos = 0;
+
+    //Buffers for processing
+    std::vector<float> fftData;
+
+    //Main processing for a single visualizer frame
+    void processVisualizerFrame();
+
+    //Storage for visualizer data
+    juce::CriticalSection dataMutex;
+    std::vector<juce::Point<float>> currentSpectrumData;
+
 public:
     //Constructor
     DeEsserProcessor();
@@ -47,4 +73,7 @@ public:
 
     //Processes the input audio buffer to apply de-essing
     void process(juce::AudioBuffer<float>& buffer);
+
+    //For visualizer
+    std::vector<juce::Point<float>> getSpectrumData();
 };

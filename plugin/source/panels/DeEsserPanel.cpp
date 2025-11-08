@@ -177,3 +177,35 @@ void DeEsserPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::I
             frequencySlider.setValue((float)tree.getProperty("DeEsserFrequency"), juce::dontSendNotification);
     }
 }
+
+DeEsserVisualizer::~DeEsserVisualizer(){
+    if(localState.isValid()){
+        localState.removeListener(this);
+    }
+}
+
+void DeEsserVisualizer::timerCallback(){
+    //Get data from processor
+    auto spectrum = deEsserNode.getDSP().getSpectrumData();
+
+    //Push data to visualizer
+    updateSpectrumData(spectrum);
+    
+    // We are in mode 1, so no secondary spectrum data is needed.
+    
+    // This calls repaint()
+    FrequencyGraphVisualizer::timerCallback();
+}
+
+void DeEsserVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if(tree == localState){
+        // If frequency or threshold changes, update the lines
+        if(property == juce::Identifier("DeEsserFrequency") || property == juce::Identifier("DeEsserThreshold")){
+            updateThresholdLines();
+        }
+    }
+}
+
+void DeEsserVisualizer::paint(juce::Graphics& g){
+    FrequencyGraphVisualizer::paint(g);
+}
