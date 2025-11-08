@@ -44,10 +44,14 @@ public:
         return std::make_unique<PitchPanel>(proc);
     }
 
-    ////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////// reyna
 
     // clone node
         std::shared_ptr<EffectNode> clone() const override { return std::make_shared<PitchNode>(processor); }
+
+        // XML serialization for saving/loading
+        std::unique_ptr<juce::XmlElement> toXml() const override;
+        void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
     AudioPluginAudioProcessor& processor;

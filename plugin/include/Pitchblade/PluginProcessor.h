@@ -9,7 +9,10 @@
 #include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
+#include "Pitchblade/effects/DeNoiserProcessor.h"   //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
+#include "Pitchblade/effects/FormantShifter.h"      //huda
+#include "Pitchblade/effects/Equalizer.h"           //huda
 
 class EffectNode;
 
@@ -74,6 +77,12 @@ public:
     PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
     DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+    DeNoiserProcessor& getDeNoiserProcessor() {return deNoiserProcessor; }
+
+    FormantShifter& getFormantShifter() { return formantShifter; }
+    Equalizer& getEqualizer() {return equalizer; }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
 
     //reyna 
 	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
@@ -84,6 +93,11 @@ public:
 	struct Row { juce::String left, right; };               // processing chain row
 	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
 
+	// preset management
+    void savePresetToFile(const juce::File& file);
+    void loadPresetFromFile(const juce::File& file);
+    void loadDefaultPreset(const juce::String& type);
+
 private:
     //============================== 
     //processors
@@ -91,7 +105,10 @@ private:
     NoiseGateProcessor noiseGateProcessor;
     FormantDetector formantDetector;        // To handle detection - huda
     std::vector<float> latestFormants;      // Vector to store formants - huda
-    PitchCorrector pitchProcessor;          // To correct pitch - hayley
+    PitchCorrector  pitchProcessor;           //hayley
+    FormantShifter formantShifter;          //huda
+    Equalizer equalizer;           //huda
+
 
     bool bypassed = false;
 
@@ -99,6 +116,7 @@ private:
 
     CompressorProcessor compressorProcessor; //Austin
     DeEsserProcessor deEsserProcessor;      //Austin
+    DeNoiserProcessor deNoiserProcessor;    //Austin
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;

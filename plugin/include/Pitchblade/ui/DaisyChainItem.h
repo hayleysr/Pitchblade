@@ -6,6 +6,8 @@
 
 #include "Pitchblade/panels/EffectNode.h"
 
+class DaisyChain;
+
 //merges effect buttons and bypass buttons into one row item for daisychain drag n drop
 class DaisyChainItem : public juce::Component,
 						public juce::DragAndDropTarget
@@ -130,7 +132,7 @@ public:
         juce::Colour bg;
         juce::String label;
         switch (chainModeId) {
-            case 1:  bg = Colors::accentTeal;       label = "D"; break;   // down     teal
+            case 1:  bg = Colors::accentTeal;       label = "D"; break;   // down         teal
             case 2:  bg = Colors::accentPink;       label = "S"; break;   // split        light pink 
             case 3:  bg = Colors::accentPurple;     label = "DD"; break;  // doubleDown   purple
             case 4:  bg = Colors::accentBlue;       label = "U"; break;   // unite        blue
@@ -159,16 +161,35 @@ public:
     }
 
 	// drag and drop /////////////////////////////////
+
     void mouseDown(const juce::MouseEvent& e) override {
-        if (e.mods.isLeftButtonDown() && (e.eventComponent == &grip || e.originalComponent == &grip ||
-                                          e.eventComponent == &rightGrip || e.originalComponent == &rightGrip)) {
+        //  check if parent DaisyChain is locked
+        if (auto* parent = getParentComponent()) {
+            // climb up component tree until it finds DaisyChain
+            juce::Component* c = parent;
+            while (c != nullptr) {
+                if (c->getName() == "DaisyChain") {
+                    if (c->getProperties().contains("ReorderLocked"))
+                        if ((bool)c->getProperties()["ReorderLocked"])
+                            return; // skip dragging
+                    break;
+                }
+                c = c->getParentComponent();
+            }
+        }
+        if (e.mods.isLeftButtonDown()) {
             if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this)) {
-                // create a snapshot image of component for dragging
                 auto snapshot = createComponentSnapshot(getLocalBounds());
-                container->startDragging(getName(), this, snapshot, true); 
+                container->startDragging(getName(), this, snapshot, true);
             }
         }
     }
+
+    void mouseUp(const juce::MouseEvent& e) override {
+        juce::ignoreUnused(e);
+		if (onAnyInteraction) onAnyInteraction();  // notify of interaction
+    }
+
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& details) override {
         juce::ignoreUnused(details);
         return true;
@@ -351,6 +372,12 @@ public:
     // hover state
     bool showDropAbove = false;
     bool showDropRight = false;
+
+	// topbar buttons interaction callbacks
+    std::function<void()> onRequestClosePanels;
+    std::function<void()> onRequestUnlockChain;
+    std::function<void()> onAnyInteraction;   // notify daisychain of interaction
+    std::function<bool()> canDrag;            // check if drag allowed
 
 private:
     // horizontal layout for normal rows

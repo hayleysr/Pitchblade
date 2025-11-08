@@ -19,50 +19,89 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
     //startTimerHz(10); // repaint timer 10 times per second - huda
 
+        // Labels + sliders
+    formantLabel.setText("Formant", juce::dontSendNotification);
+    addAndMakeVisible(formantLabel);
+
+    formantSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    formantSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    formantSlider.setRange(-50.0, 50.0, 0.1);
+    formantSlider.setSkewFactorFromMidPoint(1.0);
+    addAndMakeVisible(formantSlider);
+
+    mixLabel.setText("Dry/Wet", juce::dontSendNotification);
+    addAndMakeVisible(mixLabel);
+
+    mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    mixSlider.setRange(0.0, 1.0, 0.001);
+    addAndMakeVisible(mixSlider);
+
+    // Attachments
+    formantAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.apvts, PARAM_FORMANT_SHIFT, formantSlider);
+    mixAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processor.apvts, PARAM_FORMANT_MIX, mixSlider);
+
 }
-
-
 
 void FormantPanel::resized()
 {
-    auto area = getLocalBounds().reduced(10);
-    toggleViewButton.setBounds(area.removeFromTop(30));
+    auto r = getLocalBounds().reduced(10);
+    toggleViewButton.setBounds(r.removeFromTop(30));
+
+
+    auto row1 = r.removeFromTop(40);
+    formantLabel .setBounds(row1.removeFromLeft(90));
+    formantSlider.setBounds(row1);
+
+    auto row2 = r.removeFromTop(40);
+    mixLabel.setBounds(row2.removeFromLeft(90));
+    mixSlider.setBounds(row2);
+
+    detectorArea = r; // if you use an overlay for the detector lines
+
 }
 
-void FormantPanel::paint(juce::Graphics& g) {
-    if (showingFormants) //huda
+void FormantPanel::paint(juce::Graphics& g)
+{
+    g.fillAll(Colors::background);
+    if (!showingFormants) return;
+
+    // local copies: never mutate detectorArea
+    auto header = detectorArea.withHeight(16);
+    auto plot   = detectorArea.withTrimmedTop(16).reduced(2);
+
+    // Title (smaller)
+    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setFont(14.0f);
+    g.drawText("Formant Detector Output", header, juce::Justification::centredLeft, false);
+
+    // Frame
+    g.setColour(juce::Colours::darkgrey.withAlpha(0.6f));
+    g.drawRect(plot);
+
+    // Formants
+    const auto formantsCopy = processor.getLatestFormants();
+    constexpr float fMin = 0.0f, fMax = 5000.0f;
+
+    g.setColour(juce::Colours::red.withAlpha(0.95f));
+    g.setFont(10.0f);
+
+    for (float freqHz : formantsCopy)
     {
-        g.fillAll(Colors::background);
+        const float f = juce::jlimit(fMin, fMax, freqHz);
+        const float x = juce::jmap(f, fMin, fMax,
+                                   (float)plot.getX(), (float)plot.getRight());
+
+        g.drawLine(x, (float)plot.getY(), x, (float)plot.getBottom(), 2.0f);
+
+        juce::Rectangle<int> tag((int)x - 26, plot.getBottom() - 14, 52, 12);
         g.setColour(juce::Colours::white);
-        g.setFont(18.0f);
-        g.drawText("Formant Detector Output", 0,50, getWidth(), 50, juce::Justification::centredTop);
-
-        // Copy formants from processor 
-        std::vector<float> formantsCopy = processor.getLatestFormants();
-
-        // Draw red lines
-        g.setColour(juce::Colours::red);
-        auto width = getWidth();
-        auto height = getHeight();
-
-        for (float freqHz : formantsCopy) { // Read formants from copy to avoid crashes 
-            
-            float x = juce::jmap(freqHz, 0.0f, 1500.0f, 0.0f, (float)width);
-
-            g.drawLine(x, 40.0f, x, height - 20.0f, 2.0f);
-
-            g.setColour(juce::Colours::white);
-            g.setFont(12.0f);
-            g.drawText(juce::String::String(freqHz, 0, false) + "Hz",
-                juce::Rectangle<int>(int(x) - 30, height - 35, 60, 20),
-                juce::Justification::centred);
-            g.setColour(juce::Colours::red);
-
-        }
-
+        g.drawFittedText(juce::String(freqHz, 0) + " Hz", tag, juce::Justification::centred, 1);
+        g.setColour(juce::Colours::red.withAlpha(0.95f));
     }
 }
-
 
 //Button to show formants vs gain - huda
 void FormantPanel::buttonClicked(juce::Button* button)
@@ -80,4 +119,19 @@ void FormantPanel::timerCallback() {
     if (showingFormants) { // refresh if formants are visible
         repaint();
     }
+}
+
+// XML serialization for saving/loading - reyna
+std::unique_ptr<juce::XmlElement> FormantNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("FormantNode");
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("FormantShift", (float)getNodeState().getProperty("FORMANT_SHIFT", 0.0f));
+    xml->setAttribute("Mix", (float)getNodeState().getProperty("FORMANT_MIX", 100.0f));
+    return xml;
+}
+
+void FormantNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+    s.setProperty("FORMANT_SHIFT", (float)xml.getDoubleAttribute("FormantShift", 0.0f), nullptr);
+    s.setProperty("FORMANT_MIX", (float)xml.getDoubleAttribute("Mix", 100.0f), nullptr);
 }
