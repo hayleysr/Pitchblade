@@ -406,6 +406,7 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else if (name == "NoiseGateNode")   node = std::make_shared<NoiseGateNode>(*this);
         else if (name == "CompressorNode")  node = std::make_shared<CompressorNode>(*this);
         else if (name == "DeEsserNode")     node = std::make_shared<DeEsserNode>(*this);
+        else if (name == "DeNoiserNode")    node = std::make_shared<DeNoiserNode>(*this);
         else continue;
 
         node->loadFromXml(*nodeXml);

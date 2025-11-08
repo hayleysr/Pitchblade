@@ -138,6 +138,10 @@ public:
     DeNoiserProcessor& getDSP(){
         return deNoiserDSP;
     }
+
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 private:
     AudioPluginAudioProcessor& processor;
     DeNoiserProcessor deNoiserDSP;
