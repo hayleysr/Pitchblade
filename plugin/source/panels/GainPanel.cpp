@@ -51,6 +51,8 @@ void GainPanel::resized()
     gainSlider.setBounds(getLocalBounds().reduced(10));
 }
  
+/////////////////////////////////////
+
 // destructor   - reyna
 GainPanel::~GainPanel() {
     if (localState.isValid())
@@ -62,6 +64,25 @@ void GainPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Iden
     if (tree == localState && property == juce::Identifier("Gain"))
         gainSlider.setValue((float)tree.getProperty("Gain"), juce::dontSendNotification);
 }
+
+// XML serialization - reyna
+std::unique_ptr<juce::XmlElement> GainNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("GainNode");
+    xml->setAttribute("name", effectName);
+
+    // use current ValueTree Gain property (not apvts)
+    const float gain = (float)getNodeState().getProperty("Gain", 0.0f);
+    xml->setAttribute("Gain", gain);
+
+    return xml;
+}
+
+void GainNode::loadFromXml(const juce::XmlElement& xml) {
+    const float gainVal = (float)xml.getDoubleAttribute("Gain", 0.0f);
+    auto& state = getMutableNodeState();
+    state.setProperty("Gain", gainVal, nullptr);
+}
+
 
 // Update the graph by polling the node for the latest level
     void GainVisualizer::timerCallback() {

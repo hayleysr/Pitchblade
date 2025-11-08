@@ -11,6 +11,7 @@ public:
     //setting new resized
     void resized() override;
     void paint(juce::Graphics&) override;
+    void setButtonActive(juce::TextButton& button, bool active);    // for coloring button
 
     // public
     juce::TextButton presetButton{ "Presets" };

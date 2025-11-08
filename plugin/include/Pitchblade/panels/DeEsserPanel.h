@@ -137,6 +137,8 @@ public:
         return std::make_unique<DeEsserVisualizer>(proc,*this,getMutableNodeState());
     }
 
+    ////////////////////////////////////////////////////////  reyna
+
     //clone node
     std::shared_ptr<EffectNode> clone() const override
     {
@@ -155,6 +157,11 @@ public:
     DeEsserProcessor& getDSP(){
         return deEsserDSP;
     }
+
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
+
 private:
     //nodes own dsp processor + reference to main processor for param access
     AudioPluginAudioProcessor& processor;

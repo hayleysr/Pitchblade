@@ -188,7 +188,7 @@ public:
         return compressorDSP.currentOutputLevelDb;
     }
 
-    ////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////  reyna
 
     // clone node
     std::shared_ptr<EffectNode> clone() const override {
@@ -204,6 +204,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychain
         return clonePtr;
     }
+
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
 	//nodes own dsp processor + reference to main processor for param access
