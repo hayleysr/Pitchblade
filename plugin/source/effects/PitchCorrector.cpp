@@ -59,3 +59,7 @@ int PitchCorrector::quantizeToScale(int note){
 float PitchCorrector::noteToFrequency(int midi){
     return 440.0f * std::pow(2.0f, (midi - 69) / 12.0f);
 }
+
+PitchDetector& PitchCorrector::getDetector() {
+    return pitchDetector;  
+}
