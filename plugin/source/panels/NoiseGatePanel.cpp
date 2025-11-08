@@ -136,3 +136,24 @@ void NoiseGatePanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce:
             releaseSlider.setValue((float)tree.getProperty("GateRelease"), juce::dontSendNotification);
     }
 }
+
+NoiseGateVisualizer::~NoiseGateVisualizer(){
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+// Update the graph by polling the node
+void NoiseGateVisualizer::timerCallback(){ 
+    float newDbLevel = noiseGateNode.getOutputLevelAtomic().load();
+    pushData(newDbLevel);
+    RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+}
+
+// Update threshold line if property changes
+void NoiseGateVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if (tree == localState && property == juce::Identifier("GateThreshold"))
+    {
+        float newThreshold = (float)localState.getProperty("GateThreshold", -100.0f);
+        setThreshold(newThreshold, true);
+    }
+}
