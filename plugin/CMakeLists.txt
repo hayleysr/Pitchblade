@@ -74,6 +74,7 @@ target_sources(${PROJECT_NAME}
         source/panels/CompressorPanel.cpp
         source/panels/DeEsserPanel.cpp
         source/panels/SettingsPanel.cpp
+        source/panels/EqualizerPanel.cpp
 
         source/effects/GainProcessor.cpp
         source/effects/NoiseGateProcessor.cpp

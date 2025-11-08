@@ -9,7 +9,7 @@
 #include "Pitchblade/panels/DeEsserPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
-
+#include "Pitchblade/panels/EqualizerPanel.h"
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
      : AudioProcessor (BusesProperties()
@@ -77,6 +77,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_SHIFT, "Formant",
         juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
+
+    //  Equalizer : huda
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_LOW_FREQ", "EQ Low Freq", juce::NormalisableRange<float>(20.0f, 1000.0f, 1.0f), 200.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_LOW_GAIN", "EQ Low Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_MID_FREQ", "EQ Mid Freq", juce::NormalisableRange<float>(200.0f, 6000.0f, 1.0f), 1000.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_MID_GAIN", "EQ Mid Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_HIGH_FREQ", "EQ High Freq", juce::NormalisableRange<float>(1000.0f, 18000.0f, 1.0f), 4000.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "EQ_HIGH_GAIN", "EQ High Gain", juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), 0.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_MIX, "Dry/Wet",
@@ -537,6 +551,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
+    effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
 
 	// set up default chain: Gain > Noise gate > formant > Pitch
 	for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
@@ -671,6 +686,7 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
+    effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
 
     // connect in order gain > noiseGate > compressor > deEsser > fFormant > pitch
     for (auto& node : effectNodes)

@@ -1,7 +1,11 @@
+// Huda and reyna
 #include "Pitchblade/panels/EqualizerPanel.h"
+#include <JuceHeader.h>
+#include "Pitchblade/ui/ColorPalette.h"
+#include <BinaryData.h>
 
 // ===================== EqualizerPanel =====================
-EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc)
+EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree& state)
     : processor(proc),
       lowFreqAttachment   (processor.apvts, "EQ_LOW_FREQ",  lowFreq),
       lowGainAttachment   (processor.apvts, "EQ_LOW_GAIN",  lowGain),
@@ -58,6 +62,11 @@ void EqualizerPanel::resized()
     place (d3, highGain, highGainLabel);
 }
 
+void EqualizerPanel::paint(juce::Graphics& g) {
+    g.fillAll(Colors::background);
+    g.drawRect(getLocalBounds(), 2);
+}
+
 void EqualizerPanel::setupKnob (juce::Slider& s, juce::Label& l, const juce::String& text,
                                 double min, double max, double step, bool isGain)
 {
@@ -69,39 +78,4 @@ void EqualizerPanel::setupKnob (juce::Slider& s, juce::Label& l, const juce::Str
 
     l.setText (text, juce::dontSendNotification);
     l.setJustificationType (juce::Justification::centred);
-}
-
-// ===================== EqualizerNode =====================
-EqualizerNode::EqualizerNode (AudioPluginAudioProcessor& proc)
-    : EffectNode (proc, "EqualizerNode", "Equalizer")
-{}
-
-EqualizerNode::EqualizerNode (AudioPluginAudioProcessor& proc, const juce::ValueTree& state)
-    : EffectNode (proc, state)
-{}
-
-std::unique_ptr<juce::Component> EqualizerNode::createPanel (AudioPluginAudioProcessor& proc)
-{
-    return std::make_unique<EqualizerPanel>(proc);
-}
-
-void EqualizerNode::process (AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer)
-{
-    // Pull APVTS params → push into DSP
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_LOW_FREQ"))   proc.getEqualizer().setLowFreq   (v->load());
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_LOW_GAIN"))   proc.getEqualizer().setLowGainDb (v->load());
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_MID_FREQ"))   proc.getEqualizer().setMidFreq   (v->load());
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_MID_GAIN"))   proc.getEqualizer().setMidGainDb (v->load());
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_HIGH_FREQ"))  proc.getEqualizer().setHighFreq  (v->load());
-    if (auto* v = proc.apvts.getRawParameterValue("EQ_HIGH_GAIN"))  proc.getEqualizer().setHighGainDb(v->load());
-
-    proc.getEqualizer().processBlock(buffer);
-}
-
-std::shared_ptr<EffectNode> EqualizerNode::clone() const
-{
-    auto n = std::make_shared<EqualizerNode>(processor);
-    n->bypassed = bypassed;
-    n->setDisplayName(effectName);
-    return n;
 }

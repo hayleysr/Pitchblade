@@ -30,6 +30,16 @@ void Equalizer::prepare(double sampleRate, int maxBlockSize, int numChannels)
     midBuf .setSize(channels, maxBlockSize);
     highBuf.setSize(channels, maxBlockSize);
 
+    // prepare each per channel duplicator for single channel processing
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sr;
+    spec.maximumBlockSize = (juce::uint32)maxBlockSize;
+    spec.numChannels = 1; // each duplicator instance handles one channel
+
+    for (auto& f : lowBand.filters)  f.prepare(spec);
+    for (auto& f : midBand.filters)  f.prepare(spec);
+    for (auto& f : highBand.filters) f.prepare(spec);
+
     updateFilters();
 }
 
