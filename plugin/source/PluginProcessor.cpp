@@ -416,6 +416,17 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         effectNodes.push_back(node);
     }
 
+    //Audio wasn't routing through, so I copied the logic used when loading the default to try to fix that - Austin
+    // connect in order
+    for (auto& node : effectNodes)
+        if (node) node->clearConnections();
+
+    for (int i = 0; i + 1 < (int)effectNodes.size(); ++i)
+        effectNodes[i]->connectTo(effectNodes[i + 1]);
+
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+    rootNode = effectNodes.front();
+
     // update ui
     juce::MessageManager::callAsync([this]() {
         if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
@@ -640,6 +651,7 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
     effectNodes.push_back(std::make_shared<CompressorNode>(*this));
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+    effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
 
