@@ -9,6 +9,7 @@
 #include "Pitchblade/effects/PitchCorrector.h"      //hayley
 #include "Pitchblade/effects/CompressorProcessor.h" //Austin
 #include "Pitchblade/effects/DeEsserProcessor.h"    //Austin
+#include "Pitchblade/effects/DeNoiserProcessor.h"   //Austin
 #include "Pitchblade/panels/EffectNode.h"           //reyna
 #include "Pitchblade/effects/FormantShifter.h"      //huda
 #include "Pitchblade/effects/Equalizer.h"           //huda
@@ -75,7 +76,8 @@ public:
 
     PitchCorrector& getPitchCorrector() { return pitchProcessor; }
     CompressorProcessor& getCompressorProcessor() { return compressorProcessor; }
-    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }  
+    DeEsserProcessor& getDeEsserProcessor() {return deEsserProcessor; }
+    DeNoiserProcessor& getDeNoiserProcessor() {return deNoiserProcessor; }
 
     FormantShifter& getFormantShifter() { return formantShifter; }
     Equalizer& getEqualizer() {return equalizer; }
@@ -114,6 +116,7 @@ private:
 
     CompressorProcessor compressorProcessor; //Austin
     DeEsserProcessor deEsserProcessor;      //Austin
+    DeNoiserProcessor deNoiserProcessor;    //Austin
     
 	// reyna    Effect nodes for the processing chain
     std::vector<std::shared_ptr<EffectNode>> effectNodes;

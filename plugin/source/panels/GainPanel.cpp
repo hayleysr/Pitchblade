@@ -84,3 +84,9 @@ void GainNode::loadFromXml(const juce::XmlElement& xml) {
 }
 
 
+// Update the graph by polling the node for the latest level
+    void GainVisualizer::timerCallback() {
+        float newDbLevel = gainNode.getOutputLevelAtomic().load();
+        pushData(newDbLevel);
+        RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+    }
