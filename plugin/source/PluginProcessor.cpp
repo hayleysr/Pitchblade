@@ -419,6 +419,7 @@ void AudioPluginAudioProcessor::savePresetToFile(const juce::File& file) {
     juce::Logger::outputDebugString("Saved preset to: " + file.getFullPathName());
 }
 
+// loading presets from file
 void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
 	std::lock_guard<std::recursive_mutex> lock(audioMutex);                 // lock mutex for thread safety
 	std::unique_ptr<juce::XmlElement> xml(juce::XmlDocument::parse(file));  // parse XML from file
@@ -439,12 +440,18 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else if (name == "NoiseGateNode")   node = std::make_shared<NoiseGateNode>(*this);
         else if (name == "CompressorNode")  node = std::make_shared<CompressorNode>(*this);
         else if (name == "DeEsserNode")     node = std::make_shared<DeEsserNode>(*this);
+        else if (name == "EqualizerNode")   node = std::make_shared<EqualizerNode>(*this);      // add to list
         else continue;
 
         node->loadFromXml(*nodeXml);
 
         auto& vt = node->getMutableNodeState(); // node API from EffectNode
         vt.setProperty("uuid", juce::Uuid().toString(), nullptr);
+
+        // give node back its unique name
+        if(nodeXml->hasAttribute("name"))
+            node->effectName = nodeXml->getStringAttribute("name");
+
         effectNodes.push_back(node);
     }
 

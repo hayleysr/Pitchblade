@@ -6,13 +6,13 @@
 
 // ===================== EqualizerPanel =====================
 EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree& state)
-    : processor(proc),
-      lowFreqAttachment   (processor.apvts, "EQ_LOW_FREQ",  lowFreq),
+    : processor(proc), localState(state)
+      /*lowFreqAttachment   (processor.apvts, "EQ_LOW_FREQ",  lowFreq),
       lowGainAttachment   (processor.apvts, "EQ_LOW_GAIN",  lowGain),
       midFreqAttachment   (processor.apvts, "EQ_MID_FREQ",  midFreq),
       midGainAttachment   (processor.apvts, "EQ_MID_GAIN",  midGain),
       highFreqAttachment  (processor.apvts, "EQ_HIGH_FREQ", highFreq),
-      highGainAttachment  (processor.apvts, "EQ_HIGH_GAIN", highGain)
+      highGainAttachment  (processor.apvts, "EQ_HIGH_GAIN", highGain)*/
 {
     // Ranges mirror Equalizer.cpp limits
     setupKnob (lowFreq,  lowFreqLabel,  "Low Freq (Hz)",  20.0,   1000.0,  1.0,  false);
@@ -22,12 +22,35 @@ EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree
     setupKnob (highFreq, highFreqLabel, "High Freq (Hz)", 1000.0, 18000.0, 1.0,  false);
     setupKnob (highGain, highGainLabel, "High Gain (dB)", -24.0,     24.0, 0.1,  true);
 
+    auto getProp = [&](const juce::String& key, float def) { return (float)localState.getProperty(key, def); };
+
+    lowFreq.setValue(getProp("LowFreq", 100.0f), juce::dontSendNotification);
+    lowGain.setValue(getProp("LowGain", 0.0f), juce::dontSendNotification);
+    midFreq.setValue(getProp("MidFreq", 1000.0f), juce::dontSendNotification);
+    midGain.setValue(getProp("MidGain", 0.0f), juce::dontSendNotification);
+    highFreq.setValue(getProp("HighFreq", 5000.0f), juce::dontSendNotification);
+    highGain.setValue(getProp("HighGain", 0.0f), juce::dontSendNotification);
+
     addAndMakeVisible (lowFreq);   addAndMakeVisible (lowFreqLabel);
     addAndMakeVisible (lowGain);   addAndMakeVisible (lowGainLabel);
     addAndMakeVisible (midFreq);   addAndMakeVisible (midFreqLabel);
     addAndMakeVisible (midGain);   addAndMakeVisible (midGainLabel);
     addAndMakeVisible (highFreq);  addAndMakeVisible (highFreqLabel);
     addAndMakeVisible (highGain);  addAndMakeVisible (highGainLabel);
+
+    auto updateTree = [this](juce::Slider& s, const juce::String& key) {
+        s.onValueChange = [this, &s, key]() {
+            localState.setProperty(key, (float)s.getValue(), nullptr);
+            };
+        };
+    updateTree(lowFreq, "LowFreq");
+    updateTree(lowGain, "LowGain");
+    updateTree(midFreq, "MidFreq");
+    updateTree(midGain, "MidGain");
+    updateTree(highFreq, "HighFreq");
+    updateTree(highGain, "HighGain");
+
+    localState.addListener(this);
 }
 
 void EqualizerPanel::resized()
@@ -78,4 +101,23 @@ void EqualizerPanel::setupKnob (juce::Slider& s, juce::Label& l, const juce::Str
 
     l.setText (text, juce::dontSendNotification);
     l.setJustificationType (juce::Justification::centred);
+}
+
+// Reyna 
+//deconstructor
+EqualizerPanel::~EqualizerPanel() {
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+void EqualizerPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
+{
+    if (tree != localState) return;
+    if (property == juce::Identifier("LowFreq"))   lowFreq.setValue((float)tree.getProperty("LowFreq"), juce::dontSendNotification);
+    if (property == juce::Identifier("LowGain"))   lowGain.setValue((float)tree.getProperty("LowGain"), juce::dontSendNotification);
+    if (property == juce::Identifier("MidFreq"))   midFreq.setValue((float)tree.getProperty("MidFreq"), juce::dontSendNotification);
+    if (property == juce::Identifier("MidGain"))   midGain.setValue((float)tree.getProperty("MidGain"), juce::dontSendNotification);
+    if (property == juce::Identifier("HighFreq"))  highFreq.setValue((float)tree.getProperty("HighFreq"), juce::dontSendNotification);
+    if (property == juce::Identifier("HighGain"))  highGain.setValue((float)tree.getProperty("HighGain"), juce::dontSendNotification);
+
 }

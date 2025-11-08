@@ -9,15 +9,20 @@
 class EqualizerPanel : public juce::Component, public juce::ValueTree::Listener {
 public:
     //explicit EqualizerPanel (AudioPluginAudioProcessor& proc);
-    EqualizerPanel(AudioPluginAudioProcessor& p, juce::ValueTree& stateToUse);
+    EqualizerPanel(AudioPluginAudioProcessor& p, juce::ValueTree& state);
+
     // display panel
     void paint(juce::Graphics& g) override;
     void resized() override;
+
+    // destructor
+    ~EqualizerPanel() override;
 
 private:
     static void setupKnob (juce::Slider& s, juce::Label& l, const juce::String& text, double min, double max, double step, bool isGain);
 
     AudioPluginAudioProcessor& processor;
+    juce::ValueTree localState;  // valuetree for node permaters
 
     juce::Slider lowFreq,  lowGain,
                  midFreq,  midGain,
@@ -27,10 +32,12 @@ private:
                  midFreqLabel,  midGainLabel,
                  highFreqLabel, highGainLabel;
 
-    juce::AudioProcessorValueTreeState::SliderAttachment
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+
+    /*juce::AudioProcessorValueTreeState::SliderAttachment
         lowFreqAttachment,  lowGainAttachment,
         midFreqAttachment,  midGainAttachment,
-        highFreqAttachment, highGainAttachment;
+        highFreqAttachment, highGainAttachment;*/
 };
 
 // unneeded values now set in pluginprocessor.cpp in createParameterLayout
@@ -85,20 +92,24 @@ public:
     explicit EqualizerNode(AudioPluginAudioProcessor& proc)
         : EffectNode(proc, "EqualizerNode", "Equalizer")
     {
-        auto& st = getMutableNodeState();
+        juce::ValueTree st("EqualizerNode");
+        st.setProperty("LowFreq", 200.0f, nullptr);
+        st.setProperty("LowGain", 0.0f, nullptr);
+        st.setProperty("MidFreq", 1000.0f, nullptr);
+        st.setProperty("MidGain", 0.0f, nullptr);
+        st.setProperty("HighFreq", 6000.0f, nullptr);
+        st.setProperty("HighGain", 0.0f, nullptr);
+        st.setProperty("uuid", juce::Uuid().toString(), nullptr);
 
-        if (!st.hasProperty("LowFreq"))   st.setProperty("LowFreq", 200.0f, nullptr);
-        if (!st.hasProperty("LowGain"))   st.setProperty("LowGain", 0.0f, nullptr);
-        if (!st.hasProperty("MidFreq"))   st.setProperty("MidFreq", 1000.0f, nullptr);
-        if (!st.hasProperty("MidGain"))   st.setProperty("MidGain", 0.0f, nullptr);
-        if (!st.hasProperty("HighFreq"))  st.setProperty("HighFreq", 6000.0f, nullptr);
-        if (!st.hasProperty("HighGain"))  st.setProperty("HighGain", 0.0f, nullptr);
-
+        // make sure the global tree exists
         if (!processor.apvts.state.hasType("EffectNodes"))
             processor.apvts.state = juce::ValueTree("EffectNodes");
 
-        // add to effectnodes
+        // attach this new tree to EffectNodes as a new child
         processor.apvts.state.addChild(st, -1, nullptr);
+
+        // assign this new unique state to this node
+        nodeState = st;
     }
 
     // use node state for the panel
