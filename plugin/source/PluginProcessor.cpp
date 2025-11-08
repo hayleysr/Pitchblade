@@ -449,7 +449,8 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else if (name == "DeEsserNode")     node = std::make_shared<DeEsserNode>(*this);
         else if (name == "DeNoiserNode")    node = std::make_shared<DeNoiserNode>(*this);
         else if (name == "EqualizerNode")   node = std::make_shared<EqualizerNode>(*this);  
-        //else if (name == "PitchNode")   node = std::make_shared<EqualizerNode>(*this);  
+        else if (name == "PitchNode")       node = std::make_shared<PitchNode>(*this);
+        else if (name == "FormantNode")     node = std::make_shared<FormantNode>(*this);
         else continue;
 
         node->loadFromXml(*nodeXml);
