@@ -64,6 +64,11 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> midGainSmooth;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> highGainSmooth;
 
+    // last applied freqs (used if we want to debounce updates later)
+    float lastLowFreqHz  = 200.0f;
+    float lastMidFreqHz  = 1000.0f;
+    float lastHighFreqHz = 4000.0f;
+
     // one ProcessorDuplicator per channel per band
     using IIRFilter = juce::dsp::IIR::Filter<float>;
     using IIRCoeff = juce::dsp::IIR::Coefficients<float>;

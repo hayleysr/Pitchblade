@@ -22,6 +22,11 @@ void Equalizer::prepare(double sampleRate, int maxBlockSize, int numChannels)
     midGainSmooth.setCurrentAndTargetValue(midGainDb.load());
     highGainSmooth.setCurrentAndTargetValue(highGainDb.load());
 
+    // track last applied freqs
+    lastLowFreqHz  = lowFreqHz.load();
+    lastMidFreqHz  = midFreqHz.load();
+    lastHighFreqHz = highFreqHz.load();
+
     // allocate filter states per band/channel
     auto makeBand = [this](Band& b)
     {
@@ -132,14 +137,19 @@ void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
     const float curMidDb  = midGainSmooth.getCurrentValue();
     const float curHighDb = highGainSmooth.getCurrentValue();
 
+    // Read current Hz directly (no smoothing to avoid warble)
+    const float curLowHz  = lowFreqHz.load();
+    const float curMidHz  = midFreqHz.load();
+    const float curHighHz = highFreqHz.load();
+
     // Update coefficients at block rate using smoothed values
     {
         auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowShelf(
-            sr, lowFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curLowDb));
+            sr, curLowHz, midQ, juce::Decibels::decibelsToGain(curLowDb));
         auto midC = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-            sr, midFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curMidDb));
+            sr, curMidHz, midQ, juce::Decibels::decibelsToGain(curMidDb));
         auto highC = juce::dsp::IIR::Coefficients<float>::makeHighShelf(
-            sr, highFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curHighDb));
+            sr, curHighHz, midQ, juce::Decibels::decibelsToGain(curHighDb));
 
         for (auto& f : lowBand .filters) { if (f.state) *f.state = *lowC; else f.state = lowC; }
         for (auto& f : midBand .filters) { if (f.state) *f.state = *midC; else f.state = midC; }
@@ -154,6 +164,10 @@ void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
     if (lowG < 0.01f && midG < 0.01f && highG < 0.01f)
     {
         // All gains near zero, pass through unchanged
+        lowGainSmooth.skip(nSmps);
+        midGainSmooth.skip(nSmps);
+        highGainSmooth.skip(nSmps);
+        // advance smoothing (no processing)
         lowGainSmooth.skip(nSmps);
         midGainSmooth.skip(nSmps);
         highGainSmooth.skip(nSmps);

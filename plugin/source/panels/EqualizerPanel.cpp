@@ -15,7 +15,7 @@ EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree
       highGainAttachment  (processor.apvts, "EQ_HIGH_GAIN", highGain)*/
 {
     // Ranges mirror Equalizer.cpp limits
-    setupKnob (lowFreq,  lowFreqLabel,  "Low Freq (Hz)",  20.0,   1000.0,  1.0,  false);
+    setupKnob (lowFreq,  lowFreqLabel,  "Low Freq (Hz0)",  20.0,   1000.0,  1.0,  false);
     setupKnob (lowGain,  lowGainLabel,  "Low Gain (dB)",  -24.0,     24.0, 0.1,  true);
     setupKnob (midFreq,  midFreqLabel,  "Mid Freq (Hz)",  200.0,   6000.0, 1.0,  false);
     setupKnob (midGain,  midGainLabel,  "Mid Gain (dB)",  -24.0,     24.0, 0.1,  true);
