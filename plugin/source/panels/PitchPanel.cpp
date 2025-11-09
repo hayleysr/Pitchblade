@@ -69,6 +69,44 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
     waverLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(waverLabel); 
 
+    // Dropdowns
+    std::string aNoteNames[12] = {
+        "C#", "D", "D#", "E", "F", "F#", 
+        "G", "G#", "A", "A#", "B", "C", 
+    };
+    for(int i = 11; i >= 0; --i){
+        scaleOffsetBox.addItem(aNoteNames[i], (i + 1));
+    }
+    scaleOffsetBox.setJustificationType(juce::Justification::centred);
+    scaleOffsetBox.setEditableText(false);
+    addAndMakeVisible(scaleOffsetBox);
+
+    scaleTypeBox.addItem("Major", static_cast<int>(scaleType::Major) + 1);
+    scaleTypeBox.addItem("Minor", static_cast<int>(scaleType::Minor) + 1);
+    scaleTypeBox.setJustificationType(juce::Justification::centred);
+    scaleTypeBox.setEditableText(false);
+    addAndMakeVisible(scaleTypeBox);
+    
+    const int scaleOffset = (int)localState.getProperty("PitchOffset", 0);
+    int offsetId = juce::jlimit(1, 12, scaleOffset + 12);
+    scaleOffsetBox.setSelectedId(offsetId, juce::dontSendNotification);
+        
+    int scaleType = (int)localState.getProperty("PitchType", 0);
+    scaleTypeBox.setSelectedId(scaleType, juce::dontSendNotification);
+
+    scaleOffsetBox.onChange = [this]() {
+        int id = scaleOffsetBox.getSelectedId();
+        int offset = id - 12;
+        localState.setProperty("PitchOffset", offset, nullptr);
+        processor.getPitchCorrector().setScaleOffset(offset);
+    };
+
+    scaleTypeBox.onChange = [this]() {
+        int id = scaleTypeBox.getSelectedId();
+        localState.setProperty("PitchType", id, nullptr);
+        processor.getPitchCorrector().setScaleType(id);
+    };
+
     // Link sliders to state
     const float startRetunePercent = (float)localState.getProperty("PitchRetune", 0.3f);
     retuneSlider.setRange(0.f, 1.f, 0.05f);
@@ -93,7 +131,7 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
 
     const float waverCents = (float)localState.getProperty("PitchWaver", 0.f);
     waverSlider.setRange(0.f, 20.f, 1.f);
-    waverSlider.setValue(smoothingPercent, juce::dontSendNotification);
+    waverSlider.setValue(waverCents, juce::dontSendNotification);
     waverSlider.onValueChange = [this]() {
         localState.setProperty("PitchWaver", (float)waverSlider.getValue(), nullptr);
         };
@@ -119,6 +157,13 @@ void PitchPanel::resized()
 
     leftLevelMeter->setBounds(leftArea);
     rightLevelMeter->setBounds(rightArea);
+
+    auto leftScaleArea = scaleArea.removeFromLeft(scaleArea.getWidth() * 0.7f);
+    auto rightScaleArea = scaleArea;
+    leftScaleArea.removeFromTop(2);
+    rightScaleArea.removeFromTop(2);
+    scaleOffsetBox.setBounds(leftScaleArea);
+    scaleTypeBox.setBounds(rightScaleArea);
 
     // copied austin's formatting
     auto dials = dialsArea.reduced(10);
@@ -203,5 +248,14 @@ void PitchPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             smoothingSlider.setValue((float)tree.getProperty("PitchSmoothing"), juce::dontSendNotification);
         else if (property == juce::Identifier("PitchWaver"))
             waverSlider.setValue((float)tree.getProperty("PitchWaver"), juce::dontSendNotification);
+        else if (property == juce::Identifier("PitchOffset")) {
+            int offset = (int)tree.getProperty("PitchOffset", 0);
+            int id = juce::jlimit(1, 12, offset + 12);
+            scaleOffsetBox.setSelectedId(id, juce::dontSendNotification);
+        }
+        else if (property == juce::Identifier("PitchType")) {
+            int type = (int)tree.getProperty("PitchType", 0);
+            scaleTypeBox.setSelectedId(type, juce::dontSendNotification);
+        }
     }
 }

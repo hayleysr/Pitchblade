@@ -30,12 +30,15 @@ private:
 
     juce::Slider retuneSlider, noteTransitionSlider, smoothingSlider, waverSlider;
     juce::Label retuneLabel, noteTransitionLabel, smoothingLabel, waverLabel;
+    juce::ComboBox scaleOffsetBox, scaleTypeBox;
 
     // Link to APVTS
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> retuneAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> noteTransitionAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> smoothingAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> waverAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> scaleOffsetAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> scaleTypeAttachment;
 
     juce::ValueTree localState;
 
@@ -64,6 +67,11 @@ public:
         if (!getMutableNodeState().hasProperty("PitchWaver"))
             getMutableNodeState().setProperty("PitchWaver", 0.f, nullptr);
 
+        if (!getMutableNodeState().hasProperty("PitchOffset"))
+            getMutableNodeState().setProperty("PitchOffset", 0, nullptr);
+        if (!getMutableNodeState().hasProperty("PitchType"))
+            getMutableNodeState().setProperty("PitchType", 0, nullptr);
+
         if (!processor.apvts.state.hasType("EffectNodes"))
             processor.apvts.state = juce::ValueTree("EffectNodes");
 
@@ -82,11 +90,15 @@ public:
         const float noteTransition = (float)getNodeState().getProperty("PitchNoteTransition", 50.f);
         const float smoothing = (float)getNodeState().getProperty("PitchSmoothing", 1.f);
         const float waver = (float)getNodeState().getProperty("PitchWaver", 0.f);
+        const int offset = (int)getNodeState().getProperty("PitchOffset", 0);
+        const int type = (int)getNodeState().getProperty("PitchType", 0);
 
         pitchDSP.setRetuneSpeed(retuneSpeed);
         pitchDSP.setNoteTransition(noteTransition);
         pitchDSP.setCorrectionRatio(smoothing);
         pitchDSP.setWaver(waver);
+        pitchDSP.setScaleOffset(offset);
+        pitchDSP.setScaleType(type);
 
         //pull current note
         proc.getPitchCorrector().processBlock(buffer);   
