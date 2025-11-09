@@ -29,7 +29,7 @@ private:
 
     bool showingFormants = false;
 
-    juce::TextButton toggleViewButton{ "Show Formants" };
+    juce::ToggleButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
 
     // --- Formant Shifter controls
