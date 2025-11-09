@@ -32,6 +32,10 @@ public:
         //main effect button
 		button.setButtonText(effectName);
 		addAndMakeVisible(button);
+
+        button.setOpaque(true);
+        rightButton.setOpaque(true);
+
         button.onClick = [this] {         // turn active button pink on click
             onEffectSelected = !onEffectSelected; // toggle selection state
             if (onEffectSelected) { button.setColour(juce::TextButton::buttonColourId, Colors::accent); }
