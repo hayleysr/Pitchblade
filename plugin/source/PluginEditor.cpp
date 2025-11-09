@@ -286,6 +286,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
 
     //daisyChain.resetRowsToNodes();    // rows matches current effectNodes for daisychain ui
