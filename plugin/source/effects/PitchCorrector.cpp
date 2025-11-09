@@ -181,3 +181,7 @@ std::string PitchCorrector::getTargetNoteName(){
     if (index < 0) index += 12;
     return aNoteNames[index];
 }
+
+PitchDetector& PitchCorrector::getDetector() {
+    return pitchDetector;  
+}

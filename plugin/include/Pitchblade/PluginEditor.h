@@ -1,7 +1,7 @@
 #pragma once
 #include "PluginProcessor.h"
 
-////ui
+////ui reyna
 #include <JuceHeader.h>
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 #include "Pitchblade/ui/ColorPalette.h"
@@ -11,20 +11,24 @@
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
+#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/panels/EffectNode.h"
-//Austin
-#include "Pitchblade/panels/SettingsPanel.h"
+
+#include "Pitchblade/panels/SettingsPanel.h"    // Austin
+#include "Pitchblade/panels/PresetsPanel.h"     // reyna
 
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                               public juce::DragAndDropContainer,
-                                              public juce::Button::Listener // Austin added this for the settings panel
+                                              public juce::Button::Listener,     // Austin added this for the settings panel
+	                                          public juce::MouseListener         // reyna - for presets/settings closing on outside click
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
     ~AudioPluginAudioProcessorEditor() override;
+	void rebuildAndSyncUI(); // reyna - rebuild daisy chain and effect panel ui to sync with processor
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -32,6 +36,18 @@ public:
 
     //Austin
     void buttonClicked(juce::Button* button) override;
+
+	// getters for presets and settings panels - reyna 
+    DaisyChain& getDaisyChain() { return daisyChain; }
+    EffectPanel& getEffectPanel() { return effectPanel; }
+    VisualizerPanel& getVisualizer() { return visualizer; }
+
+	// helpers to close overlays - reyna
+    void closeOverlaysIfOpen();
+    void showPresets();
+    bool isPresetsVisible() const;
+    void showSettings();
+    bool isSettingsVisible() const;
 
 private:
     // This reference is provided as a quick way for your editor to access the processor object that created it.
@@ -48,6 +64,11 @@ private:
 
     TooltipManager tooltipManager;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow;
+
+	// reyna presets panel              
+	PresetsPanel presetsPanel;          // panel for managing presets
+	juce::Component presetsBackdrop;    // backdrop when presets panel is open
+    bool isShowingPresets = false;
 
     //Austin added this
     SettingsPanel settingsPanel;

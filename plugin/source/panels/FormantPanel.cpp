@@ -1,14 +1,18 @@
 //hudas code
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
     // Formant toggle button - huda
+    //toggleViewButton.setClickingTogglesState(true);
+    static CustomLookAndFeel gSwitchLF; //for custom toggle
+    toggleViewButton.setLookAndFeel(&gSwitchLF);
     toggleViewButton.onClick = [this]()
         {
-            showingFormants = !showingFormants;
+            showingFormants = toggleViewButton.getToggleState();
             toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
             repaint();
         };
@@ -119,4 +123,19 @@ void FormantPanel::timerCallback() {
     if (showingFormants) { // refresh if formants are visible
         repaint();
     }
+}
+
+// XML serialization for saving/loading - reyna
+std::unique_ptr<juce::XmlElement> FormantNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("FormantNode");
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("FormantShift", (float)getNodeState().getProperty("FORMANT_SHIFT", 0.0f));
+    xml->setAttribute("Mix", (float)getNodeState().getProperty("FORMANT_MIX", 100.0f));
+    return xml;
+}
+
+void FormantNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+    s.setProperty("FORMANT_SHIFT", (float)xml.getDoubleAttribute("FormantShift", 0.0f), nullptr);
+    s.setProperty("FORMANT_MIX", (float)xml.getDoubleAttribute("Mix", 100.0f), nullptr);
 }

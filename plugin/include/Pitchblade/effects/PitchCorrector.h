@@ -40,6 +40,8 @@ public:
     
     std::atomic<float> currentOutputPitch{69.f};
 
+    PitchDetector& getDetector();
+
 private:
     int quantizeToScale(int);
     static float noteToFrequency(float midi);

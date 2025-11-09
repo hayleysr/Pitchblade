@@ -17,6 +17,14 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+
+	// reynas changes - adding value tree functionality
+    thresholdSlider.setRange(-100.0f, 0.0f, 0.1f);
+    thresholdSlider.setValue((float)localState.getProperty("GateThreshold", -100.0f), juce::dontSendNotification); // read from tree
+    thresholdSlider.onValueChange = [this]() { // NEW: write to tree
+        localState.setProperty("GateThreshold", (float)thresholdSlider.getValue(), nullptr);
+        };
+
       //Added these two to make them more nice looking and obvious for what they are - Austin
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
@@ -33,6 +41,13 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+	// reynas changes - adding value tree functionality
+    attackSlider.setRange(1.0f, 200.0f, 1.0f);
+    attackSlider.setValue((float)localState.getProperty("GateAttack", 25.0f), juce::dontSendNotification); // read from tree
+    attackSlider.onValueChange = [this]() { // NEW: write to tree
+        localState.setProperty("GateAttack", (float)attackSlider.getValue(), nullptr);
+        };
+
     //Added these two to make them more nice looking and obvious for what they are - Austin
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
@@ -49,6 +64,13 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin
     releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+	// reynas changes - adding value tree functionality
+    releaseSlider.setRange(10.0f, 1000.0f, 1.0f);
+    releaseSlider.setValue((float)localState.getProperty("GateRelease", 100.0f), juce::dontSendNotification); // NEW
+    releaseSlider.onValueChange = [this]() { // NEW
+        localState.setProperty("GateRelease", (float)releaseSlider.getValue(), nullptr);
+        };
+
     //Added these two to make them more nice looking and obvious for what they are - Austin
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
@@ -60,6 +82,7 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     addAndMakeVisible(releaseLabel);
 
     ///////////////////
+
     //reynas changes - adding value tree functionality
     const float startThresholdDb = (float)localState.getProperty("GateThreshold", 0.0f);      // get starting gain from local state, if none, default to 0.0f
     thresholdSlider.setRange(-100.0, 0.0, 0.1);                                        // set slider range
@@ -119,6 +142,8 @@ void NoiseGatePanel::paint(juce::Graphics& g)
     g.drawRect(getLocalBounds(), 2);
 }
 
+//////////////////////////////////////////////////////////
+
 // destructor   - reyna
 NoiseGatePanel::~NoiseGatePanel() {
     if (localState.isValid())
@@ -134,5 +159,46 @@ void NoiseGatePanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce:
             attackSlider.setValue((float)tree.getProperty("GateAttack"), juce::dontSendNotification);
         else if (property == juce::Identifier("GateRelease"))
             releaseSlider.setValue((float)tree.getProperty("GateRelease"), juce::dontSendNotification);
+    }
+}
+
+// XML serialization - reyna
+std::unique_ptr<juce::XmlElement> NoiseGateNode::toXml() const {
+	// create XML element for NoiseGateNode
+    auto xml = std::make_unique<juce::XmlElement>("NoiseGateNode");
+    // setting values
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("GateThreshold", (float)getNodeState().getProperty("GateThreshold", -100.0f));
+    xml->setAttribute("GateAttack", (float)getNodeState().getProperty("GateAttack", 25.0f));
+    xml->setAttribute("GateRelease", (float)getNodeState().getProperty("GateRelease", 100.0f));
+    return xml;
+}
+
+void NoiseGateNode::loadFromXml(const juce::XmlElement& xml) {
+	// loading values from XML attributes into ValueTree
+    auto& s = getMutableNodeState();
+    s.setProperty("GateThreshold", (float)xml.getDoubleAttribute("GateThreshold", -100.0f), nullptr);
+    s.setProperty("GateAttack", (float)xml.getDoubleAttribute("GateAttack", 25.0f), nullptr);
+    s.setProperty("GateRelease", (float)xml.getDoubleAttribute("GateRelease", 100.0f), nullptr);
+}
+
+NoiseGateVisualizer::~NoiseGateVisualizer(){
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+// Update the graph by polling the node
+void NoiseGateVisualizer::timerCallback(){ 
+    float newDbLevel = noiseGateNode.getOutputLevelAtomic().load();
+    pushData(newDbLevel);
+    RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+}
+
+// Update threshold line if property changes
+void NoiseGateVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if (tree == localState && property == juce::Identifier("GateThreshold"))
+    {
+        float newThreshold = (float)localState.getProperty("GateThreshold", -100.0f);
+        setThreshold(newThreshold, true);
     }
 }

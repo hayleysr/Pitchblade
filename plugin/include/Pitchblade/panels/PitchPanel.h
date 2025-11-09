@@ -115,7 +115,7 @@ public:
         return pitchDSP.currentOutputPitch;
     }
 
-    ////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////// reyna
 
     // clone node >  copied from austin
     std::shared_ptr<EffectNode> clone() const override { 
@@ -131,6 +131,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychain
         return clonePtr;
     }
+
+        // XML serialization for saving/loading
+        std::unique_ptr<juce::XmlElement> toXml() const override;
+        void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
     AudioPluginAudioProcessor& processor;

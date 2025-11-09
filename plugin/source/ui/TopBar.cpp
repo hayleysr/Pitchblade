@@ -39,11 +39,19 @@ void TopBar::resized()
     //pluginTitle.setBounds(area.removeFromLeft(150));
     auto logoArea = area.removeFromLeft(150);
     logo.setBounds(logoArea);
-
-
     
     settingsButton.setBounds(area.removeFromRight(80));
-    bypassButton.setBounds(area.removeFromRight(80));
     presetButton.setBounds(area.removeFromRight(80));
+    bypassButton.setBounds(area.removeFromRight(80));
     
+}
+
+// turn button pink if on
+void TopBar::setButtonActive(juce::TextButton& button, bool active) {
+    const auto color = active ? Colors::accent : Colors::panel;
+    button.setColour(juce::TextButton::buttonColourId, color);
+    button.setColour(juce::TextButton::buttonOnColourId, color);
+    button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    button.repaint();
 }

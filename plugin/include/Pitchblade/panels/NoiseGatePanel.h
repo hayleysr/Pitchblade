@@ -30,49 +30,59 @@ private:
     // Labels
     juce::Label noiseGateLabel, thresholdLabel, attackLabel, releaseLabel;
 
-	// attachments to link sliders to the apvts parameters
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
-	std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
+	//// attachments to link sliders to the apvts parameters
+ //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
+ //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
+	//std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
 
     juce::ValueTree localState;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoiseGatePanel)
 };
-////////////////////////////////////////////////////////////
-// reyna changes > added noisegate visualizer placeholder
-// visualizer node for noisegate
-#include "Pitchblade/ui/VisualizerPanel.h"
 
-class NoiseGateVisualizer : public juce::Component,
-    private juce::Timer
-{
+//Visualizer - Austin
+#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
+
+class NoiseGateNode;
+
+class NoiseGateVisualizer : public RealTimeGraphVisualizer, public juce::ValueTree::Listener{
 public:
-    explicit NoiseGateVisualizer(AudioPluginAudioProcessor& proc) : processor(proc)
+    explicit NoiseGateVisualizer(AudioPluginAudioProcessor& proc, NoiseGateNode& node, juce::ValueTree& state)
+        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f, 0.0f}, false, 6),
+          processor(proc),
+          noiseGateNode(node),
+          localState(state)
     {
-        startTimerHz(30); // refresh ~30fps
+        // Set initial threshold line
+        float initialThreshold = (float)localState.getProperty("GateThreshold", -100.0f);
+        setThreshold(initialThreshold, true);
+
+        // Listen for changes to the threshold
+        localState.addListener(this);
+
+        // Start timer
+        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+        switch(initialIndex){
+            case 0: startTimerHz(5); break;
+            case 1: startTimerHz(15); break;
+            case 2: startTimerHz(30); break;
+            case 3: startTimerHz(60); break;
+            default: startTimerHz(30); break;
+        }
     }
 
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(juce::Colours::black);
-        g.setColour(juce::Colours::pink);
+    ~NoiseGateVisualizer() override;
 
-        // get noisegate values
-        float thresholdValue = processor.apvts.getRawParameterValue("GATE_THRESHOLD")->load();
-        float attackValue = processor.apvts.getRawParameterValue("GATE_ATTACK")->load();
-        float releaseValue = processor.apvts.getRawParameterValue("GATE_RELEASE")->load();
+    // Update the graph by polling the node
+    void timerCallback() override ;
 
-        // draw label
-        g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(20.0f, juce::Font::bold));
-        g.drawText("Noisegate visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
-    }
+    // Update threshold line if property changes
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
 
 private:
-    void timerCallback() override { repaint(); }
-
     AudioPluginAudioProcessor& processor;
+    NoiseGateNode& noiseGateNode;
+    juce::ValueTree localState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoiseGateVisualizer)
 };
 
@@ -88,6 +98,12 @@ class NoiseGateNode : public EffectNode {
 public:
 	//create node with name n reference to main processor
     explicit NoiseGateNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "NoiseGateNode", "Noise Gate"), processor(proc) {
+        
+        if (!processor.apvts.state.hasType("EffectNodes")) {    
+			processor.apvts.state = juce::ValueTree("EffectNodes"); // ensure EffectNodes tree exists - reyna
+        }
+
+		auto& state = getMutableNodeState();    // get mutable state - reyna
         // initialize default properties
         if (!getMutableNodeState().hasProperty("GateThreshold"))
             getMutableNodeState().setProperty("GateThreshold", -100.0f, nullptr);
@@ -100,6 +116,8 @@ public:
             processor.apvts.state = juce::ValueTree("EffectNodes");
         // add this node to processor state tree
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
+
+        processor.apvts.state.addChild(state, -1, nullptr); // add to processor state tree
 
         //Preparing the gate
         gateDSP.prepare(proc.getSampleRate());
@@ -118,6 +136,11 @@ public:
         gateDSP.setAttack(attack);
         gateDSP.setRelease(release);
         gateDSP.process(buffer);
+
+        //Calculate output level for visualizer
+        float peakAmplitude = buffer.getMagnitude(0, 0, buffer.getNumSamples());
+        float levelDb = juce::Decibels::gainToDecibels(peakAmplitude, -100.0f);
+        gateDSP.currentOutputLevelDb.store(levelDb);
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
@@ -126,10 +149,15 @@ public:
 
     // return visualizer 
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<NoiseGateVisualizer>(proc);
+        return std::make_unique<NoiseGateVisualizer>(proc, *this, getMutableNodeState());
     }
 
-    ////////////////////////////////////////////////////////////
+    //Allows visualizer to get value
+    std::atomic<float>& getOutputLevelAtomic() {
+        return gateDSP.currentOutputLevelDb;
+    }
+
+    ////////////////////////////////////////////////////////////  reyna
 
     // clone node
     std::shared_ptr<EffectNode> clone() const override {
@@ -145,6 +173,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychian
         return clonePtr;
     }
+
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
     //nodes own dsp processor + reference to main processor for param access

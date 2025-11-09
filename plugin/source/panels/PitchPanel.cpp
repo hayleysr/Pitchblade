@@ -259,3 +259,25 @@ void PitchPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
     }
 }
+// XML serialization for saving/loading - reyna
+std::unique_ptr<juce::XmlElement> PitchNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("PitchNode");
+    xml->setAttribute("name", effectName);
+    xml->setAttribute("PitchRetune", (float)getNodeState().getProperty("PitchRetune", 0.3f));
+    xml->setAttribute("PitchNoteTransition", (float)getNodeState().getProperty("PitchNoteTransition", 50.f));
+    xml->setAttribute("PitchSmoothing", (float)getNodeState().getProperty("PitchSmoothing", 1.f));
+    xml->setAttribute("PitchWaver", (float)getNodeState().getProperty("PitchWaver", 0.f));
+    xml->setAttribute("PitchOffset", (int)getNodeState().getProperty("PitchOffset", 1));
+    xml->setAttribute("PitchType", (int)getNodeState().getProperty("PitchType", 1));
+    return xml;
+}
+
+void PitchNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+    s.setProperty("PitchRetune", (float)xml.getDoubleAttribute("PitchRetune", 0.3f), nullptr);
+    s.setProperty("PitchNoteTransition", (float)xml.getIntAttribute("PitchNoteTransition", 50.f), nullptr);
+    s.setProperty("PitchSmoothing", (float)xml.getDoubleAttribute("PitchSmoothing", 1.f), nullptr);
+    s.setProperty("PitchWaver", (float)xml.getDoubleAttribute("PitchWaver", 0.f), nullptr);
+    s.setProperty("PitchOffset", (int)xml.getDoubleAttribute("PitchOffset", 1), nullptr);
+    s.setProperty("PitchType", (int)xml.getDoubleAttribute("PitchType", 1), nullptr);
+}
