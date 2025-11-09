@@ -1,4 +1,5 @@
 #pragma once
+#include <fstream>
 // Author: huda
 // reyna updated to new valuetree value system and nodebased system
 #include <JuceHeader.h>
@@ -124,18 +125,11 @@ public:
 
     // keep existing DSP path 
     // push local state into the DSP and process
-    void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
-        auto& st = getMutableNodeState();
-
-        proc.getEqualizer().setLowFreq((float)st.getProperty("LowFreq"));
-        proc.getEqualizer().setLowGainDb((float)st.getProperty("LowGain"));
-        proc.getEqualizer().setMidFreq((float)st.getProperty("MidFreq"));
-        proc.getEqualizer().setMidGainDb((float)st.getProperty("MidGain"));
-        proc.getEqualizer().setHighFreq((float)st.getProperty("HighFreq"));
-        proc.getEqualizer().setHighGainDb((float)st.getProperty("HighGain"));
-
-        proc.getEqualizer().processBlock(buffer);
-    }
+   void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
+    // Do not read ValueTree properties on the audio thread (not thread-safe).
+    // The UI updates the Equalizer parameters via thread-safe setters when knobs move.
+    proc.getEqualizer().processBlock(buffer);
+}
 
     //reynas daisychain and presets stuff /////////////////////////////////////////
 

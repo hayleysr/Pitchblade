@@ -5,11 +5,10 @@
 
 /* Author: huda
    Equalizer; basic 3-band EQ:
-     - low  = lowpass (cutoff + gain)
-     - mid  = bandpass (center + gain)
-     - high = highpass (cutoff + gain)
-   split,filter, per-band gains, sum.
-   midQ is fixed for now to keep it simple but we can change this (revisit)
+     - low  = low shelf (cutoff + gain)
+     - mid  = peaking (center + gain)
+     - high = high shelf (cutoff + gain)
+   Uses proper shelving filters for transparent EQ.
 */
 
 class Equalizer
@@ -70,9 +69,6 @@ private:
     };
 
     Band lowBand, midBand, highBand;
-
-    // scratch buffers
-    juce::AudioBuffer<float> lowBuf, midBuf, highBuf;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Equalizer)
 };

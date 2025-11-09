@@ -1,5 +1,7 @@
 #include "Pitchblade/effects/Equalizer.h"
 //Author: huda
+// More robust version with unity gain bypass
+
 // tiny helper: dB to linear gain (floor at -60 dB to avoid denorm-ish stuff)
 static inline float dbToGain(float dB)
 {
@@ -24,11 +26,6 @@ void Equalizer::prepare(double sampleRate, int maxBlockSize, int numChannels)
     makeBand(lowBand);
     makeBand(midBand);
     makeBand(highBand);
-
-    // scratch buffers per band
-    lowBuf.setSize(channels, maxBlockSize);
-    midBuf .setSize(channels, maxBlockSize);
-    highBuf.setSize(channels, maxBlockSize);
 
     // prepare each per channel duplicator for single channel processing
     juce::dsp::ProcessSpec spec;
@@ -59,6 +56,7 @@ void Equalizer::setLowFreq(float hz)
 void Equalizer::setLowGainDb(float dB)
 {
     lowGainDb = juce::jlimit(-24.0f, 24.0f, dB);
+    updateFilters();
 }
 
 void Equalizer::setMidFreq(float hz)
@@ -70,6 +68,7 @@ void Equalizer::setMidFreq(float hz)
 void Equalizer::setMidGainDb(float dB)
 {
     midGainDb = juce::jlimit(-24.0f, 24.0f, dB);
+    updateFilters();
 }
 
 void Equalizer::setHighFreq(float hz)
@@ -81,6 +80,7 @@ void Equalizer::setHighFreq(float hz)
 void Equalizer::setHighGainDb(float dB)
 {
     highGainDb = juce::jlimit(-24.0f, 24.0f, dB);
+    updateFilters();
 }
 
 void Equalizer::updateFilters()
@@ -88,12 +88,22 @@ void Equalizer::updateFilters()
     if (!isPrepared)
         return;
 
-    // basic 3-way split: lowpass, bandpass, highpass
-    auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowPass (sr, lowFreqHz .load());
-    auto midC = juce::dsp::IIR::Coefficients<float>::makeBandPass(sr, midFreqHz .load(), midQ);
-    auto highC= juce::dsp::IIR::Coefficients<float>::makeHighPass(sr, highFreqHz.load());
+    float lowGain = lowGainDb.load();
+    float midGain = midGainDb.load();
+    float highGain = highGainDb.load();
 
-    // push coeffs into each channel’s filter
+    // Use shelving and peaking filters
+    // For shelving filters: gainFactor is the linear gain, NOT dB
+    auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowShelf(
+        sr, lowFreqHz.load(), midQ, juce::Decibels::decibelsToGain(lowGain));
+
+    auto midC = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        sr, midFreqHz.load(), midQ, juce::Decibels::decibelsToGain(midGain));
+
+    auto highC = juce::dsp::IIR::Coefficients<float>::makeHighShelf(
+        sr, highFreqHz.load(), midQ, juce::Decibels::decibelsToGain(highGain));
+
+    // push coeffs into each channel's filter
     for (auto& f : lowBand .filters) f.state = lowC;
     for (auto& f : midBand .filters) f.state = midC;
     for (auto& f : highBand.filters) f.state = highC;
@@ -107,48 +117,45 @@ void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
     const int nCh   = juce::jmin(channels, buffer.getNumChannels());
     const int nSmps = buffer.getNumSamples();
 
-    // copy input to each band’s buffer
-    for (int ch = 0; ch < nCh; ++ch)
+    // Check if all gains are essentially zero - if so, just pass through
+    float lowG = std::abs(lowGainDb.load());
+    float midG = std::abs(midGainDb.load());
+    float highG = std::abs(highGainDb.load());
+    
+    if (lowG < 0.01f && midG < 0.01f && highG < 0.01f)
     {
-        const float* in = buffer.getReadPointer(ch);
-        lowBuf .copyFrom(ch, 0, in, nSmps);
-        midBuf .copyFrom(ch, 0, in, nSmps);
-        highBuf.copyFrom(ch, 0, in, nSmps);
+        // All gains near zero, pass through unchanged
+        return;
     }
 
-    // run IIRs per channel using AudioBlock slices
-    juce::dsp::AudioBlock<float> bl(lowBuf);
-    juce::dsp::AudioBlock<float> bm(midBuf);
-    juce::dsp::AudioBlock<float> bh(highBuf);
+    juce::dsp::AudioBlock<float> block(buffer);
 
+    // Apply each band's filter to each channel in series
     for (int ch = 0; ch < nCh; ++ch)
     {
-        auto blCh = bl.getSingleChannelBlock((size_t)ch);
-        auto bmCh = bm.getSingleChannelBlock((size_t)ch);
-        auto bhCh = bh.getSingleChannelBlock((size_t)ch);
-
-        lowBand .filters[(size_t)ch].process(juce::dsp::ProcessContextReplacing<float>(blCh));
-        midBand .filters[(size_t)ch].process(juce::dsp::ProcessContextReplacing<float>(bmCh));
-        highBand.filters[(size_t)ch].process(juce::dsp::ProcessContextReplacing<float>(bhCh));
+        auto channelBlock = block.getSingleChannelBlock((size_t)ch);
+        
+        // Only process if gain is not near zero
+        if (lowG > 0.01f)
+        {
+            lowBand.filters[(size_t)ch].process(
+                juce::dsp::ProcessContextReplacing<float>(channelBlock));
+        }
+        
+        if (midG > 0.01f)
+        {
+            midBand.filters[(size_t)ch].process(
+                juce::dsp::ProcessContextReplacing<float>(channelBlock));
+        }
+        
+        if (highG > 0.01f)
+        {
+            highBand.filters[(size_t)ch].process(
+                juce::dsp::ProcessContextReplacing<float>(channelBlock));
+        }
     }
 
-    // simple gains then add up the bands
-    const float gL = dbToGain(lowGainDb .load());
-    const float gM = dbToGain(midGainDb .load());
-    const float gH = dbToGain(highGainDb.load());
-
-    for (int ch = 0; ch < nCh; ++ch)
-    {
-        float* out = buffer.getWritePointer(ch);
-        const float* l = lowBuf .getReadPointer(ch);
-        const float* m = midBuf .getReadPointer(ch);
-        const float* h = highBuf.getReadPointer(ch);
-
-        for (int i = 0; i < nSmps; ++i)
-            out[i] = gL * l[i] + gM * m[i] + gH * h[i];
-    }
-
-    // clear any channels we didn’t touch
+    // clear any channels we didn't touch
     for (int ch = nCh; ch < buffer.getNumChannels(); ++ch)
         buffer.clear(ch, 0, nSmps);
 }

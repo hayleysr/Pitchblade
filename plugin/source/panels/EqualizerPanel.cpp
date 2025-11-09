@@ -40,15 +40,33 @@ EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree
 
     auto updateTree = [this](juce::Slider& s, const juce::String& key) {
         s.onValueChange = [this, &s, key]() {
+            // Update local state for persistence/serialization
             localState.setProperty(key, (float)s.getValue(), nullptr);
-            };
+
+            // Also push the value directly to the audio DSP via thread-safe setters
+            // avoid reading/writing the ValueTree from the audio thread.
+            if (key == "LowFreq")   processor.getEqualizer().setLowFreq((float)s.getValue());
+            else if (key == "LowGain")   processor.getEqualizer().setLowGainDb((float)s.getValue());
+            else if (key == "MidFreq")   processor.getEqualizer().setMidFreq((float)s.getValue());
+            else if (key == "MidGain")   processor.getEqualizer().setMidGainDb((float)s.getValue());
+            else if (key == "HighFreq")  processor.getEqualizer().setHighFreq((float)s.getValue());
+            else if (key == "HighGain")  processor.getEqualizer().setHighGainDb((float)s.getValue());
         };
+    };
     updateTree(lowFreq, "LowFreq");
     updateTree(lowGain, "LowGain");
     updateTree(midFreq, "MidFreq");
     updateTree(midGain, "MidGain");
     updateTree(highFreq, "HighFreq");
     updateTree(highGain, "HighGain");
+
+    // Push initial slider values into the DSP so the Equalizer reflects stored node state immediately.
+    processor.getEqualizer().setLowFreq((float)lowFreq.getValue());
+    processor.getEqualizer().setLowGainDb((float)lowGain.getValue());
+    processor.getEqualizer().setMidFreq((float)midFreq.getValue());
+    processor.getEqualizer().setMidGainDb((float)midGain.getValue());
+    processor.getEqualizer().setHighFreq((float)highFreq.getValue());
+    processor.getEqualizer().setHighGainDb((float)highGain.getValue());
 
     localState.addListener(this);
 }
