@@ -16,6 +16,11 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     addAndMakeVisible(compressorLabel);
 
     // Mode Button
+    //modeButton.setClickingTogglesState(true);
+    //addAndMakeVisible(modeButton);
+
+    static CustomLookAndFeel gSwitchLF;
+    modeButton.setButtonText("Limiter Mode");
     modeButton.setClickingTogglesState(true);
     addAndMakeVisible(modeButton);
 

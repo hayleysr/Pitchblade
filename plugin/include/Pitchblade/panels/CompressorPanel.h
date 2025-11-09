@@ -24,7 +24,7 @@ private:
     juce::Slider thresholdSlider, ratioSlider, attackSlider, releaseSlider;
 
     //Button for mode switching
-    juce::TextButton modeButton {"Limiter Mode"};
+    juce::ToggleButton modeButton {"Limiter Mode"};
 
     //Labels for sliders
     juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
