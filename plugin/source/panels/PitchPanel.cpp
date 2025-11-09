@@ -74,8 +74,8 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         "C#", "D", "D#", "E", "F", "F#", 
         "G", "G#", "A", "A#", "B", "C", 
     };
-    for(int i = 11; i >= 0; --i){
-        scaleOffsetBox.addItem(aNoteNames[i], (i + 1));
+    for(int i = 1; i <= 12; ++i){
+        scaleOffsetBox.addItem(aNoteNames[i-1], (i));
     }
     scaleOffsetBox.setJustificationType(juce::Justification::centred);
     scaleOffsetBox.setEditableText(false);
