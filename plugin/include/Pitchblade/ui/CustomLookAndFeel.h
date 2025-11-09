@@ -104,7 +104,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         const float side = (float)juce::jmin(width, height);
         juce::Rectangle<float> dial = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height)
             .withSizeKeepingCentre(side, side)
-            .reduced(side * 0.12f);           // outer padding
+            .reduced(side * 0.13f);           // outer padding
 
         const float radius = dial.getWidth() * 0.5f;
         const auto  centre = dial.getCentre();
@@ -251,5 +251,29 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
             auto endP2 = centre.getPointOnCircumference(radius * 1.3f, angle);
             g.drawLine({ endP1, endP2 }, capThickness);
 
+            //put dial name below black dial
+            if (slider.getName().isNotEmpty())  {
+                g.setColour(juce::Colours::white);
+                //text
+                g.setFont(juce::Font(radius * 0.25f, juce::Font::bold));
+                //below dial
+                const float labelY = centre.y + baseThick * 1.6f;
+                g.drawFittedText(slider.getName(), juce::Rectangle<int>( (int)(centre.x - radius), (int)labelY, (int)(radius * 2),  10),
+                    juce::Justification::centred, 1);
+            }
     }
+
+    juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override  {
+        auto layout = juce::LookAndFeel_V4::getSliderLayout(slider);
+
+        // push textbox down
+        //const int pushDown = juce::roundToInt(slider.getHeight() * 0.01f); 
+        if (slider.getTextBoxPosition() == juce::Slider::TextBoxBelow)
+            layout.textBoxBounds = layout.textBoxBounds.translated(0, -slider.getHeight() * 0.02f);
+
+        //layout.sliderBounds.setBottom(layout.sliderBounds.getBottom() - pushDown);
+
+        return layout;
+    }
+
 };
