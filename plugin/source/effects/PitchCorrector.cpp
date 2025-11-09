@@ -15,6 +15,8 @@ void PitchCorrector::prepare(double sampleRate, int blockSize)
     prevMidi = 69.f;        //A4
     lastStableMidi = prevMidi;
     waverPhase = 0.f;   
+    wasBypassing = true;
+    stableCount = 0;
     monoBuffer.setSize(1, blockSize);
 }
 void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
@@ -27,13 +29,42 @@ void PitchCorrector::processBlock(juce::AudioBuffer<float>& buffer){
     if(detectedPitch <= 0.0f){
         pitchShifter.setPitchShiftRatio(1.0f); //bypass
         pitchShifter.processBlock(buffer);
+
+        wasBypassing = true;
+        stableCount = 0;
+        currentRatio = 1.f; // reset ratio for smooth startup
+
         return;
+    }
+
+    // if pitch is not 0, but still not stable
+    if(wasBypassing){
+        stableCount++;
+
+        //bypass if there are not enough stable frames in a row, a transient
+        if(stableCount < stableThreshold){
+            pitchShifter.setPitchShiftRatio(1.0f);
+            pitchShifter.processBlock(buffer);
+            return;
+        }else{
+            //note is stable, first valid block
+            currentMidi = frequencyToNote(detectedPitch);        
+            float detectedNote = pitchDetector.getCurrentMidiNote();
+            float currentTarget = (float)quantizeToScale((int)std::round(detectedNote)); //determine target note
+            
+            prevMidi = currentMidi;
+            lastStableMidi = currentTarget;
+            waverPhase = 0.f;
+            
+            wasBypassing = false;
+        }
     }
 
     currentMidi = frequencyToNote(detectedPitch);
 
     float detectedNote = pitchDetector.getCurrentMidiNote();
-    targetMidi = (float)quantizeToScale((int)std::round(detectedNote)); //determine target note
+
+    targetMidi = (float)quantizeToScale((int)std::round(detectedNote));
     targetPitch = noteToFrequency(targetMidi);
     semitoneErrorMidi = targetMidi - currentMidi;
 

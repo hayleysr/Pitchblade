@@ -68,6 +68,9 @@ private:
     float waverPhase = 0.f;
     float prevMidi;
     float lastStableMidi;
+    bool wasBypassing;
+    int stableCount;
+    const int stableThreshold = 100;
 
     // Hz
     float targetPitch;

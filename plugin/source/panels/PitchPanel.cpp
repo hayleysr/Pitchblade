@@ -105,18 +105,23 @@ void PitchPanel::resized()
 {
     auto area = getLocalBounds().reduced(10);
 
-    pitchName.setBounds(area.removeFromTop(30));
+    pitchName.setBounds(area.removeFromTop(area.getHeight() * 0.1f));
 
-    auto y = area.getCentreY() + area.getHeight() * 0.25;
+    auto y = area.getCentreY() + area.getHeight();
 
-    auto leftArea  = area.removeFromLeft(area.getWidth() / 2).reduced(40);
-    auto rightArea = area.reduced(40);
+    auto scaleArea = area.removeFromTop(area.getHeight() * 0.1f);
+    auto dialsArea = area.removeFromTop(area.getHeight() * 0.7f);
+    auto metersArea = area;
+    
+    auto meterWidth = metersArea.getWidth() * 0.4f;
+    auto leftArea  = metersArea.removeFromLeft(meterWidth).reduced(10);
+    auto rightArea = metersArea.removeFromRight(meterWidth).reduced(10);
 
-    leftLevelMeter->setBounds(leftArea.withY(y).withHeight(area.getHeight()));
-    rightLevelMeter->setBounds(rightArea.withY(y).withHeight(area.getHeight()));
+    leftLevelMeter->setBounds(leftArea);
+    rightLevelMeter->setBounds(rightArea);
 
     // copied austin's formatting
-    auto dials = area.reduced(10);
+    auto dials = dialsArea.reduced(10);
     int dialWidth = dials.getWidth() / 4;
 
     auto retuneArea = dials.removeFromLeft(dialWidth).reduced(5);
@@ -140,18 +145,20 @@ void PitchPanel::resized()
 
 void PitchPanel::paint(juce::Graphics& g)
 {
-    bounds = getLocalBounds().toFloat();
-    drawStaticContent(g);
-    drawDynamicLabels(g);
+    auto bounds = getLocalBounds().toFloat();
+    drawStaticContent(g, bounds);
+    drawDynamicLabels(g, bounds);
 }
 
-void PitchPanel::drawStaticContent(juce::Graphics& g)
+void PitchPanel::drawStaticContent(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
     g.setColour(Colors::button);
     auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
     auto radius = targetPitchDisplayBounds.getWidth() * 0.5f;
-    g.fillEllipse(juce::Rectangle<float>(bounds.getCentre().x - radius, bounds.getCentre().y * 1.5f - radius, 
-                    targetPitchDisplayBounds.getWidth(), targetPitchDisplayBounds.getWidth())); //x, y, w, h
+    g.fillEllipse({ bounds.getCentre().x - radius, 
+                    bounds.getCentre().y * 1.5f - radius, 
+                    targetPitchDisplayBounds.getWidth(), 
+                    targetPitchDisplayBounds.getWidth()});
 
     auto detectedPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.48);
     g.fillRect(juce::Rectangle<float>(bounds.getCentre().x - radius, bounds.getCentre().y * 1.25f + bounds.getCentre().y/2 - radius, 
@@ -159,9 +166,9 @@ void PitchPanel::drawStaticContent(juce::Graphics& g)
     
 }
 
-void PitchPanel::drawDynamicLabels(juce::Graphics& g)
+void PitchPanel::drawDynamicLabels(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-    auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
+        auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
     auto radius = targetPitchDisplayBounds.getWidth() * 0.5f;
 
     g.setFont(30.0f); 

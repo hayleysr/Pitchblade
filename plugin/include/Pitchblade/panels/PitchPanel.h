@@ -23,12 +23,10 @@ public:
 private:
     void timerCallback() override;
 
-    void drawStaticContent(juce::Graphics& g);
-    void drawDynamicLabels(juce::Graphics& g);
+    void drawStaticContent(juce::Graphics& g, juce::Rectangle<float> bounds);
+    void drawDynamicLabels(juce::Graphics& g, juce::Rectangle<float> bounds);
 
     std::unique_ptr<LevelMeter> leftLevelMeter, rightLevelMeter;
-
-    juce::Rectangle<float> bounds;
 
     juce::Slider retuneSlider, noteTransitionSlider, smoothingSlider, waverSlider;
     juce::Label retuneLabel, noteTransitionLabel, smoothingLabel, waverLabel;

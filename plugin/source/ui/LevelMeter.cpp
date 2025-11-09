@@ -28,17 +28,19 @@ void LevelMeter::paint(juce::Graphics& g)
 void LevelMeter::resized()
 {
     const auto bounds = getLocalBounds().toFloat();
+    levels.clear();
+
+    auto levelBounds = getLocalBounds();
+    unsigned int levelWidth = levelBounds.getWidth(); 
+    unsigned int levelHeight = levelBounds.getHeight();
+    if(rotationMode == RotationMode::RIGHT || rotationMode == RotationMode::LEFT)
+        levelWidth /= numLevels;
+    else
+        levelHeight /= numLevels;
+
     ColourGradient gradient{ Colors::accent, bounds.getBottomLeft(), Colors::accent, bounds.getTopLeft(), false};
     gradient.addColour(0.5, Colors::accent);
 
-    auto levelBounds = getLocalBounds();
-    unsigned int levelWidth, levelHeight;
-    if(rotationMode == RotationMode::RIGHT || rotationMode == RotationMode::LEFT)
-        levelWidth = levelBounds.getHeight() / numLevels;
-    else
-        levelHeight = levelBounds.getWidth() / numLevels;
-
-    levels.clear();
     for (auto i = 0; i < numLevels; i++)
     {
         auto level = std::make_unique<Level>(gradient.getColourAtPosition(static_cast<double>(i) / numLevels));
