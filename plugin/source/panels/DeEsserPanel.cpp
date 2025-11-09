@@ -177,3 +177,60 @@ void DeEsserPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::I
             frequencySlider.setValue((float)tree.getProperty("DeEsserFrequency"), juce::dontSendNotification);
     }
 }
+
+DeEsserVisualizer::~DeEsserVisualizer(){
+    if(localState.isValid()){
+        localState.removeListener(this);
+    }
+}
+
+void DeEsserVisualizer::timerCallback(){
+    //Get data from processor
+    auto spectrum = deEsserNode.getDSP().getSpectrumData();
+
+    //Push data to visualizer
+    updateSpectrumData(spectrum);
+    
+    // We are in mode 1, so no secondary spectrum data is needed.
+    
+    // This calls repaint()
+    FrequencyGraphVisualizer::timerCallback();
+}
+
+void DeEsserVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if(tree == localState){
+        // If frequency or threshold changes, update the lines
+        if(property == juce::Identifier("DeEsserFrequency") || property == juce::Identifier("DeEsserThreshold")){
+            updateThresholdLines();
+        }
+    }
+}
+
+void DeEsserVisualizer::paint(juce::Graphics& g){
+    FrequencyGraphVisualizer::paint(g);
+}
+
+// Serialization methods for DeEsserNode - reyna
+std::unique_ptr<juce::XmlElement> DeEsserNode::toXml() const {
+    auto xml = std::make_unique<juce::XmlElement>("DeEsserNode");
+    xml->setAttribute("name", effectName);
+
+    // Austin - Fixed the local state property names to camelCase
+    xml->setAttribute("DeEsserThreshold", (float)getNodeState().getProperty("DeEsserThreshold", 0.0f));
+    xml->setAttribute("DeEsserRatio", (float)getNodeState().getProperty("DeEsserRatio", 4.0f));
+    xml->setAttribute("DeEsserAttack", (float)getNodeState().getProperty("DeEsserAttack", 5.0f));
+    xml->setAttribute("DeEsserRelease", (float)getNodeState().getProperty("DeEsserRelease", 5.0f));
+    xml->setAttribute("DeEsserFrequency", (float)getNodeState().getProperty("DeEsserFrequency", 6000.0f));
+    return xml;
+}
+
+void DeEsserNode::loadFromXml(const juce::XmlElement& xml) {
+    auto& s = getMutableNodeState();
+
+    // Austin - Fixed the local state property names to camelCase
+    s.setProperty("DeEsserThreshold", (float)xml.getDoubleAttribute("DeEsserThreshold", 0.0f), nullptr);
+    s.setProperty("DeEsserRatio", (float)xml.getDoubleAttribute("DeEsserRatio", 4.0f), nullptr);
+    s.setProperty("DeEsserAttack", (float)xml.getDoubleAttribute("DeEsserAttack", 5.0f), nullptr);
+    s.setProperty("DeEsserRelease", (float)xml.getDoubleAttribute("DeEsserRelease", 5.0f), nullptr);
+    s.setProperty("DeEsserFrequency", (float)xml.getDoubleAttribute("DeEsserFrequency", 6000.0f), nullptr);
+}

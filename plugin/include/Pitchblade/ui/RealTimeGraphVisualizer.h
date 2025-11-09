@@ -74,7 +74,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    //This function is called at the interval specified in the constructor, and it triggers a repaint()
+    //This function is called at the framerate, and it triggers a repaint()
     void timerCallback() override;
 
     //Public API stuff

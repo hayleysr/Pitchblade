@@ -35,38 +35,35 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainPanel)
 };
 
-////////////////////////////////////////////////////////////
-// reyna changes > added gain visualizer placeholder
-// visualizer node for gain
-#include "Pitchblade/ui/VisualizerPanel.h"
+//Visualizer stuff - Austin
+#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
 
-class GainVisualizer : public juce::Component,
-    private juce::Timer
+class GainNode;
+
+class GainVisualizer : public RealTimeGraphVisualizer
 {
 public:
-    explicit GainVisualizer(AudioPluginAudioProcessor& proc) : processor(proc)
+    explicit GainVisualizer(AudioPluginAudioProcessor& proc, GainNode& node)
+        : RealTimeGraphVisualizer(proc.apvts, "dB", {-100.0f, 0.0f}, false, 6),
+          processor(proc),
+          gainNode(node)
     {
-        startTimerHz(30); // refresh ~30fps
+        // Start timer based on global framerate
+        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+        switch(initialIndex){
+            case 0: startTimerHz(5); break;
+            case 1: startTimerHz(15); break;
+            case 2: startTimerHz(30); break;
+            case 3: startTimerHz(60); break;
+            default: startTimerHz(30); break;
+        }
     }
-
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(juce::Colours::black);
-        g.setColour(juce::Colours::pink);
-
-        // get gain values
-        float gainValue = processor.apvts.getRawParameterValue("GAIN")->load();
-        
-        // draw label
-        g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(20.0f, juce::Font::bold));
-        g.drawText("Gain visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
-    }
-
+    ~GainVisualizer() {}
+    // Update the graph
+    void timerCallback() override;
 private:
-    void timerCallback() override { repaint(); }
-
     AudioPluginAudioProcessor& processor;
+    GainNode& gainNode;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainVisualizer)
 };
 
@@ -98,6 +95,11 @@ public:
         const float gainDb = (float)getNodeState().getProperty("Gain", 0.0f);
         gainDSP.setGain(gainDb);
         gainDSP.process(buffer);
+
+        //Calculate output level for visualizer
+        float peakAmplitude = buffer.getMagnitude(0, 0, buffer.getNumSamples());
+        float levelDb = juce::Decibels::gainToDecibels(peakAmplitude, -100.0f);
+        gainDSP.currentOutputLevelDb.store(levelDb);
     }
 
     // return UI panel linked to node
@@ -107,9 +109,17 @@ public:
 
     // return visualizer 
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<GainVisualizer>(proc);
+        return std::make_unique<GainVisualizer>(proc,*this);
     }
 
+    //Allows visualizer to get value
+    std::atomic<float>& getOutputLevelAtomic(){
+        return gainDSP.currentOutputLevelDb;
+    }
+
+    //////////////////////////////////////////////  reyna
+
+	// clone node with copied state
     std::shared_ptr<EffectNode> clone() const override
 	{   
         auto copiedTree = getNodeState().createCopy();                      // Copy ValueTree state
@@ -124,6 +134,10 @@ public:
         clonePtr->setDisplayName(effectName); // name will be made unique in daisychian
         return clonePtr;
     }
+
+	// XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml(const juce::XmlElement& xml) override;
 
 private:
 	//nodes own dsp processor + reference to main processor for param access
