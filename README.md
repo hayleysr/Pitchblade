@@ -15,3 +15,9 @@ TBD
 # Build
 After running setup, use this command to rebuild the project:
 `cmake --build build`
+
+# Installation Script Special Stuff - Austin
+You have to install NSIS for this to work.
+https://nsis.sourceforge.io/Main_Page
+Aside from that, this branch should merge main into it periodically to create new installer files.
+These installers can be put into the releases section for easy access.
