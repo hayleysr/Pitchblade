@@ -6,6 +6,13 @@
 
 DeEsserPanel::DeEsserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state)
 {
+    // label names for dials - reyna
+    thresholdSlider.setName("Threshold");
+    ratioSlider.setName("Ratio");
+    attackSlider.setName("Attack");
+    releaseSlider.setName("Release");
+    frequencySlider.setName("Frequency");
+
     // Main Label
     deEsserLabel.setText("De-Esser", juce::dontSendNotification);
     addAndMakeVisible(deEsserLabel);

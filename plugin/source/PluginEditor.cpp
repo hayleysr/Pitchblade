@@ -156,7 +156,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                         break;
                     }
                 }
-                closeOverlaysIfOpen();
+                
 
                 //Austin
                 //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
@@ -173,6 +173,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     visualizer.setVisible(true);
                     effectPanel.setVisible(true);
                 }
+                closeOverlaysIfOpen();
+                setActiveEffectByName(effectName);
             };
     }
         //keeps daiychain ui reordering consistant with processor ////////////////////////////
@@ -231,6 +233,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                             visualizer.setVisible(true);
                             effectPanel.setVisible(true);
                         }
+                        setActiveEffectByName(leftName);
                         };
 
                     // RIGHT btn
@@ -251,6 +254,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
             }
             applyRowTooltips();     // reapply tooltips after reorder
+            if (activeEffectName.isNotEmpty())
+                setActiveEffectByName(activeEffectName);
+
             };
             
 
@@ -280,6 +286,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
 
     //daisyChain.resetRowsToNodes();    // rows matches current effectNodes for daisychain ui
@@ -304,6 +311,7 @@ void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
                     if (nodes[n] && nodes[n]->effectName == effectName) {
                         effectPanel.showEffect(n);
                         visualizer.showVisualizer(n);
+                        setActiveEffectByName(effectName);
                         break;
                     }
                 }
@@ -322,10 +330,59 @@ void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
                                 break;
                             }
                         }
+                        closeOverlaysIfOpen();  
+                        setActiveEffectByName(rightName);
                     };
             }
         }
     }
+    if (activeEffectName.isNotEmpty())
+        setActiveEffectByName(activeEffectName);
+}
+
+// set active daisychain name button as pink
+void AudioPluginAudioProcessorEditor::setActiveEffectByName(const juce::String& effectName) {
+    activeEffectName = effectName;
+    //for double rows
+    for (int i = 0; i < daisyChain.items.size(); ++i) {
+        if (auto* row = daisyChain.items[i]) {
+            // left
+            row->button.setColour(juce::TextButton::buttonColourId, Colors::panel);
+            row->button.setColour(juce::TextButton::buttonOnColourId, Colors::panel);
+            row->button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+            row->button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            // right
+            if (!row->rightEffectName.isEmpty()) {
+                row->rightButton.setColour(juce::TextButton::buttonColourId, Colors::panel);
+                row->rightButton.setColour(juce::TextButton::buttonOnColourId, Colors::panel);
+                row->rightButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                row->rightButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            }
+            row->repaint(); 
+        }
+    }
+    // set active panel to accent
+    for (int i = 0; i < daisyChain.items.size(); ++i) {
+        if (auto* row = daisyChain.items[i]) {
+            if (row->getName() == effectName) {
+                row->button.setColour(juce::TextButton::buttonColourId, Colors::accent);
+                row->button.setColour(juce::TextButton::buttonOnColourId, Colors::accent);
+                row->button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                row->button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->repaint();
+                break;
+            }
+            if (!row->rightEffectName.isEmpty() && row->rightEffectName == effectName) {
+                row->rightButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+                row->rightButton.setColour(juce::TextButton::buttonOnColourId, Colors::accent);
+                row->rightButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                row->rightButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->repaint();
+                break;
+            }
+        }
+    }
+    daisyChain.repaint();
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {

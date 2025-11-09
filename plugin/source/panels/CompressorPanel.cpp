@@ -11,6 +11,12 @@
 //Set up of UI components
 CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state)
 {
+    //label names for dials - reyna
+    thresholdSlider.setName("Threshold");
+    ratioSlider.setName("Ratio");
+    attackSlider.setName("Attack");
+    releaseSlider.setName("Release");
+
     // Label
     compressorLabel.setText("Compressor", juce::dontSendNotification);
     addAndMakeVisible(compressorLabel);

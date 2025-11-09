@@ -9,6 +9,11 @@
 
 //noise gate panel display
 NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {
+    //label names for dials - reyna
+    thresholdSlider.setName("Threshold");
+    attackSlider.setName("GateAttack");
+    releaseSlider.setName("Release");
+
     // Label
     noiseGateLabel.setText("Noise Gate", juce::dontSendNotification);
     addAndMakeVisible(noiseGateLabel);
