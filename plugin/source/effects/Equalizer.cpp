@@ -14,6 +14,14 @@ void Equalizer::prepare(double sampleRate, int maxBlockSize, int numChannels)
     channels = juce::jmax(1, numChannels);
     isPrepared = true;
 
+    // initialise smoothed gains (store dB values, smooth on audio thread)
+    lowGainSmooth.reset(sr, smoothingTimeSeconds);
+    midGainSmooth.reset(sr, smoothingTimeSeconds);
+    highGainSmooth.reset(sr, smoothingTimeSeconds);
+    lowGainSmooth.setCurrentAndTargetValue(lowGainDb.load());
+    midGainSmooth.setCurrentAndTargetValue(midGainDb.load());
+    highGainSmooth.setCurrentAndTargetValue(highGainDb.load());
+
     // allocate filter states per band/channel
     auto makeBand = [this](Band& b)
     {
@@ -50,37 +58,31 @@ void Equalizer::reset()
 void Equalizer::setLowFreq(float hz)
 {
     lowFreqHz = juce::jlimit(20.0f, 1000.0f, hz);
-    updateFilters();
 }
 
 void Equalizer::setLowGainDb(float dB)
 {
     lowGainDb = juce::jlimit(-24.0f, 24.0f, dB);
-    updateFilters();
 }
 
 void Equalizer::setMidFreq(float hz)
 {
     midFreqHz = juce::jlimit(200.0f, 6000.0f, hz);
-    updateFilters();
 }
 
 void Equalizer::setMidGainDb(float dB)
 {
     midGainDb = juce::jlimit(-24.0f, 24.0f, dB);
-    updateFilters();
 }
 
 void Equalizer::setHighFreq(float hz)
 {
     highFreqHz = juce::jlimit(1000.0f, 18000.0f, hz);
-    updateFilters();
 }
 
 void Equalizer::setHighGainDb(float dB)
 {
     highGainDb = juce::jlimit(-24.0f, 24.0f, dB);
-    updateFilters();
 }
 
 void Equalizer::updateFilters()
@@ -92,21 +94,26 @@ void Equalizer::updateFilters()
     float midGain = midGainDb.load();
     float highGain = highGainDb.load();
 
-    // Use shelving and peaking filters
-    // For shelving filters: gainFactor is the linear gain, NOT dB
+    // Use shelving and peaking with linear gain factors (convert from dB)
     auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowShelf(
         sr, lowFreqHz.load(), midQ, juce::Decibels::decibelsToGain(lowGain));
-
     auto midC = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
         sr, midFreqHz.load(), midQ, juce::Decibels::decibelsToGain(midGain));
-
     auto highC = juce::dsp::IIR::Coefficients<float>::makeHighShelf(
         sr, highFreqHz.load(), midQ, juce::Decibels::decibelsToGain(highGain));
-
-    // push coeffs into each channel's filter
-    for (auto& f : lowBand .filters) f.state = lowC;
-    for (auto& f : midBand .filters) f.state = midC;
-    for (auto& f : highBand.filters) f.state = highC;
+    // Copy into existing state to avoid RT pointer swaps
+    for (auto& f : lowBand.filters)
+    {
+        if (f.state) *f.state = *lowC; else f.state = lowC;
+    }
+    for (auto& f : midBand.filters)
+    {
+        if (f.state) *f.state = *midC; else f.state = midC;
+    }
+    for (auto& f : highBand.filters)
+    {
+        if (f.state) *f.state = *highC; else f.state = highC;
+    }
 }
 
 void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
@@ -117,14 +124,39 @@ void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
     const int nCh   = juce::jmin(channels, buffer.getNumChannels());
     const int nSmps = buffer.getNumSamples();
 
+    // Update smoothing targets from GUI atomics and compute current values
+    lowGainSmooth.setTargetValue(lowGainDb.load());
+    midGainSmooth.setTargetValue(midGainDb.load());
+    highGainSmooth.setTargetValue(highGainDb.load());
+    const float curLowDb  = lowGainSmooth.getCurrentValue();
+    const float curMidDb  = midGainSmooth.getCurrentValue();
+    const float curHighDb = highGainSmooth.getCurrentValue();
+
+    // Update coefficients at block rate using smoothed values
+    {
+        auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowShelf(
+            sr, lowFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curLowDb));
+        auto midC = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            sr, midFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curMidDb));
+        auto highC = juce::dsp::IIR::Coefficients<float>::makeHighShelf(
+            sr, highFreqHz.load(), midQ, juce::Decibels::decibelsToGain(curHighDb));
+
+        for (auto& f : lowBand .filters) { if (f.state) *f.state = *lowC; else f.state = lowC; }
+        for (auto& f : midBand .filters) { if (f.state) *f.state = *midC; else f.state = midC; }
+        for (auto& f : highBand.filters) { if (f.state) *f.state = *highC; else f.state = highC; }
+    }
+
     // Check if all gains are essentially zero - if so, just pass through
-    float lowG = std::abs(lowGainDb.load());
-    float midG = std::abs(midGainDb.load());
-    float highG = std::abs(highGainDb.load());
+    float lowG = std::abs(curLowDb);
+    float midG = std::abs(curMidDb);
+    float highG = std::abs(curHighDb);
     
     if (lowG < 0.01f && midG < 0.01f && highG < 0.01f)
     {
         // All gains near zero, pass through unchanged
+        lowGainSmooth.skip(nSmps);
+        midGainSmooth.skip(nSmps);
+        highGainSmooth.skip(nSmps);
         return;
     }
 
@@ -154,6 +186,11 @@ void Equalizer::processBlock(juce::AudioBuffer<float>& buffer) noexcept
                 juce::dsp::ProcessContextReplacing<float>(channelBlock));
         }
     }
+
+    // advance smoothing for this processed block
+    lowGainSmooth.skip(nSmps);
+    midGainSmooth.skip(nSmps);
+    highGainSmooth.skip(nSmps);
 
     // clear any channels we didn't touch
     for (int ch = nCh; ch < buffer.getNumChannels(); ++ch)

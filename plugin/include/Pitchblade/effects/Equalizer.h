@@ -58,6 +58,12 @@ private:
     std::atomic<float> highFreqHz { 4000.0f };
     std::atomic<float> highGainDb {0.0f };
 
+    // smoothing for gain changes (applied on audio thread)
+    float smoothingTimeSeconds = 0.02f; // 20 ms
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> lowGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> midGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> highGainSmooth;
+
     // one ProcessorDuplicator per channel per band
     using IIRFilter = juce::dsp::IIR::Filter<float>;
     using IIRCoeff = juce::dsp::IIR::Coefficients<float>;
