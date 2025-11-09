@@ -6,6 +6,10 @@
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
+    //label names for dials - reyna
+    formantSlider.setName("Formant");
+    mixSlider.setName("Dry/Wet");
+    
     // Formant toggle button - huda
     //toggleViewButton.setClickingTogglesState(true);
     static CustomLookAndFeel gSwitchLF; //for custom toggle

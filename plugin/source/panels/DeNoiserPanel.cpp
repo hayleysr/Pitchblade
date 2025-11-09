@@ -8,6 +8,7 @@
 #include "BinaryData.h"
 
 DeNoiserPanel::DeNoiserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state){
+
     //Label
     deNoiserLabel.setText("De-Noiser", juce::dontSendNotification);
     addAndMakeVisible(deNoiserLabel);

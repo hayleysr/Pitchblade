@@ -9,6 +9,8 @@
 
 //gain panel display
 GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {    // added valuetree and localstate - reyna
+    //label names for dials - reyna
+    gainSlider.setName("Gain");
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
@@ -49,6 +51,9 @@ void GainPanel::resized()
 
     //Slider
     gainSlider.setBounds(getLocalBounds().reduced(10));
+
+    //make textbox bigger
+    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 30);
 }
  
 /////////////////////////////////////
