@@ -75,11 +75,24 @@ float PitchCorrector::applyParameters(float &midi){
     return retunedMidi;
 }
 
-void PitchCorrector::setScale(int scaleType){
-    this->scaleType = scaleType;
+void PitchCorrector::setScaleType(int scaleType){
+    if(scaleType == 0) this->scaleType = scaleType::Major;
+    else scaleType == scaleType::Minor;
 }
-void PitchCorrector::setSmoothing(float smoothingAmt){
-    smoothing = juce::jlimit(0.001f, 1.0f, smoothingAmt);
+void PitchCorrector::setScaleOffset(int scaleOffset){
+    this->scaleOffset = juce::jlimit(-12, 0, scaleOffset);
+}
+void PitchCorrector::setCorrectionRatio(float smoothing){
+    this->smoothing = juce::jlimit(0.001f, 1.0f, smoothing);
+}
+void PitchCorrector::setRetuneSpeed(float retuneSpeed){
+    this->retuneSpeed = juce::jlimit(0.0f, 1.0f, retuneSpeed);
+}
+void PitchCorrector::setNoteTransition(float noteTransition){
+    this->noteTransition = juce::jlimit(0.0f, 50.0f, noteTransition);
+}
+void PitchCorrector::setWaver(float waver){
+    this->waver = juce::jlimit(0.0f, 20.0f, waver);
 }
 
 int PitchCorrector::quantizeToScale(int note){
@@ -92,7 +105,7 @@ int PitchCorrector::quantizeToScale(int note){
     for (int octave = detectedOctave - 1; octave <= detectedOctave + 1; ++octave) {
         if(octave < 0 || octave > 8) continue;
         for (int scaleNote : scale[scaleType]) {
-            int candidate = scaleNote + octave * 12;
+            int candidate = scaleNote + scaleOffset + octave * 12;
             int dist = std::abs(candidate - note);
             if (dist < minDist) {
                 minDist = dist;

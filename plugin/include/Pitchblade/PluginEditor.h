@@ -42,6 +42,7 @@ private:
                                                 
     TopBar topBar;
     DaisyChain daisyChain;
+    
     EffectPanel effectPanel;
     VisualizerPanel visualizer;
 

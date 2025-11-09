@@ -18,14 +18,27 @@ public:
     PitchCorrector() = default;
     void prepare(double, int);
     void processBlock(juce::AudioBuffer<float>&);
-    void setScale(int);
-    void setSmoothing(float);
+
+    void setScaleType(int);
+    void setScaleOffset(int);
+    void setCorrectionRatio(float);
+    void setRetuneSpeed(float);
+    void setNoteTransition(float);
+    void setWaver(float);
+
+    int getScaleType() { return scaleType; }
+    float getCorrectionRatio() { return smoothing; }
+    float getRetuneSpeed() { return retuneSpeed; } 
+    float getNoteTransition() { return noteTransition; }
+    float getWaver() { return waver; }
 
     float getCurrentPitch() { return pitchDetector.getCurrentPitch(); }
     float getTargetPitch() { return targetPitch; }
     float getSemitoneError();
     std::string getCurrentNoteName();
     std::string getTargetNoteName();
+    
+    std::atomic<float> currentOutputPitch{69.f};
 
 private:
     int quantizeToScale(int);
@@ -43,6 +56,7 @@ private:
         { 12, 14, 15, 17, 19, 20, 22}  // Minor
     };
     int scaleType = 0;
+    int scaleOffset = 0;
 
     // Parameters
     float currentRatio = 1.0f;
