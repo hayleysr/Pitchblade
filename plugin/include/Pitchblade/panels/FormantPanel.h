@@ -51,57 +51,55 @@ private:
 class FormantNode : public EffectNode
 {
 public:
-    FormantNode(AudioPluginAudioProcessor& proc)
-        : EffectNode(proc, "FormantNode", "Formant"), processor(proc) {}
+    FormantNode (AudioPluginAudioProcessor& proc)
+        : EffectNode (proc, "FormantNode", "Formant"), processor (proc) {}
 
-    // Process the buffer using the new STFT-based shifter (no detector feed required)
-    void process (AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override
+    void process (AudioPluginAudioProcessor& proc,
+                  juce::AudioBuffer<float>& buffer) override
     {
-        // --- 0) Grab params
-        const float shift = proc.apvts.getRawParameterValue(PARAM_FORMANT_SHIFT)->load();
-        const float mix   = proc.apvts.getRawParameterValue(PARAM_FORMANT_MIX  )->load();
+        // --- 0) Grab UI param
+        float shift = proc.apvts.getRawParameterValue (PARAM_FORMANT_SHIFT)->load();
 
-        // --- 1) Process with the new FormantShifter (pure envelope warp)
-        if (!bypassed)
-        {
-            auto& sh = proc.getFormantShifter();
-            sh.setShiftAmount(shift);
-            sh.setMix(mix);
-            sh.processBlock(buffer);
-        }
+        // If this node is bypassed, force neutral formant (but still run shifter
+        // so RubberBand’s internal latency/FIFO stay consistent)
+        if (bypassed)
+            shift = 0.0f;
+
+        // --- 1) Process with RubberBand-based FormantShifter (formant only)
+        auto& sh = proc.getFormantShifter();   // your new RubberBand FormantShifter
+        sh.setShiftAmount (shift);            // [-50..50] -> ratio internally
+        sh.processBlock (buffer);             // in-place
 
         // --- 2) Analyze the *current* buffer for panel display (post-effect)
         auto& det = proc.getFormantDetector();
-        det.processBlock(buffer);
+        det.processBlock (buffer);
         auto freqsWet = det.getFormantFrequencies();
 
         // For the panel, hide F0/harmonics so you don’t see a “stuck” line:
-        std::sort(freqsWet.begin(), freqsWet.end());
-        freqsWet.erase(std::remove_if(freqsWet.begin(), freqsWet.end(),
-                                      [](float f){ return f < 300.f || f > 5000.f; }),
-                       freqsWet.end());
-        if (freqsWet.size() > 3) freqsWet.resize(3);
+        std::sort (freqsWet.begin(), freqsWet.end());
+        freqsWet.erase (std::remove_if (freqsWet.begin(), freqsWet.end(),
+                                        [] (float f) { return f < 300.f || f > 5000.f; }),
+                        freqsWet.end());
+        if (freqsWet.size() > 3)
+            freqsWet.resize (3);
 
-        proc.setLatestFormants(freqsWet);
+        proc.setLatestFormants (freqsWet);
     }
 
-    std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override
+    std::unique_ptr<juce::Component> createPanel (AudioPluginAudioProcessor& proc) override
     {
-        return std::make_unique<FormantPanel>(proc);
+        return std::make_unique<FormantPanel> (proc);
     }
-
-    ////////////////////////////////////////////////////////////  reyna
 
     // clone node
     std::shared_ptr<EffectNode> clone() const override
     {
-        return std::make_shared<FormantNode>(processor);
+        return std::make_shared<FormantNode> (processor);
     }
 
-
-        // XML serialization for saving/loading
-        std::unique_ptr<juce::XmlElement> toXml() const override;
-        void loadFromXml(const juce::XmlElement& xml) override;
+    // XML serialization for saving/loading
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml (const juce::XmlElement& xml) override;
 
 private:
     AudioPluginAudioProcessor& processor;
