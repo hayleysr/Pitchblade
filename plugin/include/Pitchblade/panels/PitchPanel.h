@@ -157,6 +157,7 @@ public:
         proc.getPitchCorrector().processBlock(buffer);   
         float pitchHz = proc.getPitchCorrector().getCurrentPitch();
         pitchDSP.currentOutputPitch.store(pitchHz);
+        DBG(pitchHz);
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override
