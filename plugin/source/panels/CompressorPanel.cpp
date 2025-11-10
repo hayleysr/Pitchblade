@@ -9,7 +9,7 @@
 #include "BinaryData.h"
 
 //Set up of UI components
-CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state)
+CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr) : processor(proc), localState(state), node(nodePtr)
 {
     //label names for dials - reyna
     thresholdSlider.setName("Threshold");
@@ -26,9 +26,17 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     // Mode Button
     //modeButton.setClickingTogglesState(true);
     //addAndMakeVisible(modeButton);
+    
+    //  volumemeter - reyna
+    volumeMeter = std::make_unique<SimpleVolumeBar>(
+        [this]() -> float {
+            if (!node) return -60.0f;
+            return node->getOutputLevelAtomic().load();
+        }
+    );
+    addAndMakeVisible(volumeMeter.get());
 
-    addAndMakeVisible(volumeMeter); // placeholder volumemeter
-
+    //custom toggle for limiter - reyna
     static CustomLookAndFeel gSwitchLF;
     modeButton.setButtonText("Limiter Mode");
     modeButton.setClickingTogglesState(true);
@@ -150,10 +158,17 @@ void CompressorPanel::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds(), 2);
 
     // volume meter - fake
-    g.setColour(Colors::panel);
+   /* g.setColour(Colors::panel);
     g.fillRect(volumeMeter.getBounds());
     g.setColour(Colors::accent);
-    g.drawRect(volumeMeter.getBounds(), 2);
+    g.drawRect(volumeMeter.getBounds(), 2);*/
+
+    // draw threshold line over the volume meter - reyna
+    if (volumeMeter)
+    {
+        float threshold = (float)localState.getProperty("CompThreshold", -20.0f);
+        volumeMeter->setThresholdDecibels(threshold);
+    }
 
     // fake fill
     /*auto meterBounds = volumeMeter.getLocalBounds().reduced(6);
@@ -186,7 +201,8 @@ void CompressorPanel::resized() {
     meterArea.removeFromTop(20);         
     meterArea.removeFromBottom(10);
     meterArea.removeFromLeft(20);
-    volumeMeter.setBounds(meterArea);
+    //volumeMeter.setBounds(meterArea);
+    volumeMeter->setBounds(meterArea);
 
     // left column - threshold and release
     auto leftCol = r.removeFromLeft(r.getWidth() * 0.30f);

@@ -3,18 +3,78 @@
 #pragma once
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h"
+#include "Pitchblade/ui/LevelMeter.h"   //for volume meter - reyna
 
-//Defines the UI panel
+class CompressorNode;
+
+// volume meter bar - reyna
+class SimpleVolumeBar : public juce::Component, private juce::Timer {
+public:
+    explicit SimpleVolumeBar(std::function<float()> levelGetter) : getLevel(std::move(levelGetter)) {
+        startTimerHz(30); // refresh about 30 FPS
+    }
+    void setThresholdDecibels(float newThreshold) { thresholdDb = newThreshold; }
+    void paint(juce::Graphics& g) override {
+        auto bounds = getLocalBounds().toFloat();
+        float cornerRadius = 6.0f;
+        // background gradient 
+        juce::ColourGradient bgGrad(
+            Colors::panel.brighter(0.1f), bounds.getCentreX(), bounds.getY(),
+            Colors::panel.darker(0.3f), bounds.getCentreX(), bounds.getBottom(), false);
+        g.setGradientFill(bgGrad);
+        g.fillRoundedRectangle(bounds, cornerRadius);
+        //for rounded corners
+        juce::Path clipPath;
+        clipPath.addRoundedRectangle(bounds, cornerRadius);
+        g.reduceClipRegion(clipPath);
+
+        //audio fill
+        float levelDb = getLevel();
+        float normalized = juce::jmap(levelDb, -100.0f, 0.0f, 0.0f, 1.0f);
+        normalized = juce::jlimit(0.0f, 1.0f, normalized);
+
+        float fillHeight = bounds.getHeight() * normalized;
+        juce::Rectangle<float> fillRect(bounds.withY(bounds.getBottom() - fillHeight).withHeight(fillHeight));
+
+        // bar fill
+        juce::ColourGradient barGrad(
+            Colors::accentTeal.darker(0.3f), fillRect.getCentreX(), fillRect.getBottom(),
+            Colors::accentPink.brighter(0.4f), fillRect.getCentreX(), fillRect.getY(), false);
+        g.setGradientFill(barGrad);
+        g.fillRect(fillRect);
+
+        // threshold line
+        float y = juce::jmap(thresholdDb, -100.0f, 0.0f, bounds.getBottom(), bounds.getY());
+        juce::Colour glowColor = Colors::accent;
+        //glow
+        g.setColour(glowColor);
+        g.drawLine(bounds.getX(), y - 1.0f, bounds.getRight(), y - 1.0f, 4.0f);
+
+        // outline
+        g.setColour(juce::Colours::black);
+        g.drawRoundedRectangle(bounds, cornerRadius, 2.0f);
+    }
+private:
+    std::function<float()> getLevel;
+    float thresholdDb = -20.0f;
+
+    void timerCallback() override { repaint(); }
+};
+
+//Defines the UI panel /////////////////////////////////////////////
 class CompressorPanel : public juce::Component, public juce::ValueTree::Listener
 {
 public:
-    explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
+    //explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
     ~CompressorPanel() override;
 
     void resized() override;
     void paint(juce::Graphics&) override;
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+
+    //volume meter - reyna
+    explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr = nullptr); //reference to active compressor node 
 
 private:
     // Reference back to main processor
@@ -29,9 +89,11 @@ private:
     //Labels for sliders
     juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
 
-    //volume meter placeholder
-    juce::Component volumeMeter;
+    //volume meter - reyna
+    //juce::Component volumeMeter;
     static void place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF);
+    std::unique_ptr<SimpleVolumeBar> volumeMeter;
+    CompressorNode* node = nullptr;  // store pointer to node instance
 
     //Attachments to link stuff to APVTS parameters
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
@@ -179,7 +241,7 @@ public:
 
     // return UI panel linked to node
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<CompressorPanel>(proc, getMutableNodeState());
+        return std::make_unique<CompressorPanel>(proc, getMutableNodeState(), this);
     }
 
     // return visualizer 
