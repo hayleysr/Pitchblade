@@ -9,9 +9,6 @@ float FormantShifter::amountToRatio (float amount)
     return juce::jlimit (0.8f, 1.25f, 1.0f + 0.25f * t);
 }
 
-//============================================================
-// Public
-//============================================================
 
 void FormantShifter::prepare (double sampleRate, int maxBlockSize, int numChannels)
 {
@@ -83,21 +80,21 @@ void FormantShifter::processBlock (juce::AudioBuffer<float>& buffer) noexcept
         return;
 
     const int numSamples = buffer.getNumSamples();
-    const int chans      = juce::jmin (nCh, buffer.getNumChannels());
+    const int chans = juce::jmin (nCh, buffer.getNumChannels());
 
     if (numSamples <= 0 || chans <= 0)
         return;
 
-    // 1) Feed input block into RubberBand
+    //Feed input block into RubberBand
     {
-        float* inPtrs[8] {}; // adjust if you ever support >8 channels
+        float* inPtrs[8] {}; // adjust to support >8 channels
         for (int c = 0; c < chans; ++c)
             inPtrs[c] = buffer.getWritePointer (c);
 
         stretcher->process (inPtrs, numSamples, false);
     }
 
-    // 2) Retrieve whatever RubberBand has produced, in chunks
+    // Retrieve whatever RubberBand has produced
     int avail = stretcher->available();
     while (avail > 0)
     {
@@ -116,7 +113,7 @@ void FormantShifter::processBlock (juce::AudioBuffer<float>& buffer) noexcept
         avail -= chunk;
     }
 
-    // 3) Read exactly numSamples from FIFO into output buffer (zeros if not enough yet)
+    //Read exactly numSamples from FIFO into output buffer (zeros if not enough yet)
     readFromFifo (buffer, numSamples);
 
     // Clear any extra channels
@@ -130,9 +127,9 @@ void FormantShifter::processBlock (juce::AudioBuffer<float>& buffer) noexcept
 
 void FormantShifter::writeToFifo (const juce::AudioBuffer<float>& src, int numSamples)
 {
-    const int ch       = juce::jmin (nCh, src.getNumChannels());
-    int       remaining = numSamples;
-    int       pos       = 0;
+    const int ch = juce::jmin (nCh, src.getNumChannels());
+    int remaining = numSamples;
+    int pos = 0;
 
     // If we somehow overflow FIFO, we’ll drop oldest by clamping fill
     if (numSamples > fifoSize)
@@ -141,7 +138,7 @@ void FormantShifter::writeToFifo (const juce::AudioBuffer<float>& src, int numSa
     while (remaining > 0)
     {
         const int spaceToEnd = fifoSize - fifoWrite;
-        const int chunk      = std::min (remaining, spaceToEnd);
+        const int chunk = std::min (remaining, spaceToEnd);
 
         for (int c = 0; c < ch; ++c)
         {
@@ -153,17 +150,17 @@ void FormantShifter::writeToFifo (const juce::AudioBuffer<float>& src, int numSa
         }
 
         fifoWrite = (fifoWrite + chunk) % fifoSize;
-        pos       += chunk;
+        pos += chunk;
         remaining -= chunk;
-        fifoFill   = std::min (fifoFill + chunk, fifoSize);
+        fifoFill = std::min (fifoFill + chunk, fifoSize);
     }
 }
 
 void FormantShifter::readFromFifo (juce::AudioBuffer<float>& dst, int numSamples)
 {
-    const int ch       = juce::jmin (nCh, dst.getNumChannels());
-    int       remaining = numSamples;
-    int       pos       = 0;
+    const int ch = juce::jmin (nCh, dst.getNumChannels());
+    int remaining = numSamples;
+    int pos = 0;
 
     // If we don't have enough yet (startup), output zeros for the missing part
     int toRead = std::min (numSamples, fifoFill);
@@ -171,11 +168,11 @@ void FormantShifter::readFromFifo (juce::AudioBuffer<float>& dst, int numSamples
     while (toRead > 0)
     {
         const int spaceToEnd = fifoSize - fifoRead;
-        const int chunk      = std::min (toRead, spaceToEnd);
+        const int chunk = std::min (toRead, spaceToEnd);
 
         for (int c = 0; c < ch; ++c)
         {
-            float*       dstPtr = dst.getWritePointer (c);
+            float* dstPtr = dst.getWritePointer (c);
             const float* srcPtr = fifo.getReadPointer (c);
             std::memcpy (dstPtr + pos,
                          srcPtr + fifoRead,

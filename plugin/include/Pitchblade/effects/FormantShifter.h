@@ -38,7 +38,7 @@ public:
     // Main audio processing. In-place.
     void processBlock (juce::AudioBuffer<float>& buffer) noexcept;
 
-    // For global latency accounting, if you want it
+    // For global latency accounting
     int getLatencySamples() const noexcept { return latencySamples; }
 
 private:
