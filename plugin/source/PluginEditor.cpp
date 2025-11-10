@@ -136,8 +136,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         const auto bg = newState ? Colors::accent : Colors::panel;
             topBar.bypassButton.setColour(juce::TextButton::buttonColourId, bg);
             topBar.bypassButton.setColour(juce::TextButton::buttonOnColourId, bg); 
-            topBar.bypassButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-            topBar.bypassButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white); 
+            topBar.bypassButton.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+            topBar.bypassButton.setColour(juce::TextButton::textColourOnId, Colors::buttonText); 
             topBar.bypassButton.repaint();
 			//update daisychain bypass buttons color : greyed out
             daisyChain.setGlobalBypassVisual(newState);
@@ -352,14 +352,14 @@ void AudioPluginAudioProcessorEditor::setActiveEffectByName(const juce::String& 
             // left
             row->button.setColour(juce::TextButton::buttonColourId, Colors::panel);
             row->button.setColour(juce::TextButton::buttonOnColourId, Colors::panel);
-            row->button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-            row->button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            row->button.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+            row->button.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
             // right
             if (!row->rightEffectName.isEmpty()) {
                 row->rightButton.setColour(juce::TextButton::buttonColourId, Colors::panel);
                 row->rightButton.setColour(juce::TextButton::buttonOnColourId, Colors::panel);
-                row->rightButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-                row->rightButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->rightButton.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+                row->rightButton.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
             }
             row->repaint(); 
         }
@@ -370,16 +370,16 @@ void AudioPluginAudioProcessorEditor::setActiveEffectByName(const juce::String& 
             if (row->getName() == effectName) {
                 row->button.setColour(juce::TextButton::buttonColourId, Colors::accent);
                 row->button.setColour(juce::TextButton::buttonOnColourId, Colors::accent);
-                row->button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-                row->button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->button.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+                row->button.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
                 row->repaint();
                 break;
             }
             if (!row->rightEffectName.isEmpty() && row->rightEffectName == effectName) {
                 row->rightButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
                 row->rightButton.setColour(juce::TextButton::buttonOnColourId, Colors::accent);
-                row->rightButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-                row->rightButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->rightButton.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+                row->rightButton.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
                 row->repaint();
                 break;
             }

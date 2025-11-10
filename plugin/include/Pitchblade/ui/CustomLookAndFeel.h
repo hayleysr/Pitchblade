@@ -27,7 +27,9 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         setColour(juce::Slider::textBoxOutlineColourId, Colors::accent);  // value textbox 
         setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-        
+
+        // popup menu
+        //setColour(juce::PopupMenu::backgroundColourId, Colors::background);
     }
 
     void drawPanelBackground(juce::Graphics& g, juce::Component& comp)
@@ -46,10 +48,13 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
         auto base = backgroundColour;
 
+        //highlighted 
         if (shouldDrawButtonAsDown) base = base.darker();
-        else if (shouldDrawButtonAsHighlighted) base = base.brighter();
+        else if (shouldDrawButtonAsHighlighted) base = base.interpolatedWith(Colors::accentPink, 0.5f);
 
-        g.setColour(base);
+        juce::ColourGradient grad(base, bounds.getCentreX(), bounds.getY(),
+                                    base.interpolatedWith(Colors::accentPink, 0.10f), bounds.getCentreX(), bounds.getBottom(), false );
+        g.setGradientFill(grad);
         g.fillRoundedRectangle(bounds, 6.0f);
 
         // draw accent outline
@@ -57,6 +62,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawRoundedRectangle(bounds, 5.0f, 1.0f);
     }
 
+    //custom tool tips
     void drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) override {
         // clear background
 		g.fillAll(juce::Colours::transparentBlack); 
@@ -67,10 +73,47 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.setColour(Colors::panel);
         g.drawRoundedRectangle(0.5f, 0.5f, (float)width - 1.0f, (float)height - 1.0f, 6.0f, 1.5f);
         //text
-        g.setColour(juce::Colours::white);
+        g.setColour(Colors::buttonText);
         g.setFont(juce::Font(14.0f));
         g.drawFittedText(text, 8, 4, width - 16, height - 8, juce::Justification::centredLeft, 2);
     }
+
+    //custom drop down menus
+    void drawPopupMenuBackground(juce::Graphics& g, int width, int height) override {
+        g.setColour(Colors::background);
+        g.fillRoundedRectangle({ 0.0f, 0.0f, (float)width, (float)height }, 6.0f);
+    }
+
+    void drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
+        bool isSeparator, bool isActive, bool isHighlighted, bool isTicked,
+        bool hasSubMenu, const juce::String& text, const juce::String& shortcutKeyText,
+        const juce::Drawable* icon, const juce::Colour* const textColourToUse) override
+    {
+        if (isSeparator) {
+            g.setColour(juce::Colours::white.withAlpha(0.3f));
+            g.fillRect(area.reduced(10, area.getHeight() / 2 - 1).withHeight(2));
+            return;
+        }
+
+        juce::Rectangle<float> bounds(area.toFloat().reduced(4));
+
+        // pink overlay when highlighted
+        if (isHighlighted) {
+            g.setColour(Colors::accentPink.withAlpha(0.25f));
+            g.fillRoundedRectangle(bounds, 6.0f);
+        }
+
+        // text
+        g.setColour(isActive ? Colors::buttonText : Colors::buttonText.withAlpha(0.5f));
+        g.setFont(14.0f);
+        g.drawFittedText(text, area.reduced(12, 0), juce::Justification::centredLeft, 1);
+        
+        //dividers
+        g.setColour(juce::Colours::white.withAlpha(0.05f));
+        g.fillRect(bounds.removeFromBottom(1));
+    }
+
+    //int getPopupMenuBorderSize() override { return 0; }
 
     //custom text boxes //////////////////////////////
     void drawLabel(juce::Graphics& g, juce::Label& label) override {
@@ -107,7 +150,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
             auto padded = area.reduced(padX, padY);
 
             // draw title text
-            g.setColour(juce::Colours::white);
+            g.setColour(Colors::buttonText);
             g.setFont(juce::Font(16.0f, juce::Font::bold));
             g.drawFittedText(label.getText(), padded.toNearestInt(), juce::Justification::topLeft, 1);
 
@@ -176,7 +219,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.fillEllipse(circle);
 
         // label text
-        g.setColour(juce::Colours::white);
+        g.setColour(Colors::buttonText);
         g.setFont(juce::Font(14.0f, juce::Font::bold));
         g.drawFittedText(button.getButtonText(), area.toNearestInt(), juce::Justification::centred, 1);
     }

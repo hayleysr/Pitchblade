@@ -87,7 +87,7 @@ void FormantPanel::paint(juce::Graphics& g)
     auto plot   = detectorArea.withTrimmedTop(16).reduced(2);
 
     // Title (smaller)
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setColour(Colors::buttonText.withAlpha(0.9f));
     g.setFont(14.0f);
     g.drawText("Formant Detector Output", header, juce::Justification::centredLeft, false);
 
@@ -111,7 +111,7 @@ void FormantPanel::paint(juce::Graphics& g)
         g.drawLine(x, (float)plot.getY(), x, (float)plot.getBottom(), 2.0f);
 
         juce::Rectangle<int> tag((int)x - 26, plot.getBottom() - 14, 52, 12);
-        g.setColour(juce::Colours::white);
+        g.setColour(Colors::buttonText);
         g.drawFittedText(juce::String(freqHz, 0) + " Hz", tag, juce::Justification::centred, 1);
         g.setColour(juce::Colours::red.withAlpha(0.95f));
     }

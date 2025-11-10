@@ -455,8 +455,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
             row->bypass.setEnabled(false);
             row->bypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
             row->bypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
-            row->bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white.withAlpha(0.5f));
-            row->bypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
         } else {
             // restore
             const bool state = row->bypassed;
@@ -465,8 +465,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
             row->bypass.setEnabled(true);
             row->bypass.setColour(juce::TextButton::buttonColourId, bg);
             row->bypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-            row->bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-            row->bypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
         }
         row->bypass.repaint();
 
@@ -476,8 +476,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
                 row->rightBypass.setEnabled(false);
                 row->rightBypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
                 row->rightBypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white.withAlpha(0.5f));
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
             }
             else {
                 const bool stateR = row->rightBypassed;
@@ -486,8 +486,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
                 row->rightBypass.setEnabled(true);
                 row->rightBypass.setColour(juce::TextButton::buttonColourId, bgR);
                 row->rightBypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
             }
             row->rightBypass.repaint();
         }
@@ -578,7 +578,11 @@ void DaisyChain::showAddMenu() {
     menu.addItem(7, "De-Noiser");
     menu.addItem(8, "Equalizer");
 
+    menu.setLookAndFeel(&getLookAndFeel());
+    addButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&addButton), [this](int result) {
+        addButton.setColour(juce::TextButton::buttonColourId, Colors::button);
+
             if (result == 0) return;
 			// create new node based on selection
             std::shared_ptr<EffectNode> newNode;
@@ -624,9 +628,11 @@ void DaisyChain::showDuplicateMenu() {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
     }
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton),
-        [this](int result)
+    menu.setLookAndFeel(&getLookAndFeel());
+    duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton), [this](int result)
         {
+            duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::button);
             if (result == 0) return;
             const int index = result - 1;
             if (index < 0 || index >= effectNodes.size()) return;
@@ -669,10 +675,11 @@ void DaisyChain::showDeleteMenu() {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
     }
-
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton),
-        [this](int result)
+    menu.setLookAndFeel(&getLookAndFeel());
+    deleteButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton), [this](int result)
         {
+            deleteButton.setColour(juce::TextButton::buttonColourId, Colors::button);
             if (result == 0) return; // user canceled
             const int index = result - 1;
             if (index < 0 || index >= effectNodes.size()) return;
