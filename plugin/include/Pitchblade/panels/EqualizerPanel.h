@@ -31,6 +31,7 @@ private:
     juce::Label  lowFreqLabel,  lowGainLabel,
                  midFreqLabel,  midGainLabel,
                  highFreqLabel, highGainLabel;
+    juce::Label panelTitle;
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
 

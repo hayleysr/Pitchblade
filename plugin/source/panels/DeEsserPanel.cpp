@@ -16,6 +16,7 @@ DeEsserPanel::DeEsserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& sta
     // Main Label
     deEsserLabel.setText("De-Esser", juce::dontSendNotification);
     addAndMakeVisible(deEsserLabel);
+    deEsserLabel.setName("NodeTitle");
 
     // Threshold Slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);

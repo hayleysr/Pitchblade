@@ -31,6 +31,7 @@ private:
 
     juce::ToggleButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
+    juce::Label panelTitle;
 
     // --- Formant Shifter controls
     juce::Label  formantLabel, mixLabel;

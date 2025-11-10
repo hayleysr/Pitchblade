@@ -20,6 +20,7 @@ private:
     AudioPluginAudioProcessor& processor;
 
     juce::Label pitchName;
+    juce::Label panelTitle;
 };
 ////////////////////////////////////////////////////////////
 //reynas changes > added dsp node defn to ui panel creation

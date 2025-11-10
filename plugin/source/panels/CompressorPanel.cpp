@@ -16,10 +16,12 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     ratioSlider.setName("Ratio");
     attackSlider.setName("Attack");
     releaseSlider.setName("Release");
+   
 
     // Label
     compressorLabel.setText("Compressor", juce::dontSendNotification);
     addAndMakeVisible(compressorLabel);
+    compressorLabel.setName("NodeTitle");
 
     // Mode Button
     //modeButton.setClickingTogglesState(true);
@@ -46,10 +48,10 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
 
-    // Threshold Label
-    thresholdLabel.setText("Threshold", juce::dontSendNotification);
-    thresholdLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(thresholdLabel);
+    //// Threshold Label
+    //thresholdLabel.setText("Threshold", juce::dontSendNotification);
+    //thresholdLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(thresholdLabel);
     
     // Ratio slider
     ratioSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -58,10 +60,10 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     ratioSlider.setTextValueSuffix(" : 1");
     addAndMakeVisible(ratioSlider);
     
-    // Ratio Label
-    ratioLabel.setText("Ratio", juce::dontSendNotification);
-    ratioLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(ratioLabel);
+    //// Ratio Label
+    //ratioLabel.setText("Ratio", juce::dontSendNotification);
+    //ratioLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(ratioLabel);
 
     // Attack slider
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -70,10 +72,10 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     attackSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(attackSlider);
     
-    // Attack Label
-    attackLabel.setText("Attack", juce::dontSendNotification);
-    attackLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(attackLabel);
+    //// Attack Label
+    //attackLabel.setText("Attack", juce::dontSendNotification);
+    //attackLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(attackLabel);
 
     // Release slider
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -82,10 +84,10 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
 
-    // Release Label
-    releaseLabel.setText("Release", juce::dontSendNotification);
-    releaseLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(releaseLabel);
+    //// Release Label
+    //releaseLabel.setText("Release", juce::dontSendNotification);
+    //releaseLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(releaseLabel);
 
     ///////////////////
     // Link sliders to local state properties

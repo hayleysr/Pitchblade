@@ -12,6 +12,7 @@ DeNoiserPanel::DeNoiserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& s
     //Label
     deNoiserLabel.setText("De-Noiser", juce::dontSendNotification);
     addAndMakeVisible(deNoiserLabel);
+    deNoiserLabel.setName("NodeTitle");
 
     //Learn button
     addAndMakeVisible(learnButton);

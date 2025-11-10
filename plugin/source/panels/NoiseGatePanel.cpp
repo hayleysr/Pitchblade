@@ -17,6 +17,7 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     // Label
     noiseGateLabel.setText("Noise Gate", juce::dontSendNotification);
     addAndMakeVisible(noiseGateLabel);
+    noiseGateLabel.setName("NodeTitle");
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -35,10 +36,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
     
-    // Threshold Label - Austin   
-    thresholdLabel.setText("Threshold", juce::dontSendNotification);
-    thresholdLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(thresholdLabel);
+    //// Threshold Label - Austin   
+    //thresholdLabel.setText("Threshold", juce::dontSendNotification);
+    //thresholdLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(thresholdLabel);
 
     ////////////////////
 
@@ -58,10 +59,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     attackSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(attackSlider);
 
-    // Attack Label - Austin
-    attackLabel.setText("Attack", juce::dontSendNotification);
-    attackLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(attackLabel);
+    //// Attack Label - Austin
+    //attackLabel.setText("Attack", juce::dontSendNotification);
+    //attackLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(attackLabel);
 
     ////////////////////
 
@@ -81,10 +82,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
 
-    // Release Label - Austin 
-    releaseLabel.setText("Release", juce::dontSendNotification);
-    releaseLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(releaseLabel);
+    //// Release Label - Austin 
+    //releaseLabel.setText("Release", juce::dontSendNotification);
+    //releaseLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(releaseLabel);
 
     ///////////////////
 

@@ -5,11 +5,19 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
     startTimerHz(8);    // Update 4x/second
+
+    //panel label - reyna
+    panelTitle.setText("Pitch", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
 }
 
 void PitchPanel::resized()
 {
-    auto area = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
+    panelTitle.setBounds(area.removeFromTop(30));
+
+    area = getLocalBounds().reduced(10);
 }
 
 void PitchPanel::paint(juce::Graphics& g)
