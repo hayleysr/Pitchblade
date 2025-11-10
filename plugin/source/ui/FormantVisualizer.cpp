@@ -11,33 +11,89 @@ void FormantVisualizer::FormantOverlay::paint(juce::Graphics& g)
     auto xLabels = graph.removeFromBottom(labelHeight);
     auto yLabels = graph.removeFromLeft(labelWidth);
 
-    // Now graph contains the plotting area
-    const auto& freqs = proc.getLatestFormants();
-    if (freqs.empty()) return;
+    // Hide y-axis labeling and x-axis label strip from the underlying FrequencyGraphVisualizer
+    // without modifying it: paint over the left strip and bottom strip.
+    g.setColour(Colors::panel);
+    g.fillRect(juce::Rectangle<int>(bounds.getX(), bounds.getY(), labelWidth, bounds.getHeight() - labelHeight));
+    g.fillRect(juce::Rectangle<int>(bounds.getX(), bounds.getBottom() - labelHeight, bounds.getWidth(), labelHeight));
 
-    g.setColour(Colors::accent);
+    // Compute an inner drawing area to avoid edge clipping and visually center content
+    const int padX = 8;           // horizontal padding to keep lines off the border
+    const int padTop = 2;         // small pad from top border
+    const int padBottom = 2;      // small pad from bottom border
+    auto inner = graph;
+    inner.removeFromLeft(padX);
+    inner.removeFromRight(padX);
+    inner.removeFromTop(padTop);
+    inner.removeFromBottom(padBottom);
+
+    // Title across the top of the plotting area
+    {
+        const int titleH = 18;
+        juce::Rectangle<int> titleStrip(bounds.getX() + labelWidth, bounds.getY(), bounds.getWidth() - labelWidth, titleH);
+        // Cover the top border line so it doesn't collide with the title
+        g.setColour(Colors::panel);
+        g.fillRect(titleStrip);
+        g.setColour(Colors::buttonText);
+        g.setFont(12.0f);
+        g.drawText("Formants", titleStrip, juce::Justification::centred, true);
+    }
+
+    // Draw custom x-axis labels for 300–5000 Hz over the hidden bottom strip (always present)
+    g.setColour(Colors::buttonText);
     g.setFont(10.0f);
+    const float tickY = (float) (bounds.getBottom() - labelHeight + 2);
+    const std::vector<float> ticks { 300.0f, 500.0f, 1000.0f, 2000.0f, 3000.0f, 4000.0f, 5000.0f };
+    for (float t : ticks)
+    {
+        const float x = mapVisibleFreqToX(t, inner);
 
+        // small tick mark
+        g.drawVerticalLine((int)std::round(x), (float)inner.getBottom(), (float)inner.getBottom() + 4.0f);
+
+        // label text
+        juce::String label;
+        if (t >= 1000.0f) label = juce::String(t / 1000.0f, 0) + "k";
+        else              label = juce::String(t, 0);
+
+        g.drawText(label,
+                   (int)std::round(x) - 20,
+                   bounds.getBottom() - labelHeight,
+                   40,
+                   labelHeight,
+                   juce::Justification::centred);
+    }
+
+    // Now graph contains the plotting area: draw markers across the full width using the visible range mapping
+    const auto& freqs = proc.getLatestFormants();
+    g.setColour(Colors::accent);
     for (float fHz : freqs)
     {
-        float f = juce::jlimit(xAxisHz.getStart(), xAxisHz.getEnd(), fHz);
-        float x = mapFreqToX(f, graph);
+        if (fHz < visibleXAxisHz.getStart() || fHz > visibleXAxisHz.getEnd())
+            continue;
 
-        g.drawLine(x, (float)graph.getY(), x, (float)graph.getBottom(), 2.0f);
-
-        auto tag = juce::Rectangle<int>((int)x - 28, graph.getY() + 4, 56, 14);
-        g.setColour(juce::Colours::white);
-        g.drawFittedText(juce::String(fHz, 0) + " Hz", tag, juce::Justification::centred, 1);
-        g.setColour(Colors::accent);
+        float x = mapVisibleFreqToX(fHz, inner);
+        g.drawLine(x, (float)inner.getY(), x, (float)inner.getBottom(), 2.0f);
+        // Intentionally no per-line labels per request
     }
 }
 
-float FormantVisualizer::FormantOverlay::mapFreqToX(float freq, juce::Rectangle<int> graph) const
+float FormantVisualizer::FormantOverlay::mapBaseFreqToX(float freq, juce::Rectangle<int> graph) const
 {
-    auto clamped = juce::jlimit(xAxisHz.getStart(), xAxisHz.getEnd(), freq);
+    auto clamped = juce::jlimit(baseXAxisHz.getStart(), baseXAxisHz.getEnd(), freq);
     float lf = std::log10(clamped);
-    float proportion = (lf - logFreqStart) / (logFreqEnd - logFreqStart);
-    return juce::jmap(proportion, (float)graph.getX(), (float)graph.getRight());
+    float proportion = (lf - logBaseStart) / (logBaseEnd - logBaseStart);
+    // Avoid drawing on the exact right edge to prevent clipping
+    return juce::jmap(proportion, (float)graph.getX(), (float)graph.getRight() - 1.0f);
+}
+
+float FormantVisualizer::FormantOverlay::mapVisibleFreqToX(float freq, juce::Rectangle<int> graph) const
+{
+    auto clamped = juce::jlimit(visibleXAxisHz.getStart(), visibleXAxisHz.getEnd(), freq);
+    float lf = std::log10(clamped);
+    float proportion = (lf - logVisibleStart) / (logVisibleEnd - logVisibleStart);
+    // Avoid drawing on the exact right edge to prevent clipping
+    return juce::jmap(proportion, (float)graph.getX(), (float)graph.getRight() - 1.0f);
 }
 
 //=========================== Container ===========================
@@ -46,7 +102,8 @@ FormantVisualizer::FormantVisualizer(AudioPluginAudioProcessor& processorRef,
     : processor(processorRef), apvts(vts)
 {
     // Background grid/axes from FrequencyGraphVisualizer
-    freqGraph = std::make_unique<FrequencyGraphVisualizer>(apvts, 5, 0);
+    // Pass 0 y-axis labels to hide y-axis labeling for formants
+    freqGraph = std::make_unique<FrequencyGraphVisualizer>(apvts, 0, 0);
     addAndMakeVisible(freqGraph.get());
 
     // Overlay markers

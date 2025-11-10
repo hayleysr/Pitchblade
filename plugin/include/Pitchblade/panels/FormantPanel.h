@@ -14,9 +14,7 @@
   #define PARAM_FORMANT_MIX "FORMANT_MIX"
 #endif
 
-class FormantPanel : public juce::Component,
-                     public juce::Button::Listener,     // To handle button clicks - huda
-                     private juce::Timer                 // adding a timer to update formants - huda
+class FormantPanel : public juce::Component
 {
 public:
     explicit FormantPanel(AudioPluginAudioProcessor& proc);
@@ -24,14 +22,7 @@ public:
     void paint(juce::Graphics& g) override;
 
 private:
-    void buttonClicked(juce::Button* button) override;
-    void timerCallback() override;
-
     AudioPluginAudioProcessor& processor;
-
-    bool showingFormants = true;
-
-    juce::TextButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
 
     // --- Formant Shifter controls
@@ -39,11 +30,6 @@ private:
     juce::Slider formantSlider, mixSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> formantAttach, mixAttach;
 
-    // Optional: drawing area for detector overlay below the sliders
-    juce::Rectangle<int> detectorArea;
-
-    // Formant visualizer component
-    std::unique_ptr<FormantVisualizer> formantVisualizer;
 };
 
 ////////////////////////////////////////////////////////////
@@ -124,6 +110,12 @@ public:
     std::unique_ptr<juce::Component> createPanel (AudioPluginAudioProcessor& proc) override
     {
         return std::make_unique<FormantPanel> (proc);
+    }
+
+    // Provide a visualizer for the bottom VisualizerPanel area
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override
+    {
+        return std::make_unique<FormantVisualizer>(proc, proc.apvts);
     }
 
     std::shared_ptr<EffectNode> clone() const override

@@ -5,19 +5,6 @@
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
-    // Formant toggle button - huda
-    toggleViewButton.onClick = [this]()
-        {
-            showingFormants = !showingFormants;
-            toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
-            repaint();
-        };
-
-    addAndMakeVisible(toggleViewButton);
-    toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
-
-    startTimerHz(4); // repaint timer for the panel (visualizer has its own timer)
-
     // Labels + sliders
     formantLabel.setText("Formant", juce::dontSendNotification);
     addAndMakeVisible(formantLabel);
@@ -42,30 +29,22 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     mixAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processor.apvts, PARAM_FORMANT_MIX, mixSlider);
 
-    // Create and add visualizer (hidden by default until toggled on)
-    formantVisualizer = std::make_unique<FormantVisualizer>(processor, processor.apvts);
-    addAndMakeVisible(formantVisualizer.get());
-    formantVisualizer->setVisible(showingFormants);
 }
 
 void FormantPanel::resized()
 {
     auto r = getLocalBounds().reduced(10);
-    toggleViewButton.setBounds(r.removeFromTop(30));
-
-
-    auto row1 = r.removeFromTop(40);
+    // Dynamically size rows to reduce empty space below controls
+    const int gap = 10;
+    int rowHeight = juce::jmax(40, (r.getHeight() - gap) / 2);
+    auto row1 = r.removeFromTop(rowHeight);
     formantLabel .setBounds(row1.removeFromLeft(90));
     formantSlider.setBounds(row1);
 
-    auto row2 = r.removeFromTop(40);
+    r.removeFromTop(gap);
+    auto row2 = r.removeFromTop(rowHeight);
     mixLabel.setBounds(row2.removeFromLeft(90));
     mixSlider.setBounds(row2);
-
-    detectorArea = r; // visualizer area
-    if (formantVisualizer)
-        formantVisualizer->setBounds(detectorArea);
-
 }
 
 void FormantPanel::paint(juce::Graphics& g)
@@ -73,24 +52,6 @@ void FormantPanel::paint(juce::Graphics& g)
     g.fillAll(Colors::background);
 }
 
-//Button to show formants vs gain - huda
-void FormantPanel::buttonClicked(juce::Button* button)
-{
-    if (button == &toggleViewButton)
-    {
-        showingFormants = !showingFormants;
-        toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
-        if (formantVisualizer)
-            formantVisualizer->setVisible(showingFormants);
-        repaint();
-    }
-}
-
-void FormantPanel::timerCallback() {
-    if (showingFormants) { // refresh if formants are visible
-        repaint();
-    }
-}
 
 // XML serialization for saving/loading - reyna
 std::unique_ptr<juce::XmlElement> FormantNode::toXml() const {
