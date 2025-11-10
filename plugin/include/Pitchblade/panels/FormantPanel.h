@@ -24,6 +24,7 @@ public:
 private:
     AudioPluginAudioProcessor& processor;
     juce::Slider gainSlider;
+    juce::Label panelTitle;
 
     // --- Formant Shifter controls
     juce::Label  formantLabel, mixLabel;

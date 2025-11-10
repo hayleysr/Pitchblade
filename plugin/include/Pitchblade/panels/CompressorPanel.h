@@ -24,10 +24,14 @@ private:
     juce::Slider thresholdSlider, ratioSlider, attackSlider, releaseSlider;
 
     //Button for mode switching
-    juce::TextButton modeButton {"Limiter Mode"};
+    juce::ToggleButton modeButton {"Limiter Mode"};
 
     //Labels for sliders
     juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
+
+    //volume meter placeholder
+    juce::Component volumeMeter;
+    static void place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF);
 
     //Attachments to link stuff to APVTS parameters
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;

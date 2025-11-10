@@ -12,7 +12,7 @@ void PitchShifter::prepare(double sampleRate, int maxBlockSize){
 
     stretcher = std::make_unique<RubberBand::RubberBandStretcher> (sampleRate, 1, options, 1.0, 1.0);
 
-    bufferSize = std::max(maxBlockSize * 8, 8192);
+    bufferSize = 4096; //std::max(maxBlockSize * 8, 4096);
     inputBuffer.setSize(1, bufferSize);
     outputBuffer.setSize(1, bufferSize);
 

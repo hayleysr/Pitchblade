@@ -9,9 +9,12 @@
 
 //gain panel display
 GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {    // added valuetree and localstate - reyna
+    //label names for dials - reyna
+    gainSlider.setName("Gain");
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
+    gainLabel.setName("NodeTitle");
     addAndMakeVisible(gainLabel);
 
     // Gain slider - Austin
@@ -37,7 +40,21 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 
 void GainPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(Colors::background);
+    /*juce::Image bg = juce::ImageCache::getFromMemory(
+        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    g.setColour(Colors::background.withAlpha(0.8f));
+
+    if (bg.isValid()) {
+        g.drawImage(bg, getLocalBounds().toFloat());
+    }
+    else*/
+        g.fillAll(Colors::background);
+
+    //outline overlay
+    //g.setColour(Colors::background.withAlpha(0.5f));
+    //g.fillRect(getLocalBounds());
+
     //g.setColour(Colors::accent);
     g.drawRect(getLocalBounds(), 2);
 }
@@ -49,6 +66,9 @@ void GainPanel::resized()
 
     //Slider
     gainSlider.setBounds(getLocalBounds().reduced(10));
+
+    //make textbox bigger
+    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 30);
 }
  
 /////////////////////////////////////
@@ -84,3 +104,9 @@ void GainNode::loadFromXml(const juce::XmlElement& xml) {
 }
 
 
+// Update the graph by polling the node for the latest level
+    void GainVisualizer::timerCallback() {
+        float newDbLevel = gainNode.getOutputLevelAtomic().load();
+        pushData(newDbLevel);
+        RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+    }

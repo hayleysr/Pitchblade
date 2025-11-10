@@ -9,9 +9,15 @@
 
 //noise gate panel display
 NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {
+    //label names for dials - reyna
+    thresholdSlider.setName("Threshold");
+    attackSlider.setName("GateAttack");
+    releaseSlider.setName("Release");
+
     // Label
     noiseGateLabel.setText("Noise Gate", juce::dontSendNotification);
     addAndMakeVisible(noiseGateLabel);
+    noiseGateLabel.setName("NodeTitle");
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -30,10 +36,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
     
-    // Threshold Label - Austin   
-    thresholdLabel.setText("Threshold", juce::dontSendNotification);
-    thresholdLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(thresholdLabel);
+    //// Threshold Label - Austin   
+    //thresholdLabel.setText("Threshold", juce::dontSendNotification);
+    //thresholdLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(thresholdLabel);
 
     ////////////////////
 
@@ -53,10 +59,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     attackSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(attackSlider);
 
-    // Attack Label - Austin
-    attackLabel.setText("Attack", juce::dontSendNotification);
-    attackLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(attackLabel);
+    //// Attack Label - Austin
+    //attackLabel.setText("Attack", juce::dontSendNotification);
+    //attackLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(attackLabel);
 
     ////////////////////
 
@@ -76,10 +82,10 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
 
-    // Release Label - Austin 
-    releaseLabel.setText("Release", juce::dontSendNotification);
-    releaseLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(releaseLabel);
+    //// Release Label - Austin 
+    //releaseLabel.setText("Release", juce::dontSendNotification);
+    //releaseLabel.setJustificationType(juce::Justification::centred);
+    //addAndMakeVisible(releaseLabel);
 
     ///////////////////
 
@@ -137,6 +143,16 @@ void NoiseGatePanel::resized()
 }
 void NoiseGatePanel::paint(juce::Graphics& g)
 {
+    /*juce::Image bg = juce::ImageCache::getFromMemory(
+        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    g.setColour(Colors::background.withAlpha(0.8f));
+
+    if (bg.isValid()) {
+        g.drawImage(bg, getLocalBounds().toFloat());
+    }
+    else*/
+
     g.fillAll(Colors::background);
     //g.setColour(Colors::accent);
     g.drawRect(getLocalBounds(), 2);
@@ -180,4 +196,25 @@ void NoiseGateNode::loadFromXml(const juce::XmlElement& xml) {
     s.setProperty("GateThreshold", (float)xml.getDoubleAttribute("GateThreshold", -100.0f), nullptr);
     s.setProperty("GateAttack", (float)xml.getDoubleAttribute("GateAttack", 25.0f), nullptr);
     s.setProperty("GateRelease", (float)xml.getDoubleAttribute("GateRelease", 100.0f), nullptr);
+}
+
+NoiseGateVisualizer::~NoiseGateVisualizer(){
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+// Update the graph by polling the node
+void NoiseGateVisualizer::timerCallback(){ 
+    float newDbLevel = noiseGateNode.getOutputLevelAtomic().load();
+    pushData(newDbLevel);
+    RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+}
+
+// Update threshold line if property changes
+void NoiseGateVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if (tree == localState && property == juce::Identifier("GateThreshold"))
+    {
+        float newThreshold = (float)localState.getProperty("GateThreshold", -100.0f);
+        setThreshold(newThreshold, true);
+    }
 }

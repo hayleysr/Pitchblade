@@ -32,6 +32,10 @@ public:
         //main effect button
 		button.setButtonText(effectName);
 		addAndMakeVisible(button);
+
+        button.setOpaque(true);
+        rightButton.setOpaque(true);
+
         button.onClick = [this] {         // turn active button pink on click
             onEffectSelected = !onEffectSelected; // toggle selection state
             if (onEffectSelected) { button.setColour(juce::TextButton::buttonColourId, Colors::accent); }
@@ -141,8 +145,8 @@ public:
         modeButton.setButtonText(label);
         modeButton.setColour(juce::TextButton::buttonColourId, bg);
         modeButton.setColour(juce::TextButton::buttonOnColourId, bg);
-        modeButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-        modeButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        modeButton.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+        modeButton.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
         modeButton.repaint();
     }
 
@@ -154,8 +158,8 @@ public:
         const auto bg = state ? juce::Colours::hotpink : Colors::panel;
         bypass.setColour(juce::TextButton::buttonColourId, bg);
         bypass.setColour(juce::TextButton::buttonOnColourId, bg);
-        bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-        bypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+        bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
 
         bypass.repaint();
     }
@@ -320,8 +324,8 @@ public:
         const auto bg = state ? juce::Colours::hotpink : Colors::panel;
         rightBypass.setColour(juce::TextButton::buttonColourId, bg);
         rightBypass.setColour(juce::TextButton::buttonOnColourId, bg);
-        rightBypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-        rightBypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+        rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
         rightBypass.repaint();
     }
 
@@ -329,8 +333,8 @@ public:
         juce::Colour bg = juce::Colour(0xffae66ed); 
         rightMode.setColour(juce::TextButton::buttonColourId, bg);
         rightMode.setColour(juce::TextButton::buttonOnColourId, bg);
-        rightMode.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-        rightMode.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        rightMode.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+        rightMode.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
         rightMode.repaint();
     }
 

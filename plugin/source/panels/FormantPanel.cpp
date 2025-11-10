@@ -1,11 +1,21 @@
 //hudas code
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
     // Labels + sliders
+    //label names for dials - reyna
+    formantSlider.setName("Formant");
+    mixSlider.setName("Dry/Wet");
+
+    // Panel title - reyna
+    panelTitle.setText("Formant", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
+  
     formantLabel.setText("Formant", juce::dontSendNotification);
     addAndMakeVisible(formantLabel);
 
