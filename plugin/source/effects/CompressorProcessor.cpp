@@ -1,6 +1,7 @@
 // Written by Austin Hills
 
 #include "Pitchblade/effects/CompressorProcessor.h"
+#include <juce_core/juce_core.h>
 
 //Constructor
 CompressorProcessor::CompressorProcessor(){}
@@ -42,6 +43,11 @@ void CompressorProcessor::updateAttackAndRelease(){
     releaseCoeff = exp(-1.0f / (0.001f * releaseTime * sampleRate + 0.0000001f));
 }
 
+//helper for volume meter - reyna
+float CompressorProcessor::getCurrentLevelDb() const {
+    return juce::Decibels::gainToDecibels(currentAmplitude, -60.0f);
+}
+
 // The main processing loop. This operates very similarly to the noise gate
 void CompressorProcessor::process(juce::AudioBuffer<float>& buffer){
 
@@ -50,6 +56,10 @@ void CompressorProcessor::process(juce::AudioBuffer<float>& buffer){
     // Gathering information on the buffer
     const int numSamples = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
+
+    //vlomue meter data
+    float rms = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
+    currentAmplitude = rms;
 
     //This function iterates through the samples, checking the channel with the maximum volume in the given sample
     //That value is stored and then used to determine what the state of the envelope should be
