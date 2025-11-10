@@ -572,10 +572,10 @@ void DaisyChain::showAddMenu() {
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
     menu.addItem(3, "Compressor");
-    menu.addItem(4, "Formant");
-    menu.addItem(5, "Pitch");
-    menu.addItem(6, "De-Esser");
-    menu.addItem(7, "De-Noiser");
+    menu.addItem(4, "De-Esser");
+    menu.addItem(5, "De-Noiser");
+    menu.addItem(6, "Formant");
+    menu.addItem(7, "Pitch");
     menu.addItem(8, "Equalizer");
 
     menu.setLookAndFeel(&getLookAndFeel());

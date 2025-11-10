@@ -105,6 +105,7 @@ juce_add_binary_data(BinaryData
         assets/pitchblade_logo.png
         assets/pb_logo.png
         assets/tooltips.txt
+        assets/panel_bg.png
 )
 
 #Include these libraries in build

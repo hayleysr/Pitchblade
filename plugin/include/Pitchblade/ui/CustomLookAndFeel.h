@@ -32,14 +32,11 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         //setColour(juce::PopupMenu::backgroundColourId, Colors::background);
     }
 
-    void drawPanelBackground(juce::Graphics& g, juce::Component& comp)
-    {
-        
+    void drawPanelBackground(juce::Graphics& g, juce::Component& comp) { 
         g.fillAll(Colors::panel);
-        //g.setColour(Colors::accent);
         g.drawRect(comp.getLocalBounds(), 2);
     }
-
+    // custom buttons //////////////////////////////////////////
     void drawButtonBackground(juce::Graphics& g, juce::Button& button,
         const juce::Colour& backgroundColour,
         bool shouldDrawButtonAsHighlighted,
@@ -62,7 +59,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawRoundedRectangle(bounds, 5.0f, 1.0f);
     }
 
-    //custom tool tips
+    //custom tool tips //////////////////////////////////////////
     void drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) override {
         // clear background
 		g.fillAll(juce::Colours::transparentBlack); 
@@ -78,10 +75,21 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawFittedText(text, 8, 4, width - 16, height - 8, juce::Justification::centredLeft, 2);
     }
 
-    //custom drop down menus
+    //custom drop down menus //////////////////////////////////////////
     void drawPopupMenuBackground(juce::Graphics& g, int width, int height) override {
-        g.setColour(Colors::background);
-        g.fillRoundedRectangle({ 0.0f, 0.0f, (float)width, (float)height }, 6.0f);
+        const float radius = 6.0f;
+        juce::Rectangle<float> area(0.0f, 0.0f, (float)width, (float)height);
+        
+        g.setColour(Colors::background.darker(0.5));
+        g.fillRoundedRectangle(area, radius);
+
+        // gradient background 
+        juce::ColourGradient grad(
+            Colors::panel.withAlpha(0.25f), area.getCentreX(), area.getY(),  
+            Colors::panel.darker(0.3f), area.getCentreX(), area.getBottom(), false );
+
+        g.setGradientFill(grad);
+        g.fillRoundedRectangle(area, radius);
     }
 
     void drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
@@ -115,7 +123,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
 
     //int getPopupMenuBorderSize() override { return 0; }
 
-    //custom text boxes //////////////////////////////
+    //custom text boxes ////////////////////////////////////////////////////////////////////////
     void drawLabel(juce::Graphics& g, juce::Label& label) override {
         // custom dial values textbox //////////////////
         // check if a slider text box
@@ -123,10 +131,25 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
             auto area = label.getLocalBounds().toFloat();
             float radius = 6.0f;
 
+            //hover over button
+            const bool hovered = label.isMouseOver(true);
+            const bool isOn = parentSlider->isMouseButtonDown();
+            const bool editing = label.isBeingEdited();
+
+            auto base = Colors::panel;
+            if (isOn)
+                base = base.overlaidWith(Colors::accent.withAlpha(0.2f).darker(0.5f));
+            /*else if (editing) {
+                setColour(juce::TextEditor::backgroundColourId, Colors::accentPink);
+                base = base.overlaidWith(Colors::accent.withAlpha(0.2f).darker(0.5f));
+            }*/
+            else if (hovered)
+                base = base.overlaidWith(Colors::accentPink.withAlpha(0.25f));
+
             // gradient background 
             juce::ColourGradient grad(
-                Colors::panel.withAlpha(0.25f), area.getCentreX(), area.getY(),
-                Colors::panel, area.getCentreX(), area.getBottom(),
+                base.brighter(0.10f).withAlpha(0.30f), area.getCentreX(), area.getY(),
+                base.darker(0.22f), area.getCentreX(), area.getBottom(),
                 false
             );
             g.setGradientFill(grad);
@@ -140,7 +163,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
             return;
         } 
 
-        // label for panel names ///////////////////////
+        // label for panel names ///////////
         if (label.getName().containsIgnoreCase("NodeTitle") || label.getText() == label.getParentComponent()->getName()) {
             auto area = label.getLocalBounds().toFloat();
 
@@ -181,7 +204,54 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
     void drawTextEditorOutline(juce::Graphics&, int, int, juce::TextEditor&) override { 
     }
 
-    // custom toggle /////////////////////////////
+    // custom drawComboBox //////////////////////////////////////
+    void drawComboBox(juce::Graphics& g, int width, int height, bool,
+        int, int, int, int, juce::ComboBox& box) override
+    {
+        auto bounds = juce::Rectangle<int>(0, 0, width, height);
+        auto base = Colors::button; 
+        
+        //hover over button
+        const bool hovered = box.isMouseOver();
+        const bool active = box.isPopupActive();
+        if (active) {
+            base = Colors::accent;
+        }
+        else if (hovered) {
+            base = base.overlaidWith(Colors::accent.withAlpha(0.25f));
+        }
+
+        // background
+        juce::ColourGradient grad(
+            base, bounds.getCentreX(), bounds.getY(),            
+            base.darker(0.25f).overlaidWith(Colors::accent.withAlpha(0.25f)),
+            bounds.getCentreX(), bounds.getBottom(),
+            false
+        );
+        g.setGradientFill(grad);
+        g.fillRoundedRectangle(bounds.toFloat(), 6.0f);
+
+        // outline
+        juce::Colour outline = active ? Colors::accentPink : Colors::accent;
+        g.setColour(outline);
+        g.drawRoundedRectangle(bounds.toFloat().reduced(0.5f), 6.0f, 1.5f);
+
+        // text
+        g.setColour(Colors::buttonText);
+        g.setFont(14.0f);
+        //g.drawFittedText(box.getText(), bounds.reduced(8), juce::Justification::centredLeft, 1);
+
+        // small triangle arrow
+        juce::Path arrow;
+        float arrowX = width - 15.0f;
+        float arrowY = height / 2.0f;
+        arrow.addTriangle(arrowX - 4, arrowY - 2, arrowX + 4, arrowY - 2, arrowX, arrowY + 3);
+        g.setColour(Colors::buttonText);
+        g.fillPath(arrow);
+    }
+
+
+    // custom toggle ////////////////////////////////////////
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
         bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
     {
@@ -189,9 +259,18 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         auto area = button.getLocalBounds().toFloat().reduced(2.0f);
         auto isOn = button.getToggleState();
 
+        //hover over button
+        const bool hovered = button.isMouseOver(true);
+        auto base = Colors::panel;
+        if (isOn) {
+            base = base.overlaidWith(Colors::accentBlue.withAlpha(0.5f).darker(0.7f));
+        } else if (hovered) {
+            base = base.overlaidWith(Colors::accentPink.withAlpha(0.2f));
+        }
+
         // background
-        juce::ColourGradient bg( Colors::panel.brighter(0.15f), area.getCentreX(), area.getY(),
-            Colors::panel.darker(0.25f), area.getCentreX(), area.getBottom(), false);
+        juce::ColourGradient bg( base.brighter(0.15f), area.getCentreX(), area.getY(),
+                                base.darker(0.25f), area.getCentreX(), area.getBottom(), false);
         g.setGradientFill(bg);
         g.fillRoundedRectangle(area, 12.0f);
 
@@ -224,7 +303,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawFittedText(button.getButtonText(), area.toNearestInt(), juce::Justification::centred, 1);
     }
 
-    //custom dial
+    //custom dial //////////////////////////////////////////////////////////////
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
         float sliderPosProportional, float rotaryStartAngle,
         float rotaryEndAngle, juce::Slider& slider) override {
