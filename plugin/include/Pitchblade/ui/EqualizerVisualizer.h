@@ -12,6 +12,7 @@ public:
     ~EqualizerVisualizer() override;
 
     void resized() override;
+    void paint(juce::Graphics& g) override;
 
 private:
     void timerCallback() override;
@@ -19,6 +20,13 @@ private:
 
     AudioPluginAudioProcessor& processor;
     std::unique_ptr<FrequencyGraphVisualizer> graph; // draws frequency vs dB
+
+    // Overlay to replace the y-axis labels with [-24, +24] dB
+    class YAxisLabelOverlay : public juce::Component {
+    public:
+        void paint(juce::Graphics& g) override;
+    };
+    std::unique_ptr<YAxisLabelOverlay> yLabels;
 
     // Helper to build log-spaced frequency array between 20 Hz and 20 kHz
     static void buildLogFrequencies(std::vector<float>& freqs, int numPoints);

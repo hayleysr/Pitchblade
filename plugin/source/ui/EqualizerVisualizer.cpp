@@ -11,6 +11,12 @@ EqualizerVisualizer::EqualizerVisualizer(AudioPluginAudioProcessor& proc)
     graph = std::make_unique<FrequencyGraphVisualizer>(processor.apvts, 5, 1);
     addAndMakeVisible(*graph);
 
+    // Add overlay that repaints y-axis labels to match knob range [-24, +24] dB
+    yLabels = std::make_unique<YAxisLabelOverlay>();
+    addAndMakeVisible(*yLabels);
+    yLabels->setInterceptsMouseClicks(false, false);
+    yLabels->setAlwaysOnTop(true);
+
     // Initial threshold: show 0 dB line and mid band center as a vertical guide
     graph->setThreshold(processor.getEqualizer().getMidFreq(), 0.0f);
 
@@ -31,6 +37,8 @@ void EqualizerVisualizer::resized()
 {
     if (graph)
         graph->setBounds(getLocalBounds());
+    if (yLabels)
+        yLabels->setBounds(getLocalBounds());
 }
 
 void EqualizerVisualizer::timerCallback()
@@ -45,9 +53,9 @@ void EqualizerVisualizer::buildLogFrequencies(std::vector<float>& freqs, int num
     freqs.clear();
     freqs.reserve((size_t)numPoints);
     const float fStart = 20.0f;
-    const float fEnd   = 20000.0f;
+    const float fEnd= 20000.0f;
     const float logStart = std::log10(fStart);
-    const float logEnd   = std::log10(fEnd);
+    const float logEnd = std::log10(fEnd);
     for (int i = 0; i < numPoints; ++i)
     {
         float t = (numPoints <= 1 ? 0.0f : (float)i / (float)(numPoints - 1));
@@ -61,12 +69,12 @@ void EqualizerVisualizer::updateResponseCurve()
     auto& eq = processor.getEqualizer();
 
     // Get current parameters (thread-safe atomics)
-    const float lowHz   = eq.getLowFreq();
-    const float midHz   = eq.getMidFreq();
-    const float highHz  = eq.getHighFreq();
-    const float lowDb   = eq.getLowGainDb();
-    const float midDb   = eq.getMidGainDb();
-    const float highDb  = eq.getHighGainDb();
+    const float lowHz = eq.getLowFreq();
+    const float midHz = eq.getMidFreq();
+    const float highHz = eq.getHighFreq();
+    const float lowDb = eq.getLowGainDb();
+    const float midDb = eq.getMidGainDb();
+    const float highDb = eq.getHighGainDb();
 
     // Sample rate may be 0 before prepareToPlay; default to 44100
     double sr = processor.getSampleRate();
@@ -75,8 +83,8 @@ void EqualizerVisualizer::updateResponseCurve()
 
     // Build coefficients mirroring the DSP path (Q=1.0 to match Equalizer)
     const float Q = 1.0f;
-    auto lowC  = juce::dsp::IIR::Coefficients<float>::makeLowShelf (sr, lowHz,  Q, juce::Decibels::decibelsToGain(lowDb));
-    auto midC  = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sr, midHz, Q, juce::Decibels::decibelsToGain(midDb));
+    auto lowC = juce::dsp::IIR::Coefficients<float>::makeLowShelf (sr, lowHz, Q, juce::Decibels::decibelsToGain(lowDb));
+    auto midC = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sr, midHz, Q, juce::Decibels::decibelsToGain(midDb));
     auto highC = juce::dsp::IIR::Coefficients<float>::makeHighShelf(sr, highHz, Q, juce::Decibels::decibelsToGain(highDb));
 
     // Generate response over log-spaced frequencies
@@ -90,8 +98,8 @@ void EqualizerVisualizer::updateResponseCurve()
     {
         // Combine magnitudes in linear domain
         float mag = 1.0f;
-        if (lowC)  mag *= lowC ->getMagnitudeForFrequency(f, (float)sr);
-        if (midC)  mag *= midC ->getMagnitudeForFrequency(f, (float)sr);
+        if (lowC) mag *= lowC ->getMagnitudeForFrequency(f, (float)sr);
+        if (midC)mag *= midC ->getMagnitudeForFrequency(f, (float)sr);
         if (highC) mag *= highC->getMagnitudeForFrequency(f, (float)sr);
 
         // Convert to dB; the FrequencyGraphVisualizer expects [-100, 0] dB range.
@@ -103,4 +111,49 @@ void EqualizerVisualizer::updateResponseCurve()
 
     // Push to the graph (thread-safe inside the visualizer)
     graph->updateSpectrumData(points);
+}
+
+// Parent paint remains minimal; overlay handles labels
+void EqualizerVisualizer::paint(juce::Graphics& g)
+{
+    // no-op; child components handle all painting
+}
+
+// ----------------- Y-axis overlay -----------------
+void EqualizerVisualizer::YAxisLabelOverlay::paint(juce::Graphics& g)
+{
+    using namespace juce;
+
+    const int labelWidth = 40;   // must match FrequencyGraphVisualizer
+    const int labelHeight = 20;  // bottom x-label area height
+
+    auto bounds = getLocalBounds();
+    auto yLabelBounds = bounds.withHeight(bounds.getHeight() - labelHeight).removeFromLeft(labelWidth);
+
+    // Graph vertical bounds inside the child visualizer are reduced by 5px top/bottom
+    const int graphTop = 5;
+    const int graphBottom = (bounds.getHeight() - labelHeight) - 5;
+    const int graphHeight = juce::jmax(0, graphBottom - graphTop);
+
+    // Mask the original labels area
+    g.setColour(Colors::panel);
+    g.fillRect(yLabelBounds);
+
+    // Draw axis unit label
+    g.setColour(Colors::buttonText);
+    g.drawText("dB", yLabelBounds, Justification::centred);
+
+    // Desired labels aligned to knob range
+    // Match the number of labels created by our FrequencyGraphVisualizer instance (passed 5)
+    static const int numLabels = 5;
+    static const float values[numLabels] = { -24.0f, -12.0f, 0.0f, 12.0f, 24.0f };
+
+    for (int i = 0; i < numLabels; ++i)
+    {
+        float proportion = (float)i / (float)(numLabels - 1); // 0..1 bottom->top
+        float y = (float)graphBottom - proportion * (float)graphHeight;
+
+        auto labelText = juce::String(values[i], 0);
+        g.drawText(labelText, yLabelBounds.getX(), juce::roundToInt(y) - 6, labelWidth, 12, Justification::centredRight);
+    }
 }
