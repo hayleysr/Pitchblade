@@ -26,21 +26,39 @@ void FormantDetector::prepare(double sampleRateIn)
 
 void FormantDetector::processBlock(const juce::AudioBuffer<float>& buffer)
 {
+    const int numSamples  = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
 
-    // Threshold for formants to stop detecting below a certain threshold
-    float rms = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
-    if (rms < 1e-5f) {  // threshold for now and adjust if needed
+    if (numSamples <= 0 || numChannels <= 0)
+    {
         formants.clear();
         return;
     }
 
+    //Compute average RMS over all channels
+    float totalRms = 0.0f;
+    for (int ch = 0; ch < numChannels; ++ch)
+        totalRms += buffer.getRMSLevel(ch, 0, numSamples);
 
-    // Compute FFT on incoming audio block
+    totalRms /= (float) numChannels;
+
+    //Gate on level: treat very low-level signal as silence
+    // Adjust this if needed; ~1e-3 is about -60 dBFS, 1e-4 is about -80 dBFS.
+    constexpr float rmsSilenceThreshold = 1e-3f;
+
+    if (totalRms < rmsSilenceThreshold)
+    {
+        formants.clear();
+        return;
+    }
+
+    //Compute FFT on incoming audio block
     computeFFT(buffer);
 
-    // Find spectral peaks representing formants
+    //Find spectral peaks representing formants
     findFormantPeaks();
 }
+
 
 void FormantDetector::computeFFT(const juce::AudioBuffer<float>& buffer)
 {
@@ -63,22 +81,67 @@ void FormantDetector::findFormantPeaks()
 {
     formants.clear();
 
-    // Compute magnitude spectrum
-    std::vector<float> magnitude(fftSize / 2);
-    for (int i = 0; i < fftSize / 2; ++i)
+    // Magnitude spectrum
+    const int halfSize = fftSize / 2;
+    std::vector<float> magnitude(halfSize);
+
+    for (int i = 0; i < halfSize; ++i)
     {
         float real = fftData[2 * i];
         float imag = fftData[2 * i + 1];
         magnitude[i] = std::sqrt(real * real + imag * imag);
     }
 
-    // Find local maxima in the magnitude spectrum
-    for (int i = 1; i < fftSize / 2 - 1; ++i)
+    constexpr float fMinHz = 300.0f;
+    constexpr float fMaxHz = 5000.0f;
+
+    const int minBin = (int) std::ceil (fMinHz * fftSize / sampleRate);
+    const int maxBin = (int) std::floor(fMaxHz * fftSize / sampleRate);
+
+    if (minBin >= maxBin || maxBin >= halfSize)
+        return;
+
+    //Find the maximum magnitude in this band
+    float maxMag = 0.0f;
+    for (int i = minBin; i <= maxBin; ++i)
+        maxMag = std::max(maxMag, magnitude[i]);
+
+    // If everything is tiny, treat as silence / no formants
+    constexpr float absMagFloor = 1e-6f;
+    if (maxMag < absMagFloor)
+        return;
+
+    //Relative threshold: only keep peaks above some fraction of max
+    constexpr float relativePeakThreshold = 0.30f;   // 30% of max
+    const float peakThreshold = maxMag * relativePeakThreshold;
+
+    //Collect local maxima that exceed the threshold
+    std::vector<std::pair<float, int>> candidates; // (mag, bin)
+    for (int i = minBin + 1; i < maxBin; ++i)
     {
-        if (magnitude[i] > magnitude[i - 1] && magnitude[i] > magnitude[i + 1])
-            formants.push_back(static_cast<float>(i));
+        float mPrev = magnitude[i - 1];
+        float mCurr = magnitude[i];
+        float mNext = magnitude[i + 1];
+
+        const bool isLocalMax = (mCurr > mPrev) && (mCurr > mNext);
+        const bool isStrong   = (mCurr >= peakThreshold);
+
+        if (isLocalMax && isStrong)
+            candidates.emplace_back(mCurr, i);
     }
+
+    if (candidates.empty())
+        return;
+
+    //Sort by magnitude (strongest first) and keep up to 3–4 formants
+    std::sort(candidates.begin(), candidates.end(),
+              [] (auto& a, auto& b) { return a.first > b.first; });
+
+    const int maxFormants = 3; // or 4 maybe??
+    for (int i = 0; i < (int)candidates.size() && i < maxFormants; ++i)
+        formants.push_back((float) candidates[i].second);
 }
+
 
 std::vector<float> FormantDetector::getFormants() const
 {
