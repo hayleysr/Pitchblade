@@ -272,7 +272,12 @@ void PitchVisualizer::timerCallback(){
     float newPitch = pitchNode.getPitchAtomic().load();
 
     //Push it to graph
-    pushData(newPitch);
+    if(pitchNode.getWasBypassing()){
+        pushData(newPitch);
+        lastStablePitch = newPitch;
+    }else{
+        pushData(lastStablePitch);
+    }
 
     //Call the graph visualizer's timerCallback
     RealTimeGraphVisualizer::timerCallback();

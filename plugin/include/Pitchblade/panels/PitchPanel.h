@@ -59,7 +59,7 @@ class PitchNode;
 class PitchVisualizer : public RealTimeGraphVisualizer, public juce::ValueTree::Listener{
 public:
     explicit PitchVisualizer(AudioPluginAudioProcessor& proc, PitchNode& node, juce::ValueTree& state)
-        : RealTimeGraphVisualizer(proc.apvts, "note", {0.f, 5000.0f}, false, 5),
+        : RealTimeGraphVisualizer(proc.apvts, "note", {55.f, 3520.f}, true, 7),
             processor(proc),
             pitchNode(node),
             localState(state)
@@ -98,6 +98,7 @@ private:
     AudioPluginAudioProcessor& processor;
     PitchNode& pitchNode;
     juce::ValueTree localState;
+    float lastStablePitch = 0.f;
 };
 
 ////////////////////////////////////////////////////////////
@@ -171,6 +172,8 @@ public:
     std::atomic<float>& getPitchAtomic(){
         return pitchDSP.currentOutputPitch;
     }
+
+    bool getWasBypassing() { return pitchDSP.getWasBypassing(); }
 
     //////////////////////////////////////////////////////////// reyna
 
