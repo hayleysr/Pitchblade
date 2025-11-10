@@ -131,11 +131,11 @@ EqualizerPanel::~EqualizerPanel() {
 void EqualizerPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
 {
     if (tree != localState) return;
-    if (property == juce::Identifier("LowFreq"))   lowFreq.setValue((float)tree.getProperty("LowFreq"), juce::dontSendNotification);
-    if (property == juce::Identifier("LowGain"))   lowGain.setValue((float)tree.getProperty("LowGain"), juce::dontSendNotification);
-    if (property == juce::Identifier("MidFreq"))   midFreq.setValue((float)tree.getProperty("MidFreq"), juce::dontSendNotification);
-    if (property == juce::Identifier("MidGain"))   midGain.setValue((float)tree.getProperty("MidGain"), juce::dontSendNotification);
-    if (property == juce::Identifier("HighFreq"))  highFreq.setValue((float)tree.getProperty("HighFreq"), juce::dontSendNotification);
-    if (property == juce::Identifier("HighGain"))  highGain.setValue((float)tree.getProperty("HighGain"), juce::dontSendNotification);
+    if (property == juce::Identifier("LowFreq"))   { auto v = (float)tree.getProperty("LowFreq");  lowFreq.setValue(v, juce::dontSendNotification);  processor.getEqualizer().setLowFreq(v); }
+    if (property == juce::Identifier("LowGain"))   { auto v = (float)tree.getProperty("LowGain");  lowGain.setValue(v, juce::dontSendNotification);  processor.getEqualizer().setLowGainDb(v); }
+    if (property == juce::Identifier("MidFreq"))   { auto v = (float)tree.getProperty("MidFreq");  midFreq.setValue(v, juce::dontSendNotification);  processor.getEqualizer().setMidFreq(v); }
+    if (property == juce::Identifier("MidGain"))   { auto v = (float)tree.getProperty("MidGain");  midGain.setValue(v, juce::dontSendNotification);  processor.getEqualizer().setMidGainDb(v); }
+    if (property == juce::Identifier("HighFreq"))  { auto v = (float)tree.getProperty("HighFreq"); highFreq.setValue(v, juce::dontSendNotification); processor.getEqualizer().setHighFreq(v); }
+    if (property == juce::Identifier("HighGain"))  { auto v = (float)tree.getProperty("HighGain"); highGain.setValue(v, juce::dontSendNotification); processor.getEqualizer().setHighGainDb(v); }
 
 }
