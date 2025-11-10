@@ -26,10 +26,10 @@ FunctionEnd
 # This is the main (and only) section
 Section "Install"
     # 6. Set the output path to the user's chosen directory
-    SetOutPath $INSTDIR
+    SetOutPath "$INSTDIR\Pitchblade"
     
     # 7. This is the command that packages your built plugin
     # It finds the file (relative to this script) and adds it
     # to the installer .exe.
-    File /r "build\plugin\Pitchblade_artefacts\Debug\VST3\Pitchblade.vst3"
+    File /r "build\plugin\Pitchblade_artefacts\Debug\VST3\Pitchblade.vst3\Contents\x86_64-win\Pitchblade.vst3"
 SectionEnd
