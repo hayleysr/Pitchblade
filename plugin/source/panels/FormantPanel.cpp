@@ -9,10 +9,15 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     //label names for dials - reyna
     formantSlider.setName("Formant");
     mixSlider.setName("Dry/Wet");
+
+    // Panel title - reyna
+    panelTitle.setText("Formant", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
     
     // Formant toggle button - huda
     //toggleViewButton.setClickingTogglesState(true);
-    static CustomLookAndFeel gSwitchLF; //for custom toggle
+    static CustomLookAndFeel gSwitchLF; //for custom toggle - reyna
     toggleViewButton.setLookAndFeel(&gSwitchLF);
     toggleViewButton.onClick = [this]()
         {
@@ -55,9 +60,10 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
 void FormantPanel::resized()
 {
-    auto r = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
+    auto r = getLocalBounds().reduced(30);
+    panelTitle.setBounds(area.removeFromTop(30));
     toggleViewButton.setBounds(r.removeFromTop(30));
-
 
     auto row1 = r.removeFromTop(40);
     formantLabel .setBounds(row1.removeFromLeft(90));
@@ -67,7 +73,7 @@ void FormantPanel::resized()
     mixLabel.setBounds(row2.removeFromLeft(90));
     mixSlider.setBounds(row2);
 
-    detectorArea = r; // if you use an overlay for the detector lines
+    detectorArea = r;
 
 }
 

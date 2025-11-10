@@ -14,6 +14,7 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
+    gainLabel.setName("NodeTitle");
     addAndMakeVisible(gainLabel);
 
     // Gain slider - Austin

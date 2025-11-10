@@ -137,6 +137,12 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         };
 
     localState.addListener(this);
+    //startTimerHz(8);    // Update 4x/second
+
+    //panel label - reyna
+    //panelTitle.setText("Pitch", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
 }
 
 void PitchPanel::resized()

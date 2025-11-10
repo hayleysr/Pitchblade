@@ -20,9 +20,13 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         setColour(juce::Slider::backgroundColourId, Colors::button);      // track background
         setColour(juce::Slider::trackColourId, Colors::accent);           // filled track pink
         setColour(juce::Slider::thumbColourId, Colors::accent);           // knob pink
+
         setColour(juce::Slider::textBoxTextColourId, Colors::buttonText); // text
         setColour(juce::Slider::textBoxBackgroundColourId, Colors::panel);// textbox bg
-        setColour(juce::Slider::textBoxOutlineColourId, Colors::accent);  // textbox outline
+
+        setColour(juce::Slider::textBoxOutlineColourId, Colors::accent);  // value textbox 
+        setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
         
     }
 
@@ -68,26 +72,107 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawFittedText(text, 8, 4, width - 16, height - 8, juce::Justification::centredLeft, 2);
     }
 
-    // custom toggle
+    //custom text boxes //////////////////////////////
+    void drawLabel(juce::Graphics& g, juce::Label& label) override {
+        // custom dial values textbox //////////////////
+        // check if a slider text box
+        if (auto* parentSlider = dynamic_cast<juce::Slider*>(label.getParentComponent())) {
+            auto area = label.getLocalBounds().toFloat();
+            float radius = 6.0f;
+
+            // gradient background 
+            juce::ColourGradient grad(
+                Colors::panel.withAlpha(0.25f), area.getCentreX(), area.getY(),
+                Colors::panel, area.getCentreX(), area.getBottom(),
+                false
+            );
+            g.setGradientFill(grad);
+            g.fillRoundedRectangle(area, radius);
+
+            // draw value text
+            g.setColour(label.findColour(juce::Label::textColourId));
+            g.setFont(label.getFont());
+            g.drawFittedText(label.getText(), label.getLocalBounds().reduced(4),
+                juce::Justification::centred, 1);
+            return;
+        } 
+
+        // label for panel names ///////////////////////
+        if (label.getName().containsIgnoreCase("NodeTitle") || label.getText() == label.getParentComponent()->getName()) {
+            auto area = label.getLocalBounds().toFloat();
+
+            // padding for nicer spacing
+            float padX = 10.0f;
+            float padY = 8.0f;
+            auto padded = area.reduced(padX, padY);
+
+            // draw title text
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::Font(16.0f, juce::Font::bold));
+            g.drawFittedText(label.getText(), padded.toNearestInt(), juce::Justification::topLeft, 1);
+
+            // underline
+            float underlineY = padded.getY() + 20.0f;
+            float underlineWidth = padded.getWidth() * 0.10f;
+            float underlineX = padded.getX();
+
+            g.drawLine(underlineX, underlineY, underlineX + underlineWidth, underlineY, 4.0f);
+            return;
+        }
+
+        // normal draw label
+        juce::LookAndFeel_V4::drawLabel(g, label);
+    }
+
+    void fillTextEditorBackground(juce::Graphics& g, int width, int height, juce::TextEditor& textEditor) override {
+        auto r = juce::Rectangle<float>(0, 0, (float)width, (float)height);
+        auto area = textEditor.getLocalBounds().toFloat();
+        float radius = 6.0f;
+        juce::ColourGradient grad( Colors::panel.brighter(0.25f), area.getCentreX(), area.getY(),
+                                    Colors::panel.darker(0.35f), area.getCentreX(), area.getBottom(), false );
+        g.setGradientFill(grad);
+        g.fillRoundedRectangle(area, radius);
+        g.fillRoundedRectangle(r, 6.0f);
+    }
+
+    void drawTextEditorOutline(juce::Graphics&, int, int, juce::TextEditor&) override { 
+    }
+
+    // custom toggle /////////////////////////////
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
         bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
     {
+        juce::ignoreUnused(shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
         auto area = button.getLocalBounds().toFloat().reduced(2.0f);
         auto isOn = button.getToggleState();
 
         // background
-        g.setColour(juce::Colours::black);
+        juce::ColourGradient bg( Colors::panel.brighter(0.15f), area.getCentreX(), area.getY(),
+            Colors::panel.darker(0.25f), area.getCentreX(), area.getBottom(), false);
+        g.setGradientFill(bg);
         g.fillRoundedRectangle(area, 12.0f);
-        g.setColour(juce::Colours::white);
+
+        // outline
+        g.setColour(juce::Colours::black);
         g.drawRoundedRectangle(area, 12.0f, 2.0f);
 
-        // inner switch
+        // circle side switch 
         float circleDiameter = area.getHeight() * 0.7f;
         float circleX = isOn ? (area.getRight() - circleDiameter - 6.0f) : (area.getX() + 6.0f);
-        juce::Rectangle<float> circle(circleX, area.getY() + (area.getHeight() - circleDiameter) / 2.0f,
-            circleDiameter, circleDiameter);
+        juce::Rectangle<float> circle(circleX, area.getY() + (area.getHeight() - circleDiameter) / 2.0f, circleDiameter, circleDiameter);
 
-        g.setColour(isOn ? Colors::accentBlue : juce::Colours::darkgrey);
+        // shadow
+        g.setColour(juce::Colours::black.withAlpha(0.4f));
+        g.fillEllipse(circle.expanded(1.5f));
+
+        // circle colors
+        juce::Colour baseColor = isOn ? Colors::accentTeal : Colors::accentPink;
+        juce::ColourGradient grad(baseColor.brighter(0.3f),
+            circle.getCentreX(), circle.getY(), baseColor.darker(0.5f),
+            circle.getCentreX(), circle.getBottom(),
+            false);
+
+        g.setGradientFill(grad);
         g.fillEllipse(circle);
 
         // label text
@@ -257,7 +342,7 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
                 //text
                 g.setFont(juce::Font(radius * 0.25f, juce::Font::bold));
                 //below dial
-                const float labelY = centre.y + baseThick * 1.6f;
+                const float labelY = centre.y + baseThick * 1.8f;
                 g.drawFittedText(slider.getName(), juce::Rectangle<int>( (int)(centre.x - radius), (int)labelY, (int)(radius * 2),  10),
                     juce::Justification::centred, 1);
             }
@@ -276,4 +361,129 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         return layout;
     }
 
+//custom small dial
+    inline void drawSmallDial(juce::Graphics& g, int x, int y, int width, int height,
+        float sliderPosProportional, float rotaryStartAngle,
+        float rotaryEndAngle, juce::Slider& slider)
+    {
+        // square bounds
+        const float side = (float)juce::jmin(width, height);
+        const float reducedSide = side * 0.9f;
+        juce::Rectangle<float> dial(x + (width - reducedSide) * 0.5f, y, reducedSide, reducedSide);
+
+        const float radius = dial.getWidth() * 0.5f;
+        const auto  centre = dial.getCentre();
+
+        const float angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
+
+        // thicknesses
+        const float ringThick = juce::jmax(10.0f, radius * 0.18f);       // value ring
+        const float outlineThick = juce::jmax(5.0f, radius * 0.02f);    // decorative outline
+        const float innerDial = radius * 0.3f;                          //  dial
+        const float baseThick = radius * 0.58f;                         // black base thickness
+
+        // base ring
+        g.setColour(juce::Colours::black);
+        juce::Rectangle<float> base = dial.reduced(radius * 0.2f);
+        g.setColour(juce::Colours::black);
+        g.fillEllipse(base);
+
+        // pink overlay
+        juce::ColourGradient baseGrad(
+            Colors::accentPink.withAlpha(0.2f),     // top 
+            base.getCentreX(), base.getY(),
+            Colors::accentPink.withAlpha(0.05f),    // bottom 
+            base.getCentreX(), base.getBottom(),
+            false
+        );
+        g.setGradientFill(baseGrad);
+        g.fillEllipse(base);
+
+        // inner dial
+        juce::Rectangle<float> inner = dial.reduced(innerDial);
+        g.setColour(Colors::panel);
+        g.fillEllipse(inner);
+        //gradient
+        juce::ColourGradient innerDialGrad(
+            Colors::panel,                          // top
+            inner.getCentreX(), inner.getY(),
+            juce::Colours::black.withAlpha(0.6f),   // bottom
+            inner.getCentreX(), inner.getBottom(),
+            false
+        );
+        g.setGradientFill(innerDialGrad);
+        g.fillEllipse(inner);
+
+        //inner dial dark overlay
+        const float innerOutlineThickness = juce::jmax(0.5f, radius * 0.15f);
+        juce::Rectangle<float> innerOutline = inner.reduced(innerOutlineThickness);
+        // gradient
+        juce::ColourGradient innerGrad(
+            juce::Colours::black.withAlpha(0.15f),    // top
+            innerOutline.getCentreX(), innerOutline.getY(),
+            juce::Colours::black.withAlpha(1.0f),     // bottom 
+            innerOutline.getCentreX(), innerOutline.getBottom(),
+            false
+        );
+        g.setGradientFill(innerGrad);
+        g.fillEllipse(innerOutline);
+
+        // arrow 
+        g.setColour(juce::Colours::white);
+        juce::Path pointer;
+        float arrowLength = radius * 0.30f;
+        float arrowWidth = radius * 0.20f;
+        pointer.addTriangle(0.0f, -(radius * 0.70f), -arrowWidth * 0.5f, -(radius * 0.70f - arrowLength), arrowWidth * 0.5f, -(radius * 0.70f - arrowLength));
+        // rotate 
+        pointer.applyTransform(juce::AffineTransform::rotation(angle).translated(centre.x, centre.y));
+        g.fillPath(pointer);
+
+        // inner edge outline  pink gradient
+        const float innerEdgeThickness = juce::jmax(0.6f, radius * 0.02f);
+        juce::Rectangle<float> innerEdge = innerOutline.reduced(innerOutlineThickness * 1.0f);
+
+        // ring area
+        juce::Path pinkBand;
+        pinkBand.addEllipse(innerEdge);
+        pinkBand.addEllipse(innerEdge.reduced(innerEdgeThickness * 3.0f));
+        pinkBand.setUsingNonZeroWinding(false);
+
+        // vertical gradient
+        juce::ColourGradient pinkVert(
+            Colors::accentPink.withAlpha(0.5f), innerEdge.getCentreX(), innerEdge.getY(),      // top
+            Colors::accentPink.withAlpha(0.0f), innerEdge.getCentreX(), innerEdge.getBottom(), // bottom
+            false
+        );
+        g.setGradientFill(pinkVert);
+        g.fillPath(pinkBand);
+
+        // pink outline
+        g.setColour(Colors::accentPink.withAlpha(0.5f));
+        g.drawEllipse(innerEdge, innerEdgeThickness);
+
+        //put dial name below black dial
+        if (slider.getName().isNotEmpty()) {
+            g.setColour(juce::Colours::white);
+            //text
+            g.setFont(juce::Font(radius * 0.25f, juce::Font::bold));
+            //below dial
+            const float labelY = centre.y + baseThick * 1.6f;
+            g.drawFittedText(slider.getName(), juce::Rectangle<int>((int)(centre.x - radius), (int)labelY, (int)(radius * 2), 10),
+                juce::Justification::centred, 1);
+        }
+    }
+
 };
+
+// LookAndFeel to draw smalldial
+struct SmallDialLookAndFeel : public CustomLookAndFeel
+{
+    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+        float sliderPosProportional, float rotaryStartAngle,
+        float rotaryEndAngle, juce::Slider& slider) override
+    {
+        drawSmallDial(g, x, y, width, height, sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
+    }
+
+};
+
