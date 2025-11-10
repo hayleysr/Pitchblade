@@ -453,10 +453,10 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
         if (globalBypassed) {
             // grey out
             row->bypass.setEnabled(false);
-            row->bypass.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
-            row->bypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkgrey);
-            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::background);
-            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::background);
+            row->bypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white.withAlpha(0.5f));
         } else {
             // restore
             const bool state = row->bypassed;
@@ -474,10 +474,10 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
         if (row->isDoubleRow) {
             if (globalBypassed) {
                 row->rightBypass.setEnabled(false);
-                row->rightBypass.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
-                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkgrey);
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::background);
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::background);
+                row->rightBypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white.withAlpha(0.5f));
             }
             else {
                 const bool stateR = row->rightBypassed;

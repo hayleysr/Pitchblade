@@ -27,6 +27,8 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     //modeButton.setClickingTogglesState(true);
     //addAndMakeVisible(modeButton);
 
+    addAndMakeVisible(volumeMeter); // placeholder volumemeter
+
     static CustomLookAndFeel gSwitchLF;
     modeButton.setButtonText("Limiter Mode");
     modeButton.setClickingTogglesState(true);
@@ -40,6 +42,11 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     modeButton.onClick = [this]() {
         localState.setProperty("CompLimiterMode", modeButton.getToggleState(), nullptr);
     };
+
+    // make small dials for bottom row - reyna
+    static SmallDialLookAndFeel smallDialLF;
+    thresholdSlider.setLookAndFeel(&smallDialLF);
+    releaseSlider.setLookAndFeel(&smallDialLF);
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -126,49 +133,79 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     updateSliderVisibility();
 };
 
-void CompressorPanel::paint(juce::Graphics& g)
-{
+void CompressorPanel::paint(juce::Graphics& g) {
     g.fillAll(Colors::background);
     g.drawRect(getLocalBounds(), 2);
+
+    // volume meter - fake
+    g.setColour(Colors::panel);
+    g.fillRect(volumeMeter.getBounds());
+    g.setColour(Colors::accent);
+    g.drawRect(volumeMeter.getBounds(), 2);
+
+    // fake fill
+    /*auto meterBounds = volumeMeter.getLocalBounds().reduced(6);
+    int fillHeight = (int)(meterBounds.getHeight() * 0.6f);
+    juce::Rectangle<int> fillRect = meterBounds.removeFromBottom(fillHeight);
+    g.setColour(Colors::accentPink);
+    g.fillRect(fillRect);*/
 }
 
-CompressorPanel::~CompressorPanel()
-{
+void CompressorPanel::place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF) {
+    slider.setBounds(area.reduced(10));
+    label.setBounds(area.removeFromBottom(20));
+}
+
+CompressorPanel::~CompressorPanel() {
     if (localState.isValid())
         localState.removeListener(this);
 }
 
-void CompressorPanel::resized()
-{
+void CompressorPanel::resized() {
     auto area = getLocalBounds();
 
-    //Title label at the top
+    //panel label
     compressorLabel.setBounds(area.removeFromTop(30));
-    modeButton.setBounds(area.removeFromTop(30).reduced(10, 5));
 
-    auto dials = area.reduced(10);
-    int dialWidth = dials.getWidth() / 4;
+    auto r = area.reduced(10, 6);
 
-    auto thresholdArea = dials.removeFromLeft(dialWidth).reduced(5);
-    auto ratioArea = dials.removeFromLeft(dialWidth).reduced(5);
-    auto attackArea = dials.removeFromLeft(dialWidth).reduced(5);
-    auto releaseArea = dials.reduced(5);
+    // volume meter
+    auto meterArea = r.removeFromLeft(80);
+    meterArea.removeFromTop(20);         
+    meterArea.removeFromBottom(10);
+    meterArea.removeFromLeft(20);
+    volumeMeter.setBounds(meterArea);
 
-    //Positioning threshold label and slider
-    thresholdLabel.setBounds(thresholdArea.removeFromTop(20));
-    thresholdSlider.setBounds(thresholdArea);
+    // left column - threshold and release
+    auto leftCol = r.removeFromLeft(r.getWidth() * 0.30f);
+    leftCol.translate(0, -20);
+    int dialH = (leftCol.getHeight() / 2) ;
 
-    //Positioning ratio label and slider
-    ratioLabel.setBounds(ratioArea.removeFromTop(20));
-    ratioSlider.setBounds(ratioArea);
+    auto thresholdArea = leftCol.removeFromTop(dialH).reduced(-15);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 100, 25);
 
-    //Positioning attack label and slider
-    attackLabel.setBounds(attackArea.removeFromTop(20));
-    attackSlider.setBounds(attackArea);
+    place(thresholdArea, thresholdSlider, thresholdLabel, true);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 15);
+    leftCol.translate(0,10);
+    auto releaseArea = leftCol.reduced(-15); 
+    place(releaseArea, releaseSlider, releaseLabel, true);
 
-    //Positioning release label and slider
-    releaseLabel.setBounds(releaseArea.removeFromTop(20));
-    releaseSlider.setBounds(releaseArea);
+    // right side - limiter toggle, ratio and attack bottom
+    auto rightCol = r.reduced(10);
+
+    // limiter toggle
+    auto toggleArea = rightCol.removeFromTop(45);
+    modeButton.setBounds(toggleArea.withTrimmedTop(2).withHeight(35));
+
+    // dials
+    int dialW = rightCol.getWidth() / 2;
+    int dialH2 = rightCol.getHeight() * 0.9f;
+
+    auto ratioArea = rightCol.removeFromLeft(dialW).reduced(5);
+    place(ratioArea, ratioSlider, ratioLabel, true);
+
+    auto attackArea = rightCol.reduced(2);
+    place(attackArea, attackSlider, attackLabel, true);
 }
 
 void CompressorPanel::updateSliderVisibility()
@@ -183,12 +220,21 @@ void CompressorPanel::updateSliderVisibility()
         modeButton.setButtonText("Limiter Mode");
     }
 
-    // In limiter mode, hide the ratio and attack sliders
-    const bool showCompressorControls = !isLimiter;
-    ratioSlider.setVisible(showCompressorControls);
-    ratioLabel.setVisible(showCompressorControls);
-    attackSlider.setVisible(showCompressorControls);
-    attackLabel.setVisible(showCompressorControls);
+    // In limiter mode, grey the ratio and attack sliders - reyna
+    const bool compressorActive = !isLimiter;
+    auto greyOut = [compressorActive](juce::Slider& slider, juce::Label& label) {
+            slider.setEnabled(compressorActive);
+            label.setEnabled(compressorActive);
+            if (compressorActive) {
+                slider.setAlpha(1.0f);
+                label.setAlpha(1.0f);
+            } else {
+                slider.setAlpha(0.4f);
+                label.setAlpha(0.4f);
+            }
+        };
+    greyOut(ratioSlider, ratioLabel);
+    greyOut(attackSlider, attackLabel);
 }
 
 void CompressorPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
