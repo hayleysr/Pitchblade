@@ -6,6 +6,7 @@
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
+    // Labels + sliders
     //label names for dials - reyna
     formantSlider.setName("Formant");
     mixSlider.setName("Dry/Wet");
@@ -14,25 +15,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     panelTitle.setText("Formant", juce::dontSendNotification);
     panelTitle.setName("NodeTitle"); 
     addAndMakeVisible(panelTitle);
-    
-    // Formant toggle button - huda
-    //toggleViewButton.setClickingTogglesState(true);
-    static CustomLookAndFeel gSwitchLF; //for custom toggle - reyna
-    toggleViewButton.setLookAndFeel(&gSwitchLF);
-    toggleViewButton.onClick = [this]()
-        {
-            showingFormants = toggleViewButton.getToggleState();
-            toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
-            repaint();
-        };
-
-    addAndMakeVisible(toggleViewButton);
-
-    startTimerHz(4); // repaint timer 4 times per second - huda
-
-    //startTimerHz(10); // repaint timer 10 times per second - huda
-
-        // Labels + sliders
+  
     formantLabel.setText("Formant", juce::dontSendNotification);
     addAndMakeVisible(formantLabel);
 
@@ -60,92 +43,25 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
 void FormantPanel::resized()
 {
-    auto area = getLocalBounds();
-    auto r = getLocalBounds().reduced(30);
-    panelTitle.setBounds(area.removeFromTop(30));
-    toggleViewButton.setBounds(r.removeFromTop(30));
-
-    auto row1 = r.removeFromTop(40);
+    auto r = getLocalBounds().reduced(10);
+    // Dynamically size rows to reduce empty space below controls
+    const int gap = 10;
+    int rowHeight = juce::jmax(40, (r.getHeight() - gap) / 2);
+    auto row1 = r.removeFromTop(rowHeight);
     formantLabel .setBounds(row1.removeFromLeft(90));
     formantSlider.setBounds(row1);
 
-    auto row2 = r.removeFromTop(40);
+    r.removeFromTop(gap);
+    auto row2 = r.removeFromTop(rowHeight);
     mixLabel.setBounds(row2.removeFromLeft(90));
     mixSlider.setBounds(row2);
-
-    detectorArea = r;
-
 }
 
 void FormantPanel::paint(juce::Graphics& g)
 {
-    ////background
-    //juce::Image bg = juce::ImageCache::getFromMemory(
-    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    //g.setColour(Colors::background.withAlpha(0.8f));
-
-    //if (bg.isValid()) {
-    //    g.drawImage(bg, getLocalBounds().toFloat());
-    //}
-    //else
-        g.fillAll(Colors::background);
-        g.drawRect(getLocalBounds(), 2);
-
-    if (!showingFormants) return;
-
-    // local copies: never mutate detectorArea
-    auto header = detectorArea.withHeight(16);
-    auto plot   = detectorArea.withTrimmedTop(16).reduced(2);
-
-    // Title (smaller)
-    g.setColour(Colors::buttonText.withAlpha(0.9f));
-    g.setFont(14.0f);
-    g.drawText("Formant Detector Output", header, juce::Justification::centredLeft, false);
-
-    // Frame
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.6f));
-    g.drawRect(plot);
-
-    // Formants
-    const auto formantsCopy = processor.getLatestFormants();
-    constexpr float fMin = 0.0f, fMax = 5000.0f;
-
-    g.setColour(juce::Colours::red.withAlpha(0.95f));
-    g.setFont(10.0f);
-
-    for (float freqHz : formantsCopy)
-    {
-        const float f = juce::jlimit(fMin, fMax, freqHz);
-        const float x = juce::jmap(f, fMin, fMax,
-                                   (float)plot.getX(), (float)plot.getRight());
-
-        g.drawLine(x, (float)plot.getY(), x, (float)plot.getBottom(), 2.0f);
-
-        juce::Rectangle<int> tag((int)x - 26, plot.getBottom() - 14, 52, 12);
-        g.setColour(Colors::buttonText);
-        g.drawFittedText(juce::String(freqHz, 0) + " Hz", tag, juce::Justification::centred, 1);
-        g.setColour(juce::Colours::red.withAlpha(0.95f));
-    }
+    g.fillAll(Colors::background);
 }
 
-//Button to show formants vs gain - huda
-void FormantPanel::buttonClicked(juce::Button* button)
-{
-    if (button == &toggleViewButton)
-    {
-        showingFormants = !showingFormants;
-        toggleViewButton.setButtonText(showingFormants ? "Show Gain" : "Show Formants");
-        //resized();
-        repaint();
-    }
-}
-
-void FormantPanel::timerCallback() {
-    if (showingFormants) { // refresh if formants are visible
-        repaint();
-    }
-}
 
 // XML serialization for saving/loading - reyna
 std::unique_ptr<juce::XmlElement> FormantNode::toXml() const {
