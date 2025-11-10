@@ -29,27 +29,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         if (!apvts.state.hasType("EffectNodes")) {
             apvts.state = juce::ValueTree("EffectNodes");
         }
-
-        std::lock_guard<std::recursive_mutex> lock(audioMutex);
-
-        //effect node building - reyna
-        effectNodes.clear();
-        effectNodes.push_back(std::make_shared<GainNode>(*this));
-        effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
-        effectNodes.push_back(std::make_shared<CompressorNode>(*this));
-        effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
-        effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
-        effectNodes.push_back(std::make_shared<FormantNode>(*this));
-        effectNodes.push_back(std::make_shared<PitchNode>(*this));
-        effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
-
-	    // set up default chain: Gain > Noise gate > formant > Pitch
-	    for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
-        for (size_t i = 0; i + 1 < effectNodes.size(); ++i) {
-            effectNodes[i]->connectTo(effectNodes[i + 1]);
-        }
-	    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
-        rootNode = effectNodes.front();
     }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){
@@ -191,7 +170,7 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     juce::Logger::outputDebugString("===========================================");
 
     //copy of current list
-    std::vector<std::shared_ptr<EffectNode>> oldNodes = effectNodes;
+    std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
     std::vector<std::shared_ptr<EffectNode>> newList;
     newList.reserve(pendingOrderNames.size());  
 
@@ -272,7 +251,7 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     }
 
     // update effect node list
-    effectNodes = newList;
+    effectNodes = std::move(newList);
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
 	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
     juce::Logger::outputDebugString("=== Reorder finished ===\n");
@@ -405,7 +384,7 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
 
 	// update effect node list
     if (!newList.empty()) {
-        effectNodes = newList;
+        effectNodes = std::move(newList);
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.front();
     }
@@ -604,6 +583,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
 
+    std::lock_guard<std::recursive_mutex> lock(audioMutex);
+
 	//effect node building - reyna
     effectNodes.clear();
     effectNodes.push_back(std::make_shared<GainNode>(*this));
@@ -623,6 +604,14 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
 
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()
