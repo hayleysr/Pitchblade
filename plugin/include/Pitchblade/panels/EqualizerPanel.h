@@ -4,6 +4,8 @@
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/panels/EffectNode.h"
+// Visualizer lives separately (VisualizerPanel tabs)
+#include "Pitchblade/ui/EqualizerVisualizer.h"
 
 // ===================== Panel (UI) =====================
 class EqualizerPanel : public juce::Component, public juce::ValueTree::Listener {
@@ -23,6 +25,8 @@ private:
 
     AudioPluginAudioProcessor& processor;
     juce::ValueTree localState;  // valuetree for node permaters
+
+    // No embedded visualizer; knobs-only panel
 
     juce::Slider lowFreq,  lowGain,
                  midFreq,  midGain,
@@ -118,25 +122,19 @@ public:
         return std::make_unique<EqualizerPanel>(proc, getMutableNodeState());
     }
 
-    // visualizer
+    // Provide a visualizer component for VisualizerPanel
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor&) override {
-        return nullptr;
+        try { return std::make_unique<EqualizerVisualizer>(processor); }
+        catch (...) { return nullptr; }
     }
 
     // keep existing DSP path 
     // push local state into the DSP and process
-    void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
-        auto& st = getMutableNodeState();
-
-        proc.getEqualizer().setLowFreq((float)st.getProperty("LowFreq"));
-        proc.getEqualizer().setLowGainDb((float)st.getProperty("LowGain"));
-        proc.getEqualizer().setMidFreq((float)st.getProperty("MidFreq"));
-        proc.getEqualizer().setMidGainDb((float)st.getProperty("MidGain"));
-        proc.getEqualizer().setHighFreq((float)st.getProperty("HighFreq"));
-        proc.getEqualizer().setHighGainDb((float)st.getProperty("HighGain"));
-
-        proc.getEqualizer().processBlock(buffer);
-    }
+   void process(AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
+    // Do not read ValueTree properties on the audio thread (not thread-safe).
+    // The UI updates the Equalizer parameters via thread-safe setters when knobs move.
+    proc.getEqualizer().processBlock(buffer);
+}
 
     //reynas daisychain and presets stuff /////////////////////////////////////////
 
