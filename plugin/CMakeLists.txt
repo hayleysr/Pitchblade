@@ -63,6 +63,7 @@ target_sources(${PROJECT_NAME}
         source/ui/DaisyChain.cpp
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
+        source/ui/LevelMeter.cpp
         source/ui/RealTimeGraphVisualizer.cpp
         source/ui/FrequencyGraphVisualizer.cpp
         source/panels/PresetsPanel.cpp

@@ -66,7 +66,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
-    // Formant Shifter : huda
+	// De-Esser : austin (fixed)
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-100.0f, 0.0f, 0.1f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -75,6 +75,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
+	// Formant Shifter : huda
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_SHIFT, "Formant",
         juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
@@ -106,6 +110,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     //Settings Panel: austin
     params.push_back(std::make_unique<juce::AudioParameterInt>(
         "GLOBAL_FRAMERATE", "Global Framerate", 1, 4, 3));
+
+    //Pitch Shifter: hayley
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_RETUNE_SPEED", "Pitch Retune Speed", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_CORRECTION_RATIO", "Pitch Correction Ratio", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_WAVER", "Pitch Waver", juce::NormalisableRange<float>(0.0f, 20.0f, 1.0f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_TRANSITION", "Pitch Note Transition", juce::NormalisableRange<float>(0.0f, 50.0f, 1.0f), 20.0f));
 
     return { params.begin(), params.end() };
 
@@ -569,6 +583,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
 
+    std::lock_guard<std::recursive_mutex> lock(audioMutex);
+
 	//effect node building - reyna
     effectNodes.clear();
     effectNodes.push_back(std::make_shared<GainNode>(*this));
@@ -588,6 +604,14 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
 
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    {
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+    }
 }
 
 void AudioPluginAudioProcessor::releaseResources()

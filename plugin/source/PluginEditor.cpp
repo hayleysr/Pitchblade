@@ -67,9 +67,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         closeOverlaysIfOpen();
         daisyChain.setReorderLocked(false);
         };
-
-    effectPanel.refreshTabs();
-    visualizer.refreshTabs();
+    {
+        std::lock_guard<std::recursive_mutex> lock(processorRef.getMutex());
+        if (!processorRef.getEffectNodes().empty()){
+            effectPanel.refreshTabs();
+            visualizer.refreshTabs();
+        }
+    }
 
 
 	//tooltip manager / reyna ///////////////////////////////////////////
@@ -286,6 +290,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
 
     //daisyChain.resetRowsToNodes();    // rows matches current effectNodes for daisychain ui
@@ -319,7 +324,6 @@ void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
             if (!row->rightEffectName.isEmpty()) {
                 const juce::String rightName = row->rightEffectName;
                 row->rightButton.onClick = [this, rightName]() {
-                        std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
                         auto& nodes = processorRef.getEffectNodes();
 
                         for (int n = 0; n < (int)nodes.size(); ++n) {

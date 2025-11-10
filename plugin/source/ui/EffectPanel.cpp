@@ -38,6 +38,7 @@ void EffectPanel::paint(juce::Graphics& g)
 
 void EffectPanel::refreshTabs()
 {
+    std::lock_guard<std::recursive_mutex> lock(processor.getMutex());
     //rebuilds tabs based on gobal effects list
     effectNodes = processor.getEffectNodes();
     tabs.clearTabs();

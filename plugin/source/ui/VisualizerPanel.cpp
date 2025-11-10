@@ -46,7 +46,7 @@ void VisualizerPanel::refreshTabs() {
     }
 
 	// each node creates its own visualizer 
-    for (auto& node : effectNodes) {
+    for (auto& node : safeNodes) {
         if (!node) {
 			continue;   // skip null nodes
         }
