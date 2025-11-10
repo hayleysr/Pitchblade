@@ -12,6 +12,7 @@ DeNoiserPanel::DeNoiserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& s
     //Label
     deNoiserLabel.setText("De-Noiser", juce::dontSendNotification);
     addAndMakeVisible(deNoiserLabel);
+    deNoiserLabel.setName("NodeTitle");
 
     //Learn button
     addAndMakeVisible(learnButton);
@@ -76,6 +77,17 @@ DeNoiserPanel::~DeNoiserPanel(){
 }
 
 void DeNoiserPanel::paint(juce::Graphics& g){
+    ////background
+    //juce::Image bg = juce::ImageCache::getFromMemory(
+    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    //g.setColour(Colors::background.withAlpha(0.8f));
+
+    //if (bg.isValid()) {
+    //    g.drawImage(bg, getLocalBounds().toFloat());
+    //}
+    //else
+
     g.fillAll(Colors::background);
     g.drawRect(getLocalBounds(),2);
 }

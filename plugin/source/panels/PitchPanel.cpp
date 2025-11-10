@@ -1,5 +1,6 @@
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
     : processor(proc), localState(state),
@@ -137,6 +138,12 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         };
 
     localState.addListener(this);
+    //startTimerHz(8);    // Update 4x/second
+
+    //panel label - reyna
+    //panelTitle.setText("Pitch", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
 }
 
 void PitchPanel::resized()
@@ -190,6 +197,18 @@ void PitchPanel::resized()
 
 void PitchPanel::paint(juce::Graphics& g)
 {
+    /*juce::Image bg = juce::ImageCache::getFromMemory(
+        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    g.setColour(Colors::background.withAlpha(0.8f));
+
+    if (bg.isValid()) {
+        g.drawImage(bg, getLocalBounds().toFloat());
+    }
+    else*/
+        g.fillAll(Colors::background);
+        g.drawRect(getLocalBounds(), 2);
+
     auto bounds = getLocalBounds().toFloat();
     drawStaticContent(g, bounds);
     drawDynamicLabels(g, bounds);
