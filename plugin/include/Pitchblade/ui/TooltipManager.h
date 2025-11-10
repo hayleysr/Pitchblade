@@ -6,7 +6,14 @@
 
 class TooltipManager {
 public:
-	TooltipManager() = default;     // default constructor
+	//TooltipManager() = default;     // default constructor
+    TooltipManager()
+    {
+        // Create tooltip window and keep it always on top
+        tooltipWindow = std::make_unique<juce::TooltipWindow>(nullptr, 0);
+        tooltipWindow->setAlwaysOnTop(true);
+        tooltipWindow->setMillisecondsBeforeTipAppears(400); // optional delay
+    }
 
 	// load tooltips from file 
     void loadTooltipsFromFile(const juce::File& file) {
@@ -34,7 +41,19 @@ public:
         return {};
     }
 
+    //apply tooltip
+    void applyTooltipTo(juce::Component& comp, const juce::String& partName) {
+        if (auto text = getTooltipFor(partName); !text.isEmpty())
+            comp.getProperties().set("tooltip", text); 
+
+        // keep the floating window above overlays
+        tooltipWindow->toFront(true);
+    }
+
+    juce::TooltipWindow* getWindow() { return tooltipWindow.get(); }
+
 private:
 	// map of part names to tooltips
     std::unordered_map<juce::String, juce::String> tooltips;
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 };

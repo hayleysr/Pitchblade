@@ -11,6 +11,7 @@
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/panels/SettingsPanel.h"
 #include "Pitchblade/panels/PresetsPanel.h"
+#include "Pitchblade/ui/TooltipManager.h"
 
 #include "Pitchblade/ui/DaisyChainItem.h"
 #include "Pitchblade/panels/EffectNode.h"
@@ -77,10 +78,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 
 	//tooltip manager / reyna ///////////////////////////////////////////
-	tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 800);  // .8 second delay
-    tooltipWindow->setLookAndFeel(&customLF);
+	//tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 800);  // .8 second delay
+ //   tooltipWindow->setLookAndFeel(&customLF);
 
-	// load tooltips from file or binary data (wouldnt read from file had to add to binary)
+	//// load tooltips from file or binary data (wouldnt read from file had to add to binary)
     auto tooltipFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
         .getParentDirectory()
         .getChildFile("assets")
@@ -101,19 +102,19 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 		tooltipManager.loadTooltipsFromFile(temp);  // load from temp file
     }
 
-    //apply tooltips to every daisychain row
-    auto applyRowTooltips = [this]() {
-            for (int i = 0; i < daisyChain.items.size(); ++i) {
-                if (auto* row = daisyChain.items[i]) {
-					const juce::String effectKey = "effect." + row->getName(); // uses daisyChainItem setName as effect name
+ ////   //apply tooltips to every daisychain row
+ //   auto applyRowTooltips = [this]() {
+ //           for (int i = 0; i < daisyChain.items.size(); ++i) {
+ //               if (auto* row = daisyChain.items[i]) {
+	//				const juce::String effectKey = "effect." + row->getName(); // uses daisyChainItem setName as effect name
 
-                    row->button.setTooltip(tooltipManager.getTooltipFor(effectKey));
-                    row->bypass.setTooltip(tooltipManager.getTooltipFor("bypass"));
-                    row->modeButton.setTooltip(tooltipManager.getTooltipFor("modeButton"));
-                }
-            }
-        };
-
+ //                   row->button.setTooltip(tooltipManager.getTooltipFor(effectKey));
+ //                   row->bypass.setTooltip(tooltipManager.getTooltipFor("bypass"));
+ //                   row->modeButton.setTooltip(tooltipManager.getTooltipFor("modeButton"));
+ //               }
+ //           }
+ //       };
+    //tooltipManager.loadTooltipsFromFile(temp);
 	// assign tooltips to top bar and global daisychain buttons
     topBar.presetButton.setTooltip(tooltipManager.getTooltipFor("presetButton"));
     topBar.bypassButton.setTooltip(tooltipManager.getTooltipFor("bypassButton"));
@@ -122,7 +123,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     daisyChain.duplicateButton.setTooltip(tooltipManager.getTooltipFor("duplicateButton"));
     daisyChain.deleteButton.setTooltip(tooltipManager.getTooltipFor("deleteButton"));
 
-    applyRowTooltips();
+    //applyRowTooltips();
 
 
 	// global bypass button / reyna  ////////////////////////////////////////////
@@ -182,7 +183,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             };
     }
         //keeps daiychain ui reordering consistant with processor ////////////////////////////
-        daisyChain.onReorderFinished = [this, applyRowTooltips]() {
+        daisyChain.onReorderFinished = [this]() {
             // new API for multiple rows
             const auto& rows = daisyChain.getCurrentLayout();       // get current layout
             std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
@@ -257,7 +258,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 }
 
             }
-            applyRowTooltips();     // reapply tooltips after reorder
+            //applyRowTooltips();     // reapply tooltips after reorder
             if (activeEffectName.isNotEmpty())
                 setActiveEffectByName(activeEffectName);
 
@@ -283,6 +284,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                 }
             });     
         };
+
+        addAndMakeVisible(*tooltipManager.getWindow());
+        tooltipManager.getWindow()->toFront(true);
     }
 }
 
