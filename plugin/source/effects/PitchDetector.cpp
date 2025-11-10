@@ -18,9 +18,9 @@
     dWindowSize(windowSize),
     dYinBufferSize(windowSize / 2),
     dReferencePitch(referencePitch),
-    dVoiceThreshold(0.3f),
+    dVoiceThreshold(0.1f),
     dMaxCandidates(4),
-    dAmpThreshold(0.01f) //-40 db
+    dAmpThreshold(0.001f)
  {
     // Constructor
  }
@@ -72,7 +72,7 @@
     dSmoothedPitchTrack.clear();
  }
 
- void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
+void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
  {
     // Set info pointers
     auto* bufferData = buffer.getReadPointer(0);
@@ -142,7 +142,7 @@
 
         // Running sum: lag for prev, but delete oldest sample and add newest
         r[tau] = r[tau - 1] 
-                - (frame[tau - 1] * frame[tau - 1]) ;
+                - (frame[tau - 1] * frame[tau - 1]);
 
         // DF
         dYinBuffer[tau] = r[0] + r[tau] - 2 * acf;
@@ -273,18 +273,26 @@
     return probabilities;
  }
 
- // Pick most probable candidate
+ // Viterbi algorithm
  float PitchDetector::temporalTracking(std::vector<std::pair<int, float>>& candidates, std::vector<float>& probabilities)
  {
-    if(candidates.empty() || probabilities.empty()) return 0.0f;
+    if(candidates.empty()) return 0.0f;
+    float weightedSum = 0.0f;
+    float totalWeight = 0.0f;
 
-    // Detect if voiced
-    if (probabilities[0] < dVoiceThreshold) {
+    for (int i = 0; i < candidates.size(); ++i) {
+        float pitch = convertLagToPitch(candidates[i].first);
+        weightedSum += pitch * probabilities[i];
+        totalWeight += probabilities[i];
+    }
+    
+    // Detect if voiced: if the signal is periodic or noisy
+    float bestProbability = probabilities.empty() ? 0.0f : probabilities[0];
+    if (bestProbability < dVoiceThreshold) {
         return 0.0f; 
     }
-
-    // Return best candidate
-    return convertLagToPitch(candidates[0].first);
+    
+    return weightedSum / totalWeight;
  }
 
  float PitchDetector::calculateRMS(const std::vector<float>& frame)
