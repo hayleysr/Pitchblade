@@ -17,8 +17,8 @@ EqualizerVisualizer::EqualizerVisualizer(AudioPluginAudioProcessor& proc)
     yLabels->setInterceptsMouseClicks(false, false);
     yLabels->setAlwaysOnTop(true);
 
-    // Initial threshold: show 0 dB line and mid band center as a vertical guide
-    graph->setThreshold(processor.getEqualizer().getMidFreq(), 0.0f);
+    // Initial threshold aligned to 0 dB baseline after our display mapping
+    graph->setThreshold(processor.getEqualizer().getMidFreq(), -24.0f);
 
     // Update regularly; cost is low (rebuilding 300 points)
     // FrequencyGraphVisualizer handles its own repaint timer; we just refresh data
@@ -43,8 +43,8 @@ void EqualizerVisualizer::resized()
 
 void EqualizerVisualizer::timerCallback()
 {
-    // Keep the vertical threshold in sync with the mid frequency
-    graph->setThreshold(processor.getEqualizer().getMidFreq(), 0.0f);
+    // Keep the vertical threshold in sync with the mid frequency, baseline at -24 dB
+    graph->setThreshold(processor.getEqualizer().getMidFreq(), -24.0f);
     updateResponseCurve();
 }
 
@@ -102,11 +102,13 @@ void EqualizerVisualizer::updateResponseCurve()
         if (midC)mag *= midC ->getMagnitudeForFrequency(f, (float)sr);
         if (highC) mag *= highC->getMagnitudeForFrequency(f, (float)sr);
 
-        // Convert to dB; the FrequencyGraphVisualizer expects [-100, 0] dB range.
+        // Convert to dB and remap so +/-24 dB fits in the visualizer's [-100..0] scale.
         float db = juce::Decibels::gainToDecibels(mag, -100.0f);
-        db = juce::jlimit(-100.0f, 0.0f, db);
+        db = juce::jlimit(-24.0f, 24.0f, db);
+        float displayDb = db - 24.0f; // range now [-48..0]
+        displayDb = juce::jlimit(-100.0f, 0.0f, displayDb);
 
-        points.emplace_back(f, db);
+        points.emplace_back(f, displayDb);
     }
 
     // Push to the graph (thread-safe inside the visualizer)
@@ -143,17 +145,17 @@ void EqualizerVisualizer::YAxisLabelOverlay::paint(juce::Graphics& g)
     g.setColour(Colors::buttonText);
     g.drawText("dB", yLabelBounds, Justification::centred);
 
-    // Desired labels aligned to knob range
-    // Match the number of labels created by our FrequencyGraphVisualizer instance (passed 5)
+    // Desired labels: -24, -12, 0, +12, +24 dB mapped using the same display transform (v - 24)
     static const int numLabels = 5;
     static const float values[numLabels] = { -24.0f, -12.0f, 0.0f, 12.0f, 24.0f };
 
     for (int i = 0; i < numLabels; ++i)
     {
-        float proportion = (float)i / (float)(numLabels - 1); // 0..1 bottom->top
-        float y = (float)graphBottom - proportion * (float)graphHeight;
+        const float v = values[i];
+        const float mapped = v - 24.0f; // display mapping used for the curve
+        float y = juce::jmap(mapped, -100.0f, 0.0f, (float)graphBottom, (float)graphTop);
 
-        auto labelText = juce::String(values[i], 0);
+        auto labelText = juce::String(v, 0);
         g.drawText(labelText, yLabelBounds.getX(), juce::roundToInt(y) - 6, labelWidth, 12, Justification::centredRight);
     }
 }
