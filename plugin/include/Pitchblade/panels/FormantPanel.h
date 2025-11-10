@@ -80,6 +80,10 @@ public:
         // Process in-place to get the wet signal
         sh.processBlock (buffer); // buffer = wet
 
+        // Keep a copy of the fully-wet output for visualization regardless of Dry/Wet mix
+        wetBuffer.setSize (numCh, numSamples, false, false, true);
+        wetBuffer.makeCopyOf (buffer);
+
         //Crossfade dry/wet into buffer
         const float wetGain  = juce::jlimit (0.0f, 1.0f, mix);
         const float dryGain  = 1.0f - wetGain;
@@ -93,8 +97,8 @@ public:
                 wet[n] = dryGain * dry[n] + wetGain * wet[n];
         }
 
-        //Analyze the post-mix output for the panel
-        det.processBlock (buffer);
+        // Analyze the fully wet (shifted) output for the visualizer so motion is obvious
+        det.processBlock (wetBuffer);
         auto freqsWet = det.getFormantFrequencies();
 
         std::sort (freqsWet.begin(), freqsWet.end());
@@ -131,4 +135,6 @@ private:
 
     // --- new: buffer to hold the dry input for dry/wet mixing
     juce::AudioBuffer<float> dryBuffer;
+    // Visualization-only: wet copy for formant detection (independent of mix)
+    juce::AudioBuffer<float> wetBuffer;
 };

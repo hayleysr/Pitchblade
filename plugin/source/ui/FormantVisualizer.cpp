@@ -64,18 +64,77 @@ void FormantVisualizer::FormantOverlay::paint(juce::Graphics& g)
                    juce::Justification::centred);
     }
 
-    // Now graph contains the plotting area: draw markers across the full width using the visible range mapping
+    // Draw a smooth curve representing the current formant positions
     const auto& freqs = proc.getLatestFormants();
-    g.setColour(Colors::accent);
-    for (float fHz : freqs)
-    {
-        if (fHz < visibleXAxisHz.getStart() || fHz > visibleXAxisHz.getEnd())
-            continue;
+    const float sigma = 0.03f;                // slightly sharper peaks to emphasize motion
+    const float twoSigma2 = 2.0f * sigma * sigma;
 
-        float x = mapVisibleFreqToX(fHz, inner);
-        g.drawLine(x, (float)inner.getY(), x, (float)inner.getBottom(), 2.0f);
-        // Intentionally no per-line labels per request
+    auto drawCurveFor = [&](const std::vector<float>& fset, juce::Colour c, float thickness)
+    {
+        if (fset.empty()) return;
+        juce::Path p;
+        bool started = false;
+        for (int px = inner.getX(); px <= inner.getRight(); ++px)
+        {
+            const float fx = (float) px;
+            const float fHz = mapXToVisibleFreq(fx, inner);
+            const float lf = std::log10(juce::jlimit(visibleXAxisHz.getStart(), visibleXAxisHz.getEnd(), fHz));
+
+            float amp = 0.0f;
+            for (float cHz : fset)
+            {
+                if (cHz < visibleXAxisHz.getStart() || cHz > visibleXAxisHz.getEnd()) continue;
+                const float lc = std::log10(cHz);
+                const float d = lf - lc;
+                amp += std::exp(-(d * d) / twoSigma2);
+            }
+            amp = juce::jlimit(0.0f, 1.0f, amp);
+            const float y = juce::jmap(amp, 0.0f, 1.0f, (float)inner.getBottom(), (float)inner.getY());
+            if (!started) { p.startNewSubPath(fx, y); started = true; }
+            else { p.lineTo(fx, y); }
+        }
+        g.setColour(c);
+        g.strokePath(p, juce::PathStrokeType(thickness));
+    };
+
+    // Draw ghost of previous curve to emphasize movement
+    if (hasLast)
+        drawCurveFor(lastFormants, Colors::accent.withAlpha(0.3f), 2.0f);
+    // Draw current curve bold
+    drawCurveFor(freqs, Colors::accent, 3.0f);
+
+    // Draw pulsing markers at current formant centers to make motion obvious
+    if (!freqs.empty())
+    {
+        pulse += 0.15f; if (pulse > juce::MathConstants<float>::twoPi) pulse -= juce::MathConstants<float>::twoPi;
+        for (float fHz : freqs)
+        {
+            if (fHz < visibleXAxisHz.getStart() || fHz > visibleXAxisHz.getEnd()) continue;
+            const float x = mapVisibleFreqToX(fHz, inner);
+
+            // Find curve amplitude at this x for y position (recompute quickly)
+            const float lf = std::log10(fHz);
+            float amp = 0.0f;
+            for (float cHz : freqs)
+            {
+                const float lc = std::log10(juce::jlimit(visibleXAxisHz.getStart(), visibleXAxisHz.getEnd(), cHz));
+                const float d = lf - lc;
+                amp += std::exp(-(d * d) / twoSigma2);
+            }
+            amp = juce::jlimit(0.0f, 1.0f, amp);
+            const float y = juce::jmap(amp, 0.0f, 1.0f, (float)inner.getBottom(), (float)inner.getY());
+
+            const float r = 4.0f + 2.0f * (0.5f + 0.5f * std::sin(pulse));
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.fillEllipse(x - r, y - r, 2*r, 2*r);
+            g.setColour(Colors::accent);
+            g.drawEllipse(x - r, y - r, 2*r, 2*r, 2.0f);
+        }
     }
+
+    // Update last set for next frame
+    lastFormants = freqs;
+    hasLast = true;
 }
 
 float FormantVisualizer::FormantOverlay::mapBaseFreqToX(float freq, juce::Rectangle<int> graph) const
@@ -96,6 +155,13 @@ float FormantVisualizer::FormantOverlay::mapVisibleFreqToX(float freq, juce::Rec
     return juce::jmap(proportion, (float)graph.getX(), (float)graph.getRight() - 1.0f);
 }
 
+float FormantVisualizer::FormantOverlay::mapXToVisibleFreq(float x, juce::Rectangle<int> graph) const
+{
+    const float proportion = juce::jlimit(0.0f, 1.0f, (x - (float)graph.getX()) / (float)graph.getWidth());
+    const float lf = juce::jmap(proportion, logVisibleStart, logVisibleEnd);
+    return std::pow(10.0f, lf);
+}
+
 //=========================== Container ===========================
 FormantVisualizer::FormantVisualizer(AudioPluginAudioProcessor& processorRef,
                                      juce::AudioProcessorValueTreeState& vts)
@@ -107,7 +173,7 @@ FormantVisualizer::FormantVisualizer(AudioPluginAudioProcessor& processorRef,
     addAndMakeVisible(freqGraph.get());
 
     // Overlay markers
-    overlay = std::make_unique<FormantOverlay>(processor);
+    overlay = std::make_unique<FormantOverlay>(processor, apvts);
     addAndMakeVisible(overlay.get());
 
     // Listen to global framerate and start timer accordingly
