@@ -5,6 +5,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/effects/FormantDetector.h"
 #include "Pitchblade/effects/FormantShifter.h"
+#include "Pitchblade/ui/FormantVisualizer.h"
 
 #ifndef PARAM_FORMANT_SHIFT
   #define PARAM_FORMANT_SHIFT "FORMANT_SHIFT"
@@ -13,9 +14,7 @@
   #define PARAM_FORMANT_MIX "FORMANT_MIX"
 #endif
 
-class FormantPanel : public juce::Component,
-                     public juce::Button::Listener,     // To handle button clicks - huda
-                     private juce::Timer                 // adding a timer to update formants - huda
+class FormantPanel : public juce::Component
 {
 public:
     explicit FormantPanel(AudioPluginAudioProcessor& proc);
@@ -23,14 +22,7 @@ public:
     void paint(juce::Graphics& g) override;
 
 private:
-    void buttonClicked(juce::Button* button) override;
-    void timerCallback() override;
-
     AudioPluginAudioProcessor& processor;
-
-    bool showingFormants = false;
-
-    juce::ToggleButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
     juce::Label panelTitle;
 
@@ -39,8 +31,6 @@ private:
     juce::Slider formantSlider, mixSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> formantAttach, mixAttach;
 
-    // Optional: drawing area for detector overlay below the sliders
-    juce::Rectangle<int> detectorArea;
 };
 
 ////////////////////////////////////////////////////////////
@@ -91,6 +81,10 @@ public:
         // Process in-place to get the wet signal
         sh.processBlock (buffer); // buffer = wet
 
+        // Keep a copy of the fully-wet output for visualization regardless of Dry/Wet mix
+        wetBuffer.setSize (numCh, numSamples, false, false, true);
+        wetBuffer.makeCopyOf (buffer);
+
         //Crossfade dry/wet into buffer
         const float wetGain  = juce::jlimit (0.0f, 1.0f, mix);
         const float dryGain  = 1.0f - wetGain;
@@ -104,8 +98,8 @@ public:
                 wet[n] = dryGain * dry[n] + wetGain * wet[n];
         }
 
-        //Analyze the post-mix output for the panel
-        det.processBlock (buffer);
+        // Analyze the fully wet (shifted) output for the visualizer so motion is obvious
+        det.processBlock (wetBuffer);
         auto freqsWet = det.getFormantFrequencies();
 
         std::sort (freqsWet.begin(), freqsWet.end());
@@ -123,6 +117,12 @@ public:
         return std::make_unique<FormantPanel> (proc);
     }
 
+    // Provide a visualizer for the bottom VisualizerPanel area
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override
+    {
+        return std::make_unique<FormantVisualizer>(proc, proc.apvts);
+    }
+
     std::shared_ptr<EffectNode> clone() const override
     {
         return std::make_shared<FormantNode> (processor);
@@ -136,4 +136,6 @@ private:
 
     // --- new: buffer to hold the dry input for dry/wet mixing
     juce::AudioBuffer<float> dryBuffer;
+    // Visualization-only: wet copy for formant detection (independent of mix)
+    juce::AudioBuffer<float> wetBuffer;
 };

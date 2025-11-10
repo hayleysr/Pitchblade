@@ -143,7 +143,7 @@ void FormantShifter::writeToFifo (const juce::AudioBuffer<float>& src, int numSa
         for (int c = 0; c < ch; ++c)
         {
             const float* srcPtr = src.getReadPointer (c);
-            float*       dstPtr = fifo.getWritePointer (c);
+            float* dstPtr = fifo.getWritePointer (c);
             std::memcpy (dstPtr + fifoWrite,
                          srcPtr + pos,
                          (size_t) chunk * sizeof (float));
