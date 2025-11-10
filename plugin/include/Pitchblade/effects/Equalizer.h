@@ -5,11 +5,10 @@
 
 /* Author: huda
    Equalizer; basic 3-band EQ:
-     - low  = lowpass (cutoff + gain)
-     - mid  = bandpass (center + gain)
-     - high = highpass (cutoff + gain)
-   split,filter, per-band gains, sum.
-   midQ is fixed for now to keep it simple but we can change this (revisit)
+     - low  = low shelf (cutoff + gain)
+     - mid  = peaking (center + gain)
+     - high = high shelf (cutoff + gain)
+   Uses proper shelving filters for transparent EQ.
 */
 
 class Equalizer
@@ -59,6 +58,17 @@ private:
     std::atomic<float> highFreqHz { 4000.0f };
     std::atomic<float> highGainDb {0.0f };
 
+    // smoothing for gain changes (applied on audio thread)
+    float smoothingTimeSeconds = 0.02f; // 20 ms
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> lowGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> midGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> highGainSmooth;
+
+    // last applied freqs (used if we want to debounce updates later)
+    float lastLowFreqHz  = 200.0f;
+    float lastMidFreqHz  = 1000.0f;
+    float lastHighFreqHz = 4000.0f;
+
     // one ProcessorDuplicator per channel per band
     using IIRFilter = juce::dsp::IIR::Filter<float>;
     using IIRCoeff = juce::dsp::IIR::Coefficients<float>;
@@ -70,9 +80,6 @@ private:
     };
 
     Band lowBand, midBand, highBand;
-
-    // scratch buffers
-    juce::AudioBuffer<float> lowBuf, midBuf, highBuf;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Equalizer)
 };
