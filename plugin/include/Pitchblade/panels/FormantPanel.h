@@ -5,6 +5,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/effects/FormantDetector.h"
 #include "Pitchblade/effects/FormantShifter.h"
+#include "Pitchblade/ui/FormantVisualizer.h"
 
 #ifndef PARAM_FORMANT_SHIFT
   #define PARAM_FORMANT_SHIFT "FORMANT_SHIFT"
@@ -28,7 +29,7 @@ private:
 
     AudioPluginAudioProcessor& processor;
 
-    bool showingFormants = false;
+    bool showingFormants = true;
 
     juce::TextButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
@@ -40,6 +41,9 @@ private:
 
     // Optional: drawing area for detector overlay below the sliders
     juce::Rectangle<int> detectorArea;
+
+    // Formant visualizer component
+    std::unique_ptr<FormantVisualizer> formantVisualizer;
 };
 
 ////////////////////////////////////////////////////////////
