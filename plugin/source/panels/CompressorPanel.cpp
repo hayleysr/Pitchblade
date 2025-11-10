@@ -50,7 +50,7 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
 
     // Threshold slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
@@ -86,7 +86,7 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
 
     // Release slider
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+    releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
@@ -182,29 +182,29 @@ void CompressorPanel::resized() {
     int dialH = (leftCol.getHeight() / 2) ;
 
     auto thresholdArea = leftCol.removeFromTop(dialH).reduced(-15);
-    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 100, 25);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 80, 20);
 
     place(thresholdArea, thresholdSlider, thresholdLabel, true);
-    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 15);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 80, 20);
     leftCol.translate(0,10);
     auto releaseArea = leftCol.reduced(-15); 
     place(releaseArea, releaseSlider, releaseLabel, true);
 
     // right side - limiter toggle, ratio and attack bottom
-    auto rightCol = r.reduced(10);
-
+    auto rightCol = r.reduced(-8);
+    rightCol.translate(-10, -2);
     // limiter toggle
-    auto toggleArea = rightCol.removeFromTop(45);
-    modeButton.setBounds(toggleArea.withTrimmedTop(2).withHeight(35));
+    auto toggleArea = rightCol.removeFromTop(40);
+    modeButton.setBounds(toggleArea.withTrimmedTop(-25).withSizeKeepingCentre(250, 40));
 
     // dials
-    int dialW = rightCol.getWidth() / 2;
-    int dialH2 = rightCol.getHeight() * 0.9f;
+    int dialW = (rightCol.getWidth() / 2);
+    int dialH2 = (rightCol.getHeight());
 
-    auto ratioArea = rightCol.removeFromLeft(dialW).reduced(5);
+    auto ratioArea = rightCol.removeFromLeft(dialW);
     place(ratioArea, ratioSlider, ratioLabel, true);
 
-    auto attackArea = rightCol.reduced(2);
+    auto attackArea = rightCol;
     place(attackArea, attackSlider, attackLabel, true);
 }
 

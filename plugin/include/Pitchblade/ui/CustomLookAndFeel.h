@@ -142,22 +142,37 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
         bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
     {
+        juce::ignoreUnused(shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
         auto area = button.getLocalBounds().toFloat().reduced(2.0f);
         auto isOn = button.getToggleState();
 
         // background
-        g.setColour(juce::Colours::black);
+        juce::ColourGradient bg( Colors::panel.brighter(0.15f), area.getCentreX(), area.getY(),
+            Colors::panel.darker(0.25f), area.getCentreX(), area.getBottom(), false);
+        g.setGradientFill(bg);
         g.fillRoundedRectangle(area, 12.0f);
-        g.setColour(juce::Colours::white);
+
+        // outline
+        g.setColour(juce::Colours::black);
         g.drawRoundedRectangle(area, 12.0f, 2.0f);
 
-        // inner switch
+        // circle side switch 
         float circleDiameter = area.getHeight() * 0.7f;
         float circleX = isOn ? (area.getRight() - circleDiameter - 6.0f) : (area.getX() + 6.0f);
-        juce::Rectangle<float> circle(circleX, area.getY() + (area.getHeight() - circleDiameter) / 2.0f,
-            circleDiameter, circleDiameter);
+        juce::Rectangle<float> circle(circleX, area.getY() + (area.getHeight() - circleDiameter) / 2.0f, circleDiameter, circleDiameter);
 
-        g.setColour(isOn ? Colors::accentBlue : juce::Colours::darkgrey);
+        // shadow
+        g.setColour(juce::Colours::black.withAlpha(0.4f));
+        g.fillEllipse(circle.expanded(1.5f));
+
+        // circle colors
+        juce::Colour baseColor = isOn ? Colors::accentTeal : Colors::accentPink;
+        juce::ColourGradient grad(baseColor.brighter(0.3f),
+            circle.getCentreX(), circle.getY(), baseColor.darker(0.5f),
+            circle.getCentreX(), circle.getBottom(),
+            false);
+
+        g.setGradientFill(grad);
         g.fillEllipse(circle);
 
         // label text
