@@ -9,6 +9,11 @@
 
 //noise gate panel display
 NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : processor(proc), localState(state) {
+    //label names for dials - reyna
+    thresholdSlider.setName("Threshold");
+    attackSlider.setName("GateAttack");
+    releaseSlider.setName("Release");
+
     // Label
     noiseGateLabel.setText("Noise Gate", juce::dontSendNotification);
     addAndMakeVisible(noiseGateLabel);
@@ -180,4 +185,25 @@ void NoiseGateNode::loadFromXml(const juce::XmlElement& xml) {
     s.setProperty("GateThreshold", (float)xml.getDoubleAttribute("GateThreshold", -100.0f), nullptr);
     s.setProperty("GateAttack", (float)xml.getDoubleAttribute("GateAttack", 25.0f), nullptr);
     s.setProperty("GateRelease", (float)xml.getDoubleAttribute("GateRelease", 100.0f), nullptr);
+}
+
+NoiseGateVisualizer::~NoiseGateVisualizer(){
+    if (localState.isValid())
+        localState.removeListener(this);
+}
+
+// Update the graph by polling the node
+void NoiseGateVisualizer::timerCallback(){ 
+    float newDbLevel = noiseGateNode.getOutputLevelAtomic().load();
+    pushData(newDbLevel);
+    RealTimeGraphVisualizer::timerCallback(); // Call base to trigger repaint
+}
+
+// Update threshold line if property changes
+void NoiseGateVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+    if (tree == localState && property == juce::Identifier("GateThreshold"))
+    {
+        float newThreshold = (float)localState.getProperty("GateThreshold", -100.0f);
+        setThreshold(newThreshold, true);
+    }
 }

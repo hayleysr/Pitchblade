@@ -1,14 +1,22 @@
 //hudas code
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     : processor(proc)
 {
+    //label names for dials - reyna
+    formantSlider.setName("Formant");
+    mixSlider.setName("Dry/Wet");
+    
     // Formant toggle button - huda
+    //toggleViewButton.setClickingTogglesState(true);
+    static CustomLookAndFeel gSwitchLF; //for custom toggle
+    toggleViewButton.setLookAndFeel(&gSwitchLF);
     toggleViewButton.onClick = [this]()
         {
-            showingFormants = !showingFormants;
+            showingFormants = toggleViewButton.getToggleState();
             toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
             repaint();
         };

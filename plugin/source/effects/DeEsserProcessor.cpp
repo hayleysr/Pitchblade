@@ -2,7 +2,17 @@
 
 #include "Pitchblade/effects/DeEsserProcessor.h"
 
-DeEsserProcessor::DeEsserProcessor(){}
+DeEsserProcessor::DeEsserProcessor()
+    : forwardFFT(fftOrder),
+        window(fftSize,juce::dsp::WindowingFunction<float>::hann)
+{
+    //Initialize buffers
+    fftInputBuffer.resize(fftSize,0.0f);
+    fftData.resize(fftSize * 2,0.0f);
+
+    //Visualizer stuff
+    currentSpectrumData.resize(fftSize / 2 + 1);
+}
 
 void DeEsserProcessor::prepare(double sRate, int samplesPerBlock){
     sampleRate = sRate;
@@ -19,6 +29,12 @@ void DeEsserProcessor::prepare(double sRate, int samplesPerBlock){
         filter.prepare(spec);
         filter.reset();
     }
+
+    //Visualizer related
+    std::fill(fftInputBuffer.begin(),fftInputBuffer.end(),0.0f);
+    std::fill(fftData.begin(),fftData.end(),0.0f);
+    fftInputBufferPos = 0;
+    currentSpectrumData.resize(fftSize / 2 + 1);
 }
 
 //Setters for user controlled parameters
@@ -71,9 +87,11 @@ void DeEsserProcessor::process(juce::AudioBuffer<float>& buffer){
     for(int i = 0;i < numSamples; i++){
         //Find loudest sibilant sample across all channels
         float sidechainSample = 0.0f;
+        float monoInputSample = 0.0f; //Needed for visualizer
         for(int j = 0; j < numChannels; j++){
             //Get the unfiltered audio sample
             float originalSample = buffer.getSample(j,i);
+            monoInputSample += originalSample;
 
             //Apply the sidechain filter to isolate sibilant frequencies
             //This does not affect the main audio
@@ -81,6 +99,11 @@ void DeEsserProcessor::process(juce::AudioBuffer<float>& buffer){
 
             //Find the peak
             sidechainSample = std::max(sidechainSample, std::abs(filteredSample));
+        }
+
+        //Average mono sample
+        if(numChannels > 0){
+            monoInputSample /= (float)numChannels;
         }
 
         //Envelope detection. The envelope tracks the loudness of the sibilance
@@ -105,5 +128,92 @@ void DeEsserProcessor::process(juce::AudioBuffer<float>& buffer){
             float* channelData = buffer.getWritePointer(j);
             channelData[i] *= gainMultiplier;
         }
+
+        //Apply the gain to the mono sample as well
+        float processedMonoSample = monoInputSample * gainMultiplier;
+
+        //Visualizer buffering
+        //Overlap add input for visualizer
+        fftInputBuffer[fftInputBufferPos++] = processedMonoSample;
+
+        //Process frame
+        if(fftInputBufferPos == fftSize){
+            processVisualizerFrame();
+
+            //Shift input buffer
+            std::memmove(fftInputBuffer.data(),fftInputBuffer.data() + hopSize,overlap * sizeof(float));
+            //Clear the end of the buffer
+            std::fill(fftInputBuffer.data() + overlap,fftInputBuffer.data() + fftSize, 0.0f);
+            //Reset the write pointer
+            fftInputBufferPos = overlap;
+        }
+
     }
+
+}
+
+//New visualizer functions
+void DeEsserProcessor::processVisualizerFrame(){
+    juce::ScopedNoDenormals noDenormals;
+    //Window the input buffer
+    std::copy(fftInputBuffer.begin(),fftInputBuffer.end(),fftData.begin());
+    window.multiplyWithWindowingTable(fftData.data(),fftSize);
+
+    //Clear imaginary part
+    std::fill(fftData.data() + fftSize,fftData.data() + fftSize * 2, 0.0f);
+
+    //Perform forward FFT
+    forwardFFT.performRealOnlyForwardTransform(fftData.data());
+
+    const int numBins = fftSize / 2 + 1;
+    std::vector<juce::Point<float>> spectrumSnapshot(numBins);
+
+    // Handle first and last bins
+    {
+        float magnitude0 = fftData[0];
+        float magnitude1024 = fftData[1];
+        spectrumSnapshot[0].setXY(20.0f,juce::Decibels::gainToDecibels(magnitude0,-100.0f));
+        spectrumSnapshot[numBins-1].setXY((float)(numBins - 1) * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(magnitude1024,-100.0f));
+    }
+
+    //Cycling through
+    for(int i = 1; i < (numBins-1); i++){
+        float real = fftData[i * 2];
+        float imag = fftData[i * 2 + 1];
+        float magnitude = std::sqrt(real * real + imag * imag);
+        
+        spectrumSnapshot[i].setXY((float)i * sampleRate / (float)fftSize,juce::Decibels::gainToDecibels(magnitude, -100.0f));
+    }
+
+    //Apply smoothing
+    const int smoothingAmount = 3;
+    std::vector<juce::Point<float>> smoothedSpectrum(numBins);
+    for (int i = 0; i < numBins; ++i)
+    {
+        float spectrumSum = 0.0f;
+        int numPoints = 0;
+        for (int j = -smoothingAmount; j <= smoothingAmount; ++j)
+        {
+            int index = i + j;
+            if (index >= 0 && index < numBins)
+            {
+                spectrumSum += spectrumSnapshot[index].getY();
+                numPoints++;
+            }
+        }
+        smoothedSpectrum[i].setXY(spectrumSnapshot[i].getX(), spectrumSum / (float)numPoints);
+    }
+
+    //Lock the mutex and swap the data
+    {
+        juce::ScopedLock lock(dataMutex);
+        currentSpectrumData = std::move(smoothedSpectrum);
+    }
+}
+
+//Getter for visualizer data
+std::vector<juce::Point<float>> DeEsserProcessor::getSpectrumData()
+{
+    juce::ScopedLock lock(dataMutex);
+    return currentSpectrumData;
 }

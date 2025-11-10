@@ -63,7 +63,10 @@ target_sources(${PROJECT_NAME}
         source/ui/DaisyChain.cpp
         source/ui/EffectPanel.cpp
         source/ui/VisualizerPanel.cpp
+        source/ui/LevelMeter.cpp
         source/ui/RealTimeGraphVisualizer.cpp
+        source/ui/FrequencyGraphVisualizer.cpp
+        source/ui/EqualizerVisualizer.cpp
         source/panels/PresetsPanel.cpp
 
         #remember to add your panel and processors here
@@ -73,6 +76,7 @@ target_sources(${PROJECT_NAME}
         source/panels/PitchPanel.cpp
         source/panels/CompressorPanel.cpp
         source/panels/DeEsserPanel.cpp
+        source/panels/DeNoiserPanel.cpp
         source/panels/SettingsPanel.cpp
         source/panels/EqualizerPanel.cpp
 
@@ -85,6 +89,7 @@ target_sources(${PROJECT_NAME}
         source/effects/CompressorProcessor.cpp
         source/effects/FormantShifter.cpp
         source/effects/DeEsserProcessor.cpp
+        source/effects/DeNoiserProcessor.cpp
         source/effects/Equalizer.cpp
 
 )

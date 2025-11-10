@@ -42,39 +42,41 @@ private:
 
 //Visualizer Node for DeEsser
 #include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/ui/FrequencyGraphVisualizer.h"
 
-class DeEsserVisualizer : public juce::Component,
-    private juce::Timer
-{
-public:
-    explicit DeEsserVisualizer(AudioPluginAudioProcessor& proc) : processor(proc)
-    {
-        startTimerHz(30); // refresh ~30fps
-    }
+class DeEsserNode;
 
-    void paint(juce::Graphics& g) override
-    {
-        g.fillAll(juce::Colours::black);
-        g.setColour(juce::Colours::pink);
-
-        // get de-esser values
-        float thresholdValue = processor.apvts.getRawParameterValue("DEESSER_THRESHOLD")->load();
-        float ratioValue = processor.apvts.getRawParameterValue("DEESSER_RATIO")->load();
-        float attackValue = processor.apvts.getRawParameterValue("DEESSER_ATTACK")->load();
-        float releaseValue = processor.apvts.getRawParameterValue("DEESSER_RELEASE")->load();
-        float frequencyValue = processor.apvts.getRawParameterValue("DEESSER_FREQUENCY")->load();
-
-        // draw label
-        g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(20.0f, juce::Font::bold));
-        g.drawText("De-esser visualizer placeholder", getLocalBounds().reduced(5), juce::Justification::centred);
-    }
-
+class DeEsserVisualizer : public FrequencyGraphVisualizer, public juce::ValueTree::Listener{
 private:
-    void timerCallback() override { repaint(); }
-
     AudioPluginAudioProcessor& processor;
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeEsserVisualizer)
+    DeEsserNode& deEsserNode;
+    juce::ValueTree localState;
+
+    // Helper to set threshold lines from state
+    void updateThresholdLines(){
+        const float freq = (float)localState.getProperty("DeEsserFrequency", 6000.0f);
+        const float thresh = (float)localState.getProperty("DeEsserThreshold", 0.0f);
+        setThreshold(freq, thresh);
+    }
+
+public:
+    explicit DeEsserVisualizer(AudioPluginAudioProcessor& proc, DeEsserNode& node, juce::ValueTree& state)
+        : FrequencyGraphVisualizer(proc.apvts, 5, 1),
+            processor(proc),
+            deEsserNode(node),
+            localState(state)
+    {
+        localState.addListener(this);
+        updateThresholdLines();
+    }
+
+    ~DeEsserVisualizer() override;
+
+    void timerCallback() override;
+
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+
+    void paint(juce::Graphics& g) override;
 };
 
 //Austin
@@ -132,7 +134,7 @@ public:
     }
 
     std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override{
-        return std::make_unique<DeEsserVisualizer>(proc);
+        return std::make_unique<DeEsserVisualizer>(proc,*this,getMutableNodeState());
     }
 
     ////////////////////////////////////////////////////////  reyna
@@ -150,6 +152,10 @@ public:
         self->processor.apvts.state.addChild(clonePtr->getMutableNodeState(), -1, nullptr);
         clonePtr->setDisplayName(effectName);
         return clonePtr;
+    }
+
+    DeEsserProcessor& getDSP(){
+        return deEsserDSP;
     }
 
     // XML serialization for saving/loading
