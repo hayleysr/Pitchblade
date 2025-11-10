@@ -29,6 +29,10 @@ private:
     //Labels for sliders
     juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
 
+    //volume meter placeholder
+    juce::Component volumeMeter;
+    static void place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF);
+
     //Attachments to link stuff to APVTS parameters
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;

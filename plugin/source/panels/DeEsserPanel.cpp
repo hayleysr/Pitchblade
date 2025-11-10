@@ -16,6 +16,7 @@ DeEsserPanel::DeEsserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& sta
     // Main Label
     deEsserLabel.setText("De-Esser", juce::dontSendNotification);
     addAndMakeVisible(deEsserLabel);
+    deEsserLabel.setName("NodeTitle");
 
     // Threshold Slider
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -214,6 +215,18 @@ void DeEsserVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const ju
 }
 
 void DeEsserVisualizer::paint(juce::Graphics& g){
+    ////background
+    //juce::Image bg = juce::ImageCache::getFromMemory(
+    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    //g.setColour(Colors::background.withAlpha(0.8f));
+
+    //if (bg.isValid()) {
+    //    g.drawImage(bg, getLocalBounds().toFloat());
+    //}
+    //else
+        g.fillAll(Colors::background);
+
     FrequencyGraphVisualizer::paint(g);
 }
 

@@ -17,7 +17,7 @@ PresetsPanel::PresetsPanel(AudioPluginAudioProcessor& proc) : processor(proc) {
     // preset change confirmation message
     addAndMakeVisible(statusLabel);
     statusLabel.setJustificationType(juce::Justification::centred);
-    statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    statusLabel.setColour(juce::Label::textColourId, Colors::buttonText);
     statusLabel.setText("", juce::dontSendNotification);
 
     statusLabel.setText("Preset loaded successfully!", juce::dontSendNotification);

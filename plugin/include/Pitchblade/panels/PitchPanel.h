@@ -47,6 +47,7 @@ private:
     juce::Label pitchName;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PitchPanel)
+    juce::Label panelTitle;
 };
 
 

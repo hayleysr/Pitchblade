@@ -1,6 +1,7 @@
 //hudas code
 #pragma once
 #include <JuceHeader.h>
+#include <algorithm>
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/effects/FormantDetector.h"
 #include "Pitchblade/effects/FormantShifter.h"
@@ -31,6 +32,7 @@ private:
 
     juce::ToggleButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
+    juce::Label panelTitle;
 
     // --- Formant Shifter controls
     juce::Label  formantLabel, mixLabel;
@@ -46,63 +48,92 @@ private:
 // reynas changes > added dsp node defn to ui panel creation
 // formant dsp node , processes audio + makes own panel
 // inherits from EffectNode base class
-#include "Pitchblade/panels/EffectNode.h"
-
 class FormantNode : public EffectNode
 {
 public:
-    FormantNode(AudioPluginAudioProcessor& proc)
-        : EffectNode(proc, "FormantNode", "Formant"), processor(proc) {}
+    FormantNode (AudioPluginAudioProcessor& proc)
+        : EffectNode (proc, "FormantNode", "Formant"), processor (proc) {}
 
-    // Process the buffer using the new STFT-based shifter (no detector feed required)
-    void process (AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override
+    void process (AudioPluginAudioProcessor& proc,
+                  juce::AudioBuffer<float>& buffer) override
     {
-        // --- 0) Grab params
-        const float shift = proc.apvts.getRawParameterValue(PARAM_FORMANT_SHIFT)->load();
-        const float mix   = proc.apvts.getRawParameterValue(PARAM_FORMANT_MIX  )->load();
+        // --- 0) Grab UI params
+        const auto* shiftParam = proc.apvts.getRawParameterValue (PARAM_FORMANT_SHIFT);
+        const auto* mixParam   = proc.apvts.getRawParameterValue (PARAM_FORMANT_MIX);
 
-        // --- 1) Process with the new FormantShifter (pure envelope warp)
-        if (!bypassed)
+        float shift = shiftParam ? shiftParam->load() : 0.0f;
+        float mix   = mixParam   ? mixParam->load()   : 1.0f;   // 0=dry, 1=wet
+
+        // If this node is bypassed, force neutral formant and fully dry
+        if (bypassed)
         {
-            auto& sh = proc.getFormantShifter();
-            sh.setShiftAmount(shift);
-            sh.setMix(mix);
-            sh.processBlock(buffer);
+            shift = 0.0f;
+            mix   = 0.0f;
         }
 
-        // --- 2) Analyze the *current* buffer for panel display (post-effect)
+        // Get shifter + detector
+        auto& sh = proc.getFormantShifter();
         auto& det = proc.getFormantDetector();
-        det.processBlock(buffer);
+
+        // Make sure shifter sees the current amount
+        sh.setShiftAmount (shift);   // [-50..50] -> internal ratio
+
+        const int numCh = buffer.getNumChannels();
+        const int numSamples = buffer.getNumSamples();
+
+        if (numCh == 0 || numSamples == 0)
+            return;
+
+        // Copy dry input
+        dryBuffer.setSize (numCh, numSamples, false, false, true);
+        dryBuffer.makeCopyOf (buffer);
+
+        // Process in-place to get the wet signal
+        sh.processBlock (buffer); // buffer = wet
+
+        //Crossfade dry/wet into buffer
+        const float wetGain  = juce::jlimit (0.0f, 1.0f, mix);
+        const float dryGain  = 1.0f - wetGain;
+
+        for (int ch = 0; ch < numCh; ++ch)
+        {
+            const float* dry = dryBuffer.getReadPointer (ch);
+            float* wet = buffer.getWritePointer (ch);
+
+            for (int n = 0; n < numSamples; ++n)
+                wet[n] = dryGain * dry[n] + wetGain * wet[n];
+        }
+
+        //Analyze the post-mix output for the panel
+        det.processBlock (buffer);
         auto freqsWet = det.getFormantFrequencies();
 
-        // For the panel, hide F0/harmonics so you don’t see a “stuck” line:
-        std::sort(freqsWet.begin(), freqsWet.end());
-        freqsWet.erase(std::remove_if(freqsWet.begin(), freqsWet.end(),
-                                      [](float f){ return f < 300.f || f > 5000.f; }),
-                       freqsWet.end());
-        if (freqsWet.size() > 3) freqsWet.resize(3);
+        std::sort (freqsWet.begin(), freqsWet.end());
+        freqsWet.erase (std::remove_if (freqsWet.begin(), freqsWet.end(),
+                                        [] (float f) { return f < 300.f || f > 5000.f; }),
+                        freqsWet.end());
+        if (freqsWet.size() > 3)
+            freqsWet.resize (3);
 
-        proc.setLatestFormants(freqsWet);
+        proc.setLatestFormants (freqsWet);
     }
 
-    std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override
+    std::unique_ptr<juce::Component> createPanel (AudioPluginAudioProcessor& proc) override
     {
-        return std::make_unique<FormantPanel>(proc);
+        return std::make_unique<FormantPanel> (proc);
     }
 
-    ////////////////////////////////////////////////////////////  reyna
-
-    // clone node
     std::shared_ptr<EffectNode> clone() const override
     {
-        return std::make_shared<FormantNode>(processor);
+        return std::make_shared<FormantNode> (processor);
     }
 
-
-        // XML serialization for saving/loading
-        std::unique_ptr<juce::XmlElement> toXml() const override;
-        void loadFromXml(const juce::XmlElement& xml) override;
+    std::unique_ptr<juce::XmlElement> toXml() const override;
+    void loadFromXml (const juce::XmlElement& xml) override;
 
 private:
     AudioPluginAudioProcessor& processor;
+
+    // --- new: buffer to hold the dry input for dry/wet mixing
+    juce::AudioBuffer<float> dryBuffer;
 };

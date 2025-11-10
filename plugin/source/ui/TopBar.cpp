@@ -51,7 +51,7 @@ void TopBar::setButtonActive(juce::TextButton& button, bool active) {
     const auto color = active ? Colors::accent : Colors::panel;
     button.setColour(juce::TextButton::buttonColourId, color);
     button.setColour(juce::TextButton::buttonOnColourId, color);
-    button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-    button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    button.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+    button.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
     button.repaint();
 }

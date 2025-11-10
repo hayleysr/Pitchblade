@@ -9,10 +9,15 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     //label names for dials - reyna
     formantSlider.setName("Formant");
     mixSlider.setName("Dry/Wet");
+
+    // Panel title - reyna
+    panelTitle.setText("Formant", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle"); 
+    addAndMakeVisible(panelTitle);
     
     // Formant toggle button - huda
     //toggleViewButton.setClickingTogglesState(true);
-    static CustomLookAndFeel gSwitchLF; //for custom toggle
+    static CustomLookAndFeel gSwitchLF; //for custom toggle - reyna
     toggleViewButton.setLookAndFeel(&gSwitchLF);
     toggleViewButton.onClick = [this]()
         {
@@ -55,9 +60,10 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
 void FormantPanel::resized()
 {
-    auto r = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
+    auto r = getLocalBounds().reduced(30);
+    panelTitle.setBounds(area.removeFromTop(30));
     toggleViewButton.setBounds(r.removeFromTop(30));
-
 
     auto row1 = r.removeFromTop(40);
     formantLabel .setBounds(row1.removeFromLeft(90));
@@ -67,13 +73,25 @@ void FormantPanel::resized()
     mixLabel.setBounds(row2.removeFromLeft(90));
     mixSlider.setBounds(row2);
 
-    detectorArea = r; // if you use an overlay for the detector lines
+    detectorArea = r;
 
 }
 
 void FormantPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(Colors::background);
+    ////background
+    //juce::Image bg = juce::ImageCache::getFromMemory(
+    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+
+    //g.setColour(Colors::background.withAlpha(0.8f));
+
+    //if (bg.isValid()) {
+    //    g.drawImage(bg, getLocalBounds().toFloat());
+    //}
+    //else
+        g.fillAll(Colors::background);
+        g.drawRect(getLocalBounds(), 2);
+
     if (!showingFormants) return;
 
     // local copies: never mutate detectorArea
@@ -81,7 +99,7 @@ void FormantPanel::paint(juce::Graphics& g)
     auto plot   = detectorArea.withTrimmedTop(16).reduced(2);
 
     // Title (smaller)
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setColour(Colors::buttonText.withAlpha(0.9f));
     g.setFont(14.0f);
     g.drawText("Formant Detector Output", header, juce::Justification::centredLeft, false);
 
@@ -105,7 +123,7 @@ void FormantPanel::paint(juce::Graphics& g)
         g.drawLine(x, (float)plot.getY(), x, (float)plot.getBottom(), 2.0f);
 
         juce::Rectangle<int> tag((int)x - 26, plot.getBottom() - 14, 52, 12);
-        g.setColour(juce::Colours::white);
+        g.setColour(Colors::buttonText);
         g.drawFittedText(juce::String(freqHz, 0) + " Hz", tag, juce::Justification::centred, 1);
         g.setColour(juce::Colours::red.withAlpha(0.95f));
     }
