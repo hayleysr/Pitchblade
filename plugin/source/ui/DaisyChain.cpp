@@ -11,6 +11,7 @@
 #include "Pitchblade/panels/NoiseGatePanel.h"
 #include "Pitchblade/panels/CompressorPanel.h"
 #include "Pitchblade/panels/DeEsserPanel.h"
+#include "Pitchblade/panels/DeNoiserPanel.h"
 #include "Pitchblade/panels/FormantPanel.h"
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/panels/EqualizerPanel.h"
@@ -574,7 +575,8 @@ void DaisyChain::showAddMenu() {
     menu.addItem(4, "Formant");
     menu.addItem(5, "Pitch");
     menu.addItem(6, "De-Esser");
-    menu.addItem(7, "Equalizer");
+    menu.addItem(7, "De-Noiser");
+    menu.addItem(8, "Equalizer");
 
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&addButton), [this](int result) {
             if (result == 0) return;
@@ -587,7 +589,8 @@ void DaisyChain::showAddMenu() {
             case 4: newNode = std::make_shared<FormantNode>(processorRef); break;
             case 5: newNode = std::make_shared<PitchNode>(processorRef); break;
             case 6: newNode = std::make_shared<DeEsserNode>(processorRef); break;
-            case 7: newNode = std::make_shared<EqualizerNode>(processorRef); break;
+            case 7: newNode = std::make_shared<DeNoiserNode>(processorRef); break;
+            case 8: newNode = std::make_shared<EqualizerNode>(processorRef); break;
             }
 
 			// add to processor + ui lists

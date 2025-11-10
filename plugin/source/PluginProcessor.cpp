@@ -7,6 +7,7 @@
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/panels/CompressorPanel.h"
 #include "Pitchblade/panels/DeEsserPanel.h"
+#include "Pitchblade/panels/DeNoiserPanel.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 #include "Pitchblade/panels/EqualizerPanel.h"
@@ -28,6 +29,27 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         if (!apvts.state.hasType("EffectNodes")) {
             apvts.state = juce::ValueTree("EffectNodes");
         }
+
+        std::lock_guard<std::recursive_mutex> lock(audioMutex);
+
+        //effect node building - reyna
+        effectNodes.clear();
+        effectNodes.push_back(std::make_shared<GainNode>(*this));
+        effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
+        effectNodes.push_back(std::make_shared<CompressorNode>(*this));
+        effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+        effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
+        effectNodes.push_back(std::make_shared<FormantNode>(*this));
+        effectNodes.push_back(std::make_shared<PitchNode>(*this));
+        effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
+
+	    // set up default chain: Gain > Noise gate > formant > Pitch
+	    for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
+        for (size_t i = 0; i + 1 < effectNodes.size(); ++i) {
+            effectNodes[i]->connectTo(effectNodes[i + 1]);
+        }
+	    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
+        rootNode = effectNodes.front();
     }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor(){
@@ -65,7 +87,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "COMP_LIMITER_MODE", "Compressor Limiter Mode", "False"));
 
-    // Formant Shifter : huda
+	// De-Esser : austin (fixed)
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_THRESHOLD", "DeEsser Threshold", juce::NormalisableRange<float>(-100.0f, 0.0f, 0.1f), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -74,6 +96,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         "DEESSER_ATTACK", "DeEsser Attack", juce::NormalisableRange<float>(1.0f, 200.0f, 0.1f), 5.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DEESSER_RELEASE", "DeEsser Release", juce::NormalisableRange<float>(1.0f, 300.0f, 0.1f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DEESSER_FREQUENCY", "DeEsser Frequency", juce::NormalisableRange<float>(2000.0f, 12000.0f, 10.0f), 6000.0f));
+
+	// Formant Shifter : huda
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         PARAM_FORMANT_SHIFT, "Formant",
         juce::NormalisableRange<float>(-50.0f, 50.0f, 0.01f, 1.0f), 0.0f));
@@ -96,9 +122,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         PARAM_FORMANT_MIX, "Dry/Wet",
         juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 1.0f), 1.0f)); // full wet by default for obviousness
 
+    //De-Noiser : austin
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "DENOISER_REDUCTION", "DeNoiser Reduction", juce::NormalisableRange<float>(0.0f,1.0f,0.01f),0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "DENOISER_LEARN", "DeNoiser Learn", false));
+
     //Settings Panel: austin
     params.push_back(std::make_unique<juce::AudioParameterInt>(
         "GLOBAL_FRAMERATE", "Global Framerate", 1, 4, 3));
+
+    //Pitch Shifter: hayley
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_RETUNE_SPEED", "Pitch Retune Speed", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_CORRECTION_RATIO", "Pitch Correction Ratio", juce::NormalisableRange<float>(0.0f, 1.0f, 0.05f), 1.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_WAVER", "Pitch Waver", juce::NormalisableRange<float>(0.0f, 20.0f, 1.0f), 5.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "PITCH_TRANSITION", "Pitch Note Transition", juce::NormalisableRange<float>(0.0f, 50.0f, 1.0f), 20.0f));
 
     return { params.begin(), params.end() };
 
@@ -149,7 +191,7 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     juce::Logger::outputDebugString("===========================================");
 
     //copy of current list
-    std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
+    std::vector<std::shared_ptr<EffectNode>> oldNodes = effectNodes;
     std::vector<std::shared_ptr<EffectNode>> newList;
     newList.reserve(pendingOrderNames.size());  
 
@@ -230,7 +272,7 @@ void AudioPluginAudioProcessor::applyPendingReorder() {
     }
 
     // update effect node list
-    effectNodes = std::move(newList);
+    effectNodes = newList;
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
 	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
     juce::Logger::outputDebugString("=== Reorder finished ===\n");
@@ -363,7 +405,7 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
 
 	// update effect node list
     if (!newList.empty()) {
-        effectNodes = std::move(newList);
+        effectNodes = newList;
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.front();
     }
@@ -440,7 +482,10 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else if (name == "NoiseGateNode")   node = std::make_shared<NoiseGateNode>(*this);
         else if (name == "CompressorNode")  node = std::make_shared<CompressorNode>(*this);
         else if (name == "DeEsserNode")     node = std::make_shared<DeEsserNode>(*this);
-        else if (name == "EqualizerNode")   node = std::make_shared<EqualizerNode>(*this);      // add to list
+        else if (name == "DeNoiserNode")    node = std::make_shared<DeNoiserNode>(*this);
+        else if (name == "EqualizerNode")   node = std::make_shared<EqualizerNode>(*this);  
+        else if (name == "PitchNode")       node = std::make_shared<PitchNode>(*this);
+        else if (name == "FormantNode")     node = std::make_shared<FormantNode>(*this);
         else continue;
 
         node->loadFromXml(*nodeXml);
@@ -455,25 +500,33 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         effectNodes.push_back(node);
     }
 
-    //// update ui
-    //juce::MessageManager::callAsync([this]() {
-    //    if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-    //        editor->rebuildAndSyncUI();
-    //    });
-    //juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+    //Audio wasn't routing through, so I copied the logic used when loading the default to try to fix that - Austin
+    // connect in order
+    for (auto& node : effectNodes)
+        if (node) node->clearConnections();
 
-    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
-        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
-        juce::MessageManager::callAsync([safe]() {
-            if (auto* e = safe.getComponent())
-                e->rebuildAndSyncUI();
-            });
-        juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
-    }
+    for (int i = 0; i + 1 < (int)effectNodes.size(); ++i)
+        effectNodes[i]->connectTo(effectNodes[i + 1]);
 
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+    rootNode = effectNodes.front();
+
+    // update ui
+    juce::MessageManager::callAsync([this]() {
+        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+            editor->rebuildAndSyncUI();
+        });
+    juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+
+//     if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
+//         juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+//         juce::MessageManager::callAsync([safe]() {
+//             if (auto* e = safe.getComponent())
+//                 e->rebuildAndSyncUI();
+//             });
+//         juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
+//     }
 }
-
-
 
 //==============================================================================
 
@@ -545,7 +598,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
     compressorProcessor.prepare(sampleRate);                    //Austin
     deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    pitchProcessor.prepare(sampleRate, samplesPerBlock);     //hayley
+    deNoiserProcessor.prepare(sampleRate);                      //Austin
+    pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
@@ -556,6 +610,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
     effectNodes.push_back(std::make_shared<CompressorNode>(*this));
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+    effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
     effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
@@ -620,7 +675,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
         if (root)
             root->processAndForward(*this, buffer);
     } else {
-        buffer.clear();
+        //Austin - this was causing absolutely no audio to go through when there was a global bypass, which is not intended functionality. I commented it out
+        //buffer.clear();
     }
 
     //juce boilerplate
@@ -691,6 +747,7 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     effectNodes.push_back(std::make_shared<NoiseGateNode>(*this));
     effectNodes.push_back(std::make_shared<CompressorNode>(*this));
     effectNodes.push_back(std::make_shared<DeEsserNode>(*this));
+    effectNodes.push_back(std::make_shared<DeNoiserNode>(*this));
     effectNodes.push_back(std::make_shared<FormantNode>(*this));
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
     effectNodes.push_back(std::make_shared<EqualizerNode>(*this));

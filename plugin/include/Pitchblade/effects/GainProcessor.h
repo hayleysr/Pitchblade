@@ -5,6 +5,9 @@
 #include <juce_dsp/juce_dsp.h>
 #include <JuceHeader.h>
 
+//For visualizer
+#include <atomic>
+
 //Defining the class that handles the processing of gain
 class GainProcessor
 {
@@ -21,5 +24,7 @@ public:
 
     //Function to process the audio buffer
     void process(juce::AudioBuffer<float>& buffer);
+
+    std::atomic<float> currentOutputLevelDb {-100.0f};
 
 };

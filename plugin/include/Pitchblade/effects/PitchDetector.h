@@ -56,6 +56,8 @@
         int dHopSize;                       // Amount to jump fwd by. Creates overlapping frames.
         juce::dsp::WindowingFunction<float>::WindowingMethod dWindow; // Hann window
         std::vector<float> dWindowFunction; 
+        std::vector<float> frame;
+        std::vector<float> r;
         
         float dCurrentAmp;                  // Amplitude tracker for RMS cutoff
         float dAmpThreshold;                // Threshold for RMS cutoff
@@ -83,5 +85,7 @@
         std::vector<float> dSmoothedPitchTrack;           // Temporal smoothing
         float dVoiceThreshold;                            // Min threshold for a freq to be considered voiced
         int dMaxCandidates;                               // Number of candidates to consider
+
+        
         
  };
