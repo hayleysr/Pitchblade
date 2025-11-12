@@ -28,6 +28,15 @@ if(NOT JUCE_FOUND)
         VERSION v8.0.9
         SOURCE_DIR ${LIB_DIR}/juce
     )
+
+    # Add Google Test
+    CPMAddPackage(
+        NAME gtest
+        GITHUB_REPOSITORY google/googletest
+        GIT_TAG v1.14.0  # Or any recent tag
+        VERSION 1.14.0
+        OPTIONS "INSTALL_GTEST OFF"
+    )
 endif()
 
 # Report all warnings as errors
@@ -40,3 +49,9 @@ endif()
 
 # Link /plugin and run its CMake file
 add_subdirectory(plugin)
+
+# Enable testing for the whole project
+enable_testing()
+
+# Add the new tests directory
+add_subdirectory(tests)
