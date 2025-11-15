@@ -647,7 +647,7 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
         if (!node) continue;
         Row r;
         r.left = node->effectName;
-        r.right = {};
+        //r.right = {};
         pendingRows.push_back(r);
     }
     layoutRequested.store(true);      
