@@ -147,28 +147,32 @@ void DaisyChain::rebuild() {
 
         // find neighboring row states for ui connections 
         int leftModeId = 1;
-        const bool prevIsDouble = (i > 0) ? rows[i - 1].hasRight() : false;
-        const bool currIsDouble = rowData.hasRight();
-        const bool nextIsDouble = (i + 1 < (int)rows.size()) ? rows[i + 1].hasRight() : false;
+        if (nodeLeft) {
+            // use the nodes existing chainMode that was set by preset
+            leftModeId = juce::jlimit(1, 4, (int)nodeLeft->chainMode);
+        } else {
+            const bool prevIsDouble = (i > 0) ? rows[i - 1].hasRight() : false;
+            const bool currIsDouble = rowData.hasRight();
+            const bool nextIsDouble = (i + 1 < (int)rows.size()) ? rows[i + 1].hasRight() : false;
 
-        // find left node chain mode for ui
-        if (currIsDouble)          leftModeId = 3;          // double down
-        else if (prevIsDouble)     leftModeId = 4;          // unite
-        else if (nextIsDouble)     leftModeId = 2;          // split
-
+            // find left node chain mode for ui
+            if (currIsDouble)          leftModeId = 3;          // double down
+            else if (prevIsDouble)     leftModeId = 4;          // unite
+            else if (nextIsDouble)     leftModeId = 2;          // split
+        }
 		// set left node chain mode
         row->setChainModeId(leftModeId);
         row->updateModeVisual();    
-        if (auto nodeLeft = findNodeByName(rowData.left)) {
+       /* if (auto nodeLeft = findNodeByName(rowData.left)) {
             nodeLeft->chainMode = (ChainMode)leftModeId;
-        }
+        }*/
 
         // Right node if present //////////////////////
         if (rowData.right.isNotEmpty()) {
 			auto nodeR = findNodeByName(rowData.right); // find right node by name
             if (!nodeR) { 
 				rightToClear.add(i);                                    // mark for clearing if node not found
-            } else if (nodeR) {
+            } else {
 				// set right effect
                 row->setSecondaryEffect(rowData.right);
                 if (nodeR) nodeR->chainMode = ChainMode::DoubleDown;    // secondary mode is always DoubleDown in a double row
@@ -206,7 +210,7 @@ void DaisyChain::rebuild() {
             processorRef.requestLayout(toProcessorRows(rows));
         };
 
-        row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback ui
+        row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback from drag n drop ui
 			if (reorderLocked) return; // prevent reordering if locked
             handleReorder(kind, dragName, targetRow);
             };

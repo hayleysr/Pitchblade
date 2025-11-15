@@ -343,6 +343,13 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
             loadedRows.push_back(r);
         }
 
+        // store layout for audio thread and UI
+        {
+            std::lock_guard<std::recursive_mutex> lock(audioMutex);
+            pendingRows = loadedRows;
+            layoutRequested.store(true);
+        }
+
         // request new layout
         requestLayout(loadedRows);
 
@@ -363,7 +370,7 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         rootNode = effectNodes.empty() ? nullptr : effectNodes.front();
     }
 
-    pendingRows.clear();
+   /* pendingRows.clear();
     for (auto& node : effectNodes) {
         if (!node) continue;
         Row r;
@@ -371,7 +378,7 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         r.right = {};
         pendingRows.push_back(r);
     }
-    layoutRequested.store(false);   
+    layoutRequested.store(false);   */
 
     // update ui
     juce::MessageManager::callAsync([this]() {
@@ -625,13 +632,6 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
     rootNode = effectNodes.front();
 
-	// update ui
-   // juce::MessageManager::callAsync([this]() {
-   //     if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-			//editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
-   //     });
-   // juce::Logger::outputDebugString("default preset loaded ");
-
     if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
         juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
         juce::MessageManager::callAsync([safe]() {
@@ -650,7 +650,7 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
         r.right = {};
         pendingRows.push_back(r);
     }
-    layoutRequested.store(false);      
+    layoutRequested.store(true);      
 }
 
 //==============================================================================
