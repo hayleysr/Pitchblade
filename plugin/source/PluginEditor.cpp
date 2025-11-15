@@ -183,7 +183,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     }
         //keeps daiychain ui reordering consistant with processor ////////////////////////////
         daisyChain.onReorderFinished = [this, applyRowTooltips]() {
-            // new API for multiple rows
+            // new API for multiple rows - get current UI layout and send it to the processor
             const auto& rows = daisyChain.getCurrentLayout();       // get current layout
             std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
             procRows.reserve(rows.size());
@@ -198,7 +198,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     editor->closeOverlaysIfOpen();
             }
 
-            processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
+            //processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
 
             visualizer.clearVisualizer();   // safely clear old node references
             // reconnect buttons after reorder
@@ -271,8 +271,27 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
             //rebuild ui after preset data is updated
             juce::MessageManager::callAsync([this]() {
-                daisyChain.resetRowsToNodes();
 
+                // pull layout from processor
+                auto procRows = processorRef.getCurrentLayoutRows();
+                if (!procRows.empty()) {
+                    std::vector<DaisyChain::Row> uiRows;
+                    uiRows.reserve(procRows.size());
+
+                    for (const auto& r : procRows) {
+                        DaisyChain::Row row;
+                        row.left = r.left;
+                        row.right = r.right;
+                        uiRows.push_back(row);
+                    }
+
+                    daisyChain.setRows(uiRows);
+                } else {
+                    // when processor has no layout 
+                    daisyChain.resetRowsToNodes();
+                }
+
+                daisyChain.setReorderLocked(true);
                 // full UI rebuild after preset operation
                 rebuildAndSyncUI();
             

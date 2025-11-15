@@ -35,6 +35,15 @@ static juce::String makeUniqueName(const juce::String& baseName, const std::vect
     return newName;
 }
 
+//convert UI rows into processor rows
+static std::vector<AudioPluginAudioProcessor::Row> toProcessorRows(const std::vector<DaisyChain::Row>& uiRows) {
+    std::vector<AudioPluginAudioProcessor::Row> out;
+    out.reserve(uiRows.size());
+    for (auto& r : uiRows)
+        out.push_back({ r.left, r.right });
+    return out;
+}
+
 DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes) :processorRef(proc), effectNodes(nodes) {
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
@@ -88,6 +97,7 @@ static std::tuple<int, bool, bool> findRowAndSide(const std::vector<DaisyChain::
 }
 
 //reset rows to match effectNodes vector
+//rebuilds the rows from effectNodes as straight one per row
 void DaisyChain::resetRowsToNodes() {
     std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     rows.clear();
@@ -192,7 +202,8 @@ void DaisyChain::rebuild() {
 
             if (row->getName().isNotEmpty())     { handleMode(row->getName()); } // left
             if (!row->rightEffectName.isEmpty()) { handleMode(row->rightEffectName); } // right
-			processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
+			//processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
+            processorRef.requestLayout(toProcessorRows(rows));
         };
 
         row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback ui
@@ -282,6 +293,8 @@ void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targe
     // rebuild asynchronously 
     juce::MessageManager::callAsync([this]() {
         rebuild();
+        /*if (onReorderFinished) onReorderFinished();*/
+        processorRef.requestLayout(toProcessorRows(rows));
         if (onReorderFinished) onReorderFinished();
         });
 }
@@ -612,7 +625,8 @@ void DaisyChain::showAddMenu() {
                 onReorderFinished = nullptr;
                 rebuild();
                 onReorderFinished = oldCb;
-                
+                processorRef.requestLayout(toProcessorRows(rows));
+
                 if (onReorderFinished) onReorderFinished();
             }
         });
@@ -662,6 +676,8 @@ void DaisyChain::showDuplicateMenu() {
             onReorderFinished = nullptr;    
             rebuild();
             onReorderFinished = oldCb;          
+            processorRef.requestLayout(toProcessorRows(rows));
+
             if (onReorderFinished) onReorderFinished();
         });
 }
@@ -700,6 +716,7 @@ void DaisyChain::showDeleteMenu() {
             // rebuild the chain
             juce::MessageManager::callAsync([this]() {
                 rebuild();
+                processorRef.requestLayout(toProcessorRows(rows));
                 if (onReorderFinished)
                     onReorderFinished();
                 });

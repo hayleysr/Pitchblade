@@ -66,15 +66,12 @@ void PresetsPanel::handleSavePreset() {
                 processor.savePresetToFile(result);
                 // update label
                 statusLabel.setText("Preset saved!", juce::dontSendNotification);
-                juce::MessageManager::callAsync([this]() {
-                    if (onPresetActionFinished) onPresetActionFinished();
-                    });
             } else {
                 statusLabel.setText("Save canceled", juce::dontSendNotification);
             }
             chooser.reset();
         });
-	if (onPresetActionFinished) onPresetActionFinished();   // callback after preset action
+	//if (onPresetActionFinished) onPresetActionFinished();   // callback after preset action
 }
 
 void PresetsPanel::handleLoadPreset() {
@@ -83,9 +80,7 @@ void PresetsPanel::handleLoadPreset() {
 
     chooser = std::make_unique<juce::FileChooser>("Load Preset", initialDir, "*.xml");
 
-    chooser->launchAsync(juce::FileBrowserComponent::openMode |
-        juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser& c) {
+    chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this](const juce::FileChooser& c) {
             auto result = c.getResult();
             if (result.existsAsFile()) {
                 processor.loadPresetFromFile(result);
@@ -99,7 +94,7 @@ void PresetsPanel::handleLoadPreset() {
             }
             chooser.reset();
         });
-    if (onPresetActionFinished) onPresetActionFinished();
+    //if (onPresetActionFinished) onPresetActionFinished();
 }
 
 void PresetsPanel::handleDefaultPreset() {

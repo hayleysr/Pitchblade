@@ -34,6 +34,10 @@ public:
 
 	juce::OwnedArray<DaisyChainItem> items; // ui rows
 
+    //setter getter for rows
+    void setRows(const std::vector<Row>& newRows) {  rows = newRows; rebuild(); }
+    std::vector<Row> getRows() const {  return rows; }
+
 	//add + copy buttons
     juce::TextButton addButton{ "Add" };
     juce::TextButton duplicateButton{ "Copy" };
