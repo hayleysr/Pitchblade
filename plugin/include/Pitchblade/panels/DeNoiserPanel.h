@@ -77,7 +77,6 @@ public:
 
 //Node
 #include "Pitchblade/panels/EffectNode.h"
-#include "Pitchblade/effects/DeNoiserProcessor.h"
 
 class DeNoiserNode : public EffectNode{
 public:
