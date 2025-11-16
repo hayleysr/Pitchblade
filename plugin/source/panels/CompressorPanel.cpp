@@ -26,8 +26,12 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     //  volumemeter - reyna
     volumeMeter = std::make_unique<SimpleVolumeBar>(
         [this]() -> float {
+            //post processing value
             if (!node) return -60.0f;
             return node->getOutputLevelAtomic().load();
+        },
+        //placeholder for pre prossessing volume level
+        []() -> float { return -60.0f; 
         }
     );
     addAndMakeVisible(volumeMeter.get());

@@ -10,10 +10,11 @@ class CompressorNode;
 // volume meter bar - reyna
 class SimpleVolumeBar : public juce::Component, private juce::Timer {
 public:
-    explicit SimpleVolumeBar(std::function<float()> levelGetter) : getLevel(std::move(levelGetter)) {
+    SimpleVolumeBar(std::function<float()> postGetter, std::function<float()> preGetter) : getPost(std::move(postGetter)), getPre(std::move(preGetter)) {
         startTimerHz(30); // refresh about 30 FPS
     }
     void setThresholdDecibels(float newThreshold) { thresholdDb = newThreshold; }
+
     void paint(juce::Graphics& g) override {
         auto bounds = getLocalBounds().toFloat();
         float cornerRadius = 6.0f;
@@ -28,26 +29,47 @@ public:
         clipPath.addRoundedRectangle(bounds, cornerRadius);
         g.reduceClipRegion(clipPath);
 
-        //audio fill
-        float levelDb = getLevel();
-        float normalized = juce::jmap(levelDb, -100.0f, 0.0f, 0.0f, 1.0f);
-        normalized = juce::jlimit(0.0f, 1.0f, normalized);
+        //pre processing
+        float preDb = getPre();
+        float preNorm = juce::jmap(preDb, -100.0f, 0.0f, 0.0f, 1.0f);
+        preNorm = juce::jlimit(0.0f, 1.0f, preNorm);
 
-        float fillHeight = bounds.getHeight() * normalized;
-        juce::Rectangle<float> fillRect(bounds.withY(bounds.getBottom() - fillHeight).withHeight(fillHeight));
+        float preHeight = bounds.getHeight() * preNorm;
 
-        // bar fill
-        juce::ColourGradient barGrad(
-            Colors::accentTeal.darker(0.3f), fillRect.getCentreX(), fillRect.getBottom(),
-            Colors::accentPink.brighter(0.4f), fillRect.getCentreX(), fillRect.getY(), false);
-        g.setGradientFill(barGrad);
-        g.fillRect(fillRect);
+        juce::Rectangle<float> preRect(
+            bounds.withY(bounds.getBottom() - preHeight).withHeight(preHeight)
+        );
+
+        juce::ColourGradient preGrad(
+            Colors::accentTeal.withAlpha(0.25f), preRect.getCentreX(), preRect.getBottom(),
+            Colors::accentPink.withAlpha(0.25f), preRect.getCentreX(), preRect.getY(), false
+        );
+
+        g.setGradientFill(preGrad);
+        g.fillRect(preRect);
+
+        // post processing
+        float postDb = getPost();
+        float postNorm = juce::jmap(postDb, -100.0f, 0.0f, 0.0f, 1.0f);
+        postNorm = juce::jlimit(0.0f, 1.0f, postNorm);
+
+        float postHeight = bounds.getHeight() * postNorm;
+
+        juce::Rectangle<float> postRect(
+            bounds.withY(bounds.getBottom() - postHeight).withHeight(postHeight)
+        );
+
+        juce::ColourGradient postGrad(
+            Colors::accentTeal.darker(0.3f), postRect.getCentreX(), postRect.getBottom(),
+            Colors::accentPink.brighter(0.4f), postRect.getCentreX(), postRect.getY(), false
+        );
+
+        g.setGradientFill(postGrad);
+        g.fillRect(postRect);
 
         // threshold line
         float y = juce::jmap(thresholdDb, -100.0f, 0.0f, bounds.getBottom(), bounds.getY());
-        juce::Colour glowColor = Colors::accent;
-        //glow
-        g.setColour(glowColor);
+        g.setColour(Colors::accent);
         g.drawLine(bounds.getX(), y - 1.0f, bounds.getRight(), y - 1.0f, 4.0f);
 
         // outline
@@ -55,7 +77,9 @@ public:
         g.drawRoundedRectangle(bounds, cornerRadius, 2.0f);
     }
 private:
-    std::function<float()> getLevel;
+    std::function<float()> getPost;
+    std::function<float()> getPre;
+
     float thresholdDb = -20.0f;
 
     void timerCallback() override { repaint(); }
