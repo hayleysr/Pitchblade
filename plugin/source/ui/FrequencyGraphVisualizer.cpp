@@ -81,6 +81,10 @@ void FrequencyGraphVisualizer::paint(juce::Graphics& g){
 void FrequencyGraphVisualizer::resized(){
     auto bounds = getLocalBounds();
 
+    //padding 
+    constexpr int pad = 15;
+    bounds = bounds.reduced(pad);
+
     xLabelBounds = bounds.removeFromBottom(labelHeight);
     yLabelBounds = bounds.removeFromLeft(labelWidth);
     graphBounds = bounds.reduced(0, 5);
