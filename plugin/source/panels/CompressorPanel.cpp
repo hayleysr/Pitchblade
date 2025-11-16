@@ -31,7 +31,9 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
             return node->getOutputLevelAtomic().load();
         },
         //placeholder for pre prossessing volume level
-        []() -> float { return -60.0f; 
+        [this]() -> float { 
+            if (!node) return -60.0f;
+            return node->getPriorLevelAtomic().load(); 
         }
     );
     addAndMakeVisible(volumeMeter.get());

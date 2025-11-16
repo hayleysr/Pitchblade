@@ -230,6 +230,11 @@ public:
 
         juce::ignoreUnused(proc);
 
+        //Calculate output level before processing and store it
+        float peakAmplitude = buffer.getMagnitude(0,0,buffer.getNumSamples());
+        float levelDb = juce::Decibels::gainToDecibels(peakAmplitude,-100.0f);
+        compressorDSP.priorOutputLevelDb.store(levelDb);
+
         const float threshold = (float)getNodeState().getProperty("CompThreshold", 0.0f);
         const float ratio = (float)getNodeState().getProperty("CompRatio", 3.0f);
         const float attack = (float)getNodeState().getProperty("CompAttack", 50.0f);
@@ -258,8 +263,8 @@ public:
         compressorDSP.process(buffer);
 
         //Calculate output level after processing and store it
-        float peakAmplitude = buffer.getMagnitude(0,0,buffer.getNumSamples());
-        float levelDb = juce::Decibels::gainToDecibels(peakAmplitude,-100.0f);
+        peakAmplitude = buffer.getMagnitude(0,0,buffer.getNumSamples());
+        levelDb = juce::Decibels::gainToDecibels(peakAmplitude,-100.0f);
         compressorDSP.currentOutputLevelDb.store(levelDb);
     }
 
@@ -276,6 +281,11 @@ public:
     //Allows visualizer to get the shared value
     std::atomic<float>& getOutputLevelAtomic(){
         return compressorDSP.currentOutputLevelDb;
+    }
+
+    //Allows volume meter to get before value
+    std::atomic<float>& getPriorLevelAtomic(){
+        return compressorDSP.priorOutputLevelDb;
     }
 
     ////////////////////////////////////////////////////////////  reyna

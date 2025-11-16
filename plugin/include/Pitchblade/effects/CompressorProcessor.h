@@ -61,4 +61,6 @@ public:
     //Store the latest output level in dB for the visualizer
     std::atomic<float> currentOutputLevelDb {-100.0f};
 
+    std::atomic<float> priorOutputLevelDb {-100.0f};
+
 };
