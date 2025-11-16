@@ -36,9 +36,9 @@ void EffectPanel::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
 
     juce::ColourGradient gradient(
-        Colors::background.brighter(0.15f),
+        Colors::background.brighter(0.2f),
         r.getX(), r.getY(),
-        Colors::background,
+        Colors::background.brighter(0.05f),
         r.getX(), r.getBottom(),
         false
     );

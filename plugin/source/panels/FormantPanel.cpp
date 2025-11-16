@@ -12,7 +12,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     mixSlider.setName("Dry/Wet");
 
     // Panel title - reyna
-    panelTitle.setText("Formant", juce::dontSendNotification);
+    panelTitle.setText("Formant Shifter", juce::dontSendNotification);
     panelTitle.setName("NodeTitle"); 
     addAndMakeVisible(panelTitle);
   
@@ -20,7 +20,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     addAndMakeVisible(formantLabel);
 
     formantSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    formantSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    formantSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 30);
     formantSlider.setRange(-50.0, 50.0, 0.1);
     formantSlider.setSkewFactorFromMidPoint(1.0);
     addAndMakeVisible(formantSlider);
@@ -29,7 +29,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     addAndMakeVisible(mixLabel);
 
     mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 30);
     mixSlider.setRange(0.0, 1.0, 0.001);
     addAndMakeVisible(mixSlider);
 
@@ -41,19 +41,25 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
 
 }
 
-void FormantPanel::resized()
-{
-    auto r = getLocalBounds().reduced(10);
-    // Dynamically size rows to reduce empty space below controls
-    const int gap = 10;
-    int rowHeight = juce::jmax(40, (r.getHeight() - gap) / 2);
-    auto row1 = r.removeFromTop(rowHeight);
-    formantLabel .setBounds(row1.removeFromLeft(90));
-    formantSlider.setBounds(row1);
+void FormantPanel::resized() {
+    panelTitle.setBounds(getLocalBounds().removeFromTop(30));
 
-    r.removeFromTop(gap);
-    auto row2 = r.removeFromTop(rowHeight);
-    mixLabel.setBounds(row2.removeFromLeft(90));
+    auto r = getLocalBounds().reduced(12);
+    const int labelWidth = 70;     
+    const int sliderHeight = 60;
+    const int verticalGap = 2;    
+
+    r.removeFromTop(30);
+
+    // Row 1: Formant
+    auto row1 = r.removeFromTop(sliderHeight);
+    formantLabel.setBounds(row1.removeFromLeft(labelWidth));
+    formantSlider.setBounds(row1);
+    r.removeFromTop(verticalGap);
+
+    // Row 2: Dry Wet
+    auto row2 = r.removeFromTop(sliderHeight);
+    mixLabel.setBounds(row2.removeFromLeft(labelWidth));
     mixSlider.setBounds(row2);
 }
 
