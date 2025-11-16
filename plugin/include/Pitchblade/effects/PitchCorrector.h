@@ -39,6 +39,7 @@ public:
     std::string getTargetNoteName();
     
     std::atomic<float> currentOutputPitch{69.f};
+    bool getWasBypassing(){ return wasBypassing; };
 
     PitchDetector& getDetector();
 

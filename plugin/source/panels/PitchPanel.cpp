@@ -278,6 +278,33 @@ void PitchPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
     }
 }
+
+PitchVisualizer::~PitchVisualizer(){
+    //Stop listening
+    if(localState.isValid()){
+        localState.removeListener(this);
+    }
+}
+
+//Update the graph
+void PitchVisualizer::timerCallback(){
+    float newPitch = pitchNode.getPitchAtomic().load();
+
+    //Push it to graph
+    if(pitchNode.getWasBypassing()){
+        pushData(newPitch);
+        lastStablePitch = newPitch;
+    }else{
+        pushData(lastStablePitch);
+    }
+
+    //Call the graph visualizer's timerCallback
+    RealTimeGraphVisualizer::timerCallback();
+}
+
+void PitchVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+}
+
 // XML serialization for saving/loading - reyna
 std::unique_ptr<juce::XmlElement> PitchNode::toXml() const {
     auto xml = std::make_unique<juce::XmlElement>("PitchNode");

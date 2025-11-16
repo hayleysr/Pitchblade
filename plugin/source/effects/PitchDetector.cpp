@@ -53,6 +53,7 @@
 
     // Set hop size to fraction of window size. Set higher for more resolution, lower for better CPU
     dHopSize = dWindowSize / hopSizeDenominator;
+    dSamplesUntilHop = dHopSize; // Initialize counter
 
     // Initialize yin buffer
     for(int i = 0; i < dYinBufferSize; ++i)
@@ -71,7 +72,7 @@
     dSmoothedPitchTrack.clear();
  }
 
- void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
+void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
  {
     // Set info pointers
     auto* bufferData = buffer.getReadPointer(0);
@@ -81,17 +82,23 @@
     for(int i = 0; i < bufferNumSamples; ++i){
         dCircularBuffer[dCircularIdx] = bufferData[i];
         dCircularIdx = (dCircularIdx + 1) % dWindowSize;
-    }
 
-    // Handle wrap-around and apply windowing function
-    int startIndex = (dCircularIdx - dWindowSize + dWindowSize) % dWindowSize;
-    for (int i = 0; i < dWindowSize; ++i) {
-        int index = (startIndex + i) % dWindowSize;
-        frame[i] = dCircularBuffer[index] * dWindowFunction[i];
-    }
+        dSamplesUntilHop--; // Decrement hop counter
 
-    // Pass to processor to calculate pYIN
-    processFrame(frame);
+        if(dSamplesUntilHop <= 0){
+            // Handle wrap-around and apply windowing function
+            int startIndex = (dCircularIdx - dWindowSize + dWindowSize) % dWindowSize;
+            for (int i = 0; i < dWindowSize; ++i) {
+                int index = (startIndex + i) % dWindowSize;
+                frame[i] = dCircularBuffer[index] * dWindowFunction[i];
+            }
+
+            // Pass to processor to calculate pYIN
+            processFrame(frame);
+
+            dSamplesUntilHop += dHopSize; // Reset counter
+        }
+    }
 
  }
 
@@ -135,8 +142,7 @@
 
         // Running sum: lag for prev, but delete oldest sample and add newest
         r[tau] = r[tau - 1] 
-                - (frame[tau - 1] * frame[tau - 1]) 
-                + (frame[dWindowSize - tau] * frame[dWindowSize - tau]);
+                - (frame[tau - 1] * frame[tau - 1]);
 
         // DF
         dYinBuffer[tau] = r[0] + r[tau] - 2 * acf;

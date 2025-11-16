@@ -54,6 +54,7 @@
         std::vector<float> dCircularBuffer; // Accumulative buffer of samples from AudioBuffer
         int dCircularIdx;                   // Start position in circular buffer
         int dHopSize;                       // Amount to jump fwd by. Creates overlapping frames.
+        int dSamplesUntilHop;
         juce::dsp::WindowingFunction<float>::WindowingMethod dWindow; // Hann window
         std::vector<float> dWindowFunction; 
         std::vector<float> frame;

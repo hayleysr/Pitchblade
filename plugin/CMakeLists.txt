@@ -67,7 +67,9 @@ target_sources(${PROJECT_NAME}
         source/ui/RealTimeGraphVisualizer.cpp
         source/ui/FrequencyGraphVisualizer.cpp
         source/ui/EqualizerVisualizer.cpp
+        source/ui/FormantVisualizer.cpp
         source/panels/PresetsPanel.cpp
+        
 
         #remember to add your panel and processors here
         source/panels/GainPanel.cpp
