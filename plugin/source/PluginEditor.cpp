@@ -75,11 +75,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         }
     }
 
-
 	//tooltip manager / reyna ///////////////////////////////////////////
-	tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 800);  // .8 second delay
-    tooltipWindow->setLookAndFeel(&customLF);
-
 	// load tooltips from file or binary data (wouldnt read from file had to add to binary)
     auto tooltipFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
         .getParentDirectory()
@@ -100,6 +96,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         temp.replaceWithText(content);  
 		tooltipManager.loadTooltipsFromFile(temp);  // load from temp file
     }
+
+    tooltipManager.initialize( &customLF);     // initialize tooltpwindow using tooltipmanager
 
     //apply tooltips to every daisychain row
     auto applyRowTooltips = [this]() {

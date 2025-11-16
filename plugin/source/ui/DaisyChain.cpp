@@ -49,6 +49,12 @@ DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_
     addAndMakeVisible(addButton);
     addAndMakeVisible(duplicateButton);
     addAndMakeVisible(deleteButton);
+
+    //tooltip conection
+    addButton.getProperties().set("tooltipKey", "addButton");
+    duplicateButton.getProperties().set("tooltipKey", "duplicateButton");
+    deleteButton.getProperties().set("tooltipKey", "deleteButton");
+
 	// scroll area for effects
     addAndMakeVisible(scrollArea);
     scrollArea.setViewedComponent(&effectsContainer, false);

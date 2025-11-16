@@ -8,8 +8,11 @@
 VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes)
                                                                         : processor(proc), effectNodes(nodes) {
     tabs.setTabBarDepth(0);  // hide tab bar
+    setOpaque(false);        // prevents hiding tooltip 
     addAndMakeVisible(tabs);
     refreshTabs();
+
+    setInterceptsMouseClicks(false, false);
 }
 
 void VisualizerPanel::paint(juce::Graphics& g) {

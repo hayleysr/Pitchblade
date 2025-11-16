@@ -8,10 +8,19 @@ class TooltipManager {
 public:
 	TooltipManager() = default;     // default constructor
 
+    // tooltip displays above everything
+    void initialize( juce::LookAndFeel* lf) {
+        if (!tooltipWindow) {
+            tooltipWindow = std::make_unique<juce::TooltipWindow>(nullptr, 500); // delay for tooltip to show up
+            tooltipWindow->setLookAndFeel(lf);
+            tooltipWindow->setAlwaysOnTop(true);  
+            tooltipWindow->setOpaque(false);
+        }
+    }
+
 	// load tooltips from file 
     void loadTooltipsFromFile(const juce::File& file) {
-        if (!file.existsAsFile())
-            return;
+        tooltips.clear();
 
         juce::StringArray lines;  
 		file.readLines(lines);      // read line by line
@@ -37,4 +46,5 @@ public:
 private:
 	// map of part names to tooltips
     std::unordered_map<juce::String, juce::String> tooltips;
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 };

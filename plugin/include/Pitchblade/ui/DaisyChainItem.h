@@ -82,6 +82,11 @@ public:
         // Set initial size
 		setSize(200, 40);               
         setInterceptsMouseClicks(true, true);  
+
+        //tooltip connection
+        button.getProperties().set("tooltipKey", "effect." + effectName);
+        bypass.getProperties().set("tooltipKey", "bypass");
+        modeButton.getProperties().set("tooltipKey", "modeButton");
 	} 
 
     //layout

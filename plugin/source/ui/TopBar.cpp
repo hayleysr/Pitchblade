@@ -22,7 +22,11 @@ TopBar::TopBar()
     addAndMakeVisible(settingsButton);
     addAndMakeVisible(bypassButton);
     addAndMakeVisible(presetButton);
-    
+
+    //tooltip connection
+    presetButton.getProperties().set("tooltipKey", "presetButton");
+    settingsButton.getProperties().set("tooltipKey", "settingsButton");
+    bypassButton.getProperties().set("tooltipKey", "bypassButton");
 }
 void TopBar::paint(juce::Graphics& g)
 {
