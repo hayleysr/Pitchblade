@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/PluginProcessor.h"
-
+#include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes)
@@ -16,8 +16,12 @@ VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<st
 }
 
 void VisualizerPanel::paint(juce::Graphics& g) {
-    //placeholder
-    g.fillAll(juce::Colours::black);
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
+
+    auto bounds = getLocalBounds().reduced(4);   // padding
+    g.setColour(Colors::accentPurple.withAlpha(0.6f));
+    g.drawRect(bounds, 1);   // thickness 3
 }
 
 void VisualizerPanel::resized() {

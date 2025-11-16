@@ -369,7 +369,17 @@ void DaisyChain::resized() {
 }
 
 void DaisyChain::paint(juce::Graphics& g) {
-    g.fillAll(Colors::panel);
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.3f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+    g.fillRect(r);
     g.drawRect(getLocalBounds(), 2);
 
     if (items.size() <= 1)

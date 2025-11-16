@@ -412,8 +412,11 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    g.fillAll(Colors::background);
+
+    // outer program border
+    g.setColour(juce::Colours::black);
+    g.drawRect(getLocalBounds().reduced(3), 6);   
 
 }
 
@@ -423,7 +426,7 @@ void AudioPluginAudioProcessorEditor::resized()
     // subcomponents in your editor..
     
     //ui reyna//////////////////////////////////////////
-    auto area = getLocalBounds();
+    auto area = getLocalBounds().reduced(6);
     //topbar height
     auto top = area.removeFromTop(40);
     topBar.setBounds(top);
@@ -433,9 +436,9 @@ void AudioPluginAudioProcessorEditor::resized()
 
     //Austin
     //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
-    settingsPanel.setBounds(area);
+    settingsPanel.setBounds(area.reduced(3));
 	// reyna presets panel
-    presetsPanel.setBounds(getLocalBounds().withTrimmedLeft(200).withTrimmedTop(40));
+    presetsPanel.setBounds(area.reduced(3));
 
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);

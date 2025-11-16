@@ -57,9 +57,8 @@ void FormantPanel::resized()
     mixSlider.setBounds(row2);
 }
 
-void FormantPanel::paint(juce::Graphics& g)
-{
-    g.fillAll(Colors::background);
+void FormantPanel::paint(juce::Graphics& g) {
+    g.drawRect(getLocalBounds(), 2);
 }
 
 

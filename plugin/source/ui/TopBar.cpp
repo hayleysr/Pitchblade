@@ -28,10 +28,20 @@ TopBar::TopBar()
     settingsButton.getProperties().set("tooltipKey", "settingsButton");
     bypassButton.getProperties().set("tooltipKey", "bypassButton");
 }
-void TopBar::paint(juce::Graphics& g)
-{
-    if (auto* lf = dynamic_cast<CustomLookAndFeel*>(&getLookAndFeel()))
-        lf->drawPanelBackground(g, *this);
+void TopBar::paint(juce::Graphics& g) {
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.15f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
 }
 
 void TopBar::resized()

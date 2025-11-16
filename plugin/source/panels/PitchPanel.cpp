@@ -195,19 +195,8 @@ void PitchPanel::resized()
 
 }
 
-void PitchPanel::paint(juce::Graphics& g)
-{
-    /*juce::Image bg = juce::ImageCache::getFromMemory(
-        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    g.setColour(Colors::background.withAlpha(0.8f));
-
-    if (bg.isValid()) {
-        g.drawImage(bg, getLocalBounds().toFloat());
-    }
-    else*/
-        g.fillAll(Colors::background);
-        g.drawRect(getLocalBounds(), 2);
+void PitchPanel::paint(juce::Graphics& g) {
+    g.drawRect(getLocalBounds(), 2);
 
     auto bounds = getLocalBounds().toFloat();
     drawStaticContent(g, bounds);

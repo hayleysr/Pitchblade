@@ -119,9 +119,7 @@ DeEsserPanel::DeEsserPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& sta
     localState.addListener(this);
 }
 
-void DeEsserPanel::paint(juce::Graphics& g)
-{
-    g.fillAll(Colors::background);
+void DeEsserPanel::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds(), 2);
 }
 
