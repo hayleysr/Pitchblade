@@ -331,7 +331,7 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
 
         effectNodes.push_back(node);
     }
-    // read chaning layout
+    // read chaining layout
     auto* layout = xml->getChildByName("ChainLayout");
     if (layout != nullptr) {
         std::vector<Row> loadedRows;
@@ -343,23 +343,14 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
             loadedRows.push_back(r);
         }
 
-        // store layout for audio thread and UI
-        {
-            std::lock_guard<std::recursive_mutex> lock(audioMutex);
-            pendingRows = loadedRows;
-            layoutRequested.store(true);
-        }
-
-        // request new layout
+        // tell the audio thread to rebuild connections from these rows
         requestLayout(loadedRows);
-
+        // keep these rows as the current layout for the UI
+        pendingRows = loadedRows;
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.empty() ? nullptr : effectNodes.front();
-    }
-    else
-    {
-        //Audio wasn't routing through, so I copied the logic used when loading the default to try to fix that - Austin
-        // connect in order
+    } else {
+        // no chainLayout in the preset: fall back to simple linear routing
         for (auto& node : effectNodes)
             if (node) node->clearConnections();
 
@@ -368,17 +359,19 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
 
         activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
         rootNode = effectNodes.empty() ? nullptr : effectNodes.front();
-    }
 
-   /* pendingRows.clear();
-    for (auto& node : effectNodes) {
-        if (!node) continue;
-        Row r;
-        r.left = node->effectName;
-        r.right = {};
-        pendingRows.push_back(r);
+        // give that simple layout to the UI
+        pendingRows.clear();
+        for (auto& node : effectNodes) {
+            if (!node) continue;
+            Row r;
+            r.left = node->effectName;
+            r.right = {};
+            pendingRows.push_back(r);
+        }
+        // layout already applied by the direct connectTo calls above
+        layoutRequested.store(false);
     }
-    layoutRequested.store(false);   */
 
     // update ui
     juce::MessageManager::callAsync([this]() {

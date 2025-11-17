@@ -159,7 +159,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     }
                 }
                 
-
                 //Austin
                 //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
                 if (isShowingSettings || isShowingPresets) {
@@ -270,43 +269,49 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             //rebuild ui after preset data is updated
             juce::MessageManager::callAsync([this]() {
 
-                // pull layout from processor
-                auto procRows = processorRef.getCurrentLayoutRows();
-                if (!procRows.empty()) {
-                    std::vector<DaisyChain::Row> uiRows;
-                    uiRows.reserve(procRows.size());
-
-                    for (const auto& r : procRows) {
-                        DaisyChain::Row row;
-                        row.left = r.left;
-                        row.right = r.right;
-                        uiRows.push_back(row);
-                    }
-
-                    daisyChain.setRows(uiRows);
-                } else {
-                    // when processor has no layout 
-                    daisyChain.resetRowsToNodes();
-                }
-
-                daisyChain.setReorderLocked(true);
+                //// pull layout from processor
+                //auto procRows = processorRef.getCurrentLayoutRows();
+                //if (!procRows.empty()) {
+                //    std::vector<DaisyChain::Row> uiRows;
+                //    uiRows.reserve(procRows.size());
+                //    for (const auto& r : procRows) {
+                //        DaisyChain::Row row;
+                //        row.left = r.left;
+                //        row.right = r.right;
+                //        uiRows.push_back(row);
+                //    }
+                //    daisyChain.setRows(uiRows);
+                //} else {
+                //    // when processor has no layout 
+                //    daisyChain.resetRowsToNodes();
+                //}
+                //daisyChain.setReorderLocked(true);
                 // full UI rebuild after preset operation
                 rebuildAndSyncUI();
             
                 // keep daisychain grayed out when presets panel is open
                 if (isShowingPresets) {
                     daisyChain.setChainControlsEnabled(false);
-                    daisyChain.setReorderLocked(true);
                 }
             });     
         };
     }
 }
 
-
-
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    //Pull fresh rows from processor before rebuilding UI
+    auto procRows = processorRef.getCurrentLayoutRows();
+    if (!procRows.empty()) {
+        daisyChain.setReorderLocked(false);
+        std::vector<DaisyChain::Row> uiRows;
+        uiRows.reserve(procRows.size());
+        for (const auto& r : procRows) {
+            uiRows.push_back({ r.left, r.right });
+        }
+        daisyChain.setRows(uiRows);
+    }
+
     std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
 

@@ -64,6 +64,7 @@ DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_
     deleteButton.onClick = [this]() { showDeleteMenu(); };
 
     // if there are existing nodes in the processor, create default rows
+    // creates the default rows in the daisychain on first launch
 	{   // lock processor mutex for thread safety
         std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
         if (!effectNodes.empty() && rows.empty()) {
