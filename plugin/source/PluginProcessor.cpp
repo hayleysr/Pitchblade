@@ -646,6 +646,33 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     layoutRequested.store(true);      
 }
 
+//for empty daisychain preset
+void AudioPluginAudioProcessor::clearAllNodes() {
+    const std::lock_guard<std::recursive_mutex> lock(getMutex());
+    // clear dsp
+    effectNodes.clear();
+    // clear layout rows
+    pendingRows.clear();
+
+    // notify audio thread to apply layout
+    layoutRequested.store(true);
+
+    // thread safe empty graph
+    rootNode = nullptr;
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>();
+    // rebuild UI
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    {
+        auto& dc = ed->getDaisyChain();
+        dc.clearRows();
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
+    }
+}
+
 //==============================================================================
 //Entire plugin bypass functionality - Austin
 bool AudioPluginAudioProcessor::isBypassed() const

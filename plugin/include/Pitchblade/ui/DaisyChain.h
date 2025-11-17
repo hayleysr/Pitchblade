@@ -37,6 +37,7 @@ public:
     //setter getter for rows
     void setRows(const std::vector<Row>& newRows) {  rows = newRows; rebuild(); }
     std::vector<Row> getRows() const {  return rows; }
+    void clearRows() { rows.clear(); }
 
 	//add + copy buttons
     juce::TextButton addButton{ "Add" };

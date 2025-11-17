@@ -51,7 +51,7 @@ void TopBar::resized()
 
     //pluginTitle.setBounds(area.removeFromLeft(150));
     //pluginTitle.setBounds(area.removeFromLeft(150));
-    auto logoArea = area.removeFromLeft(150);
+    auto logoArea = area.removeFromLeft(200);
     logo.setBounds(logoArea);
     
     settingsButton.setBounds(area.removeFromRight(80));

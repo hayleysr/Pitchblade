@@ -86,7 +86,7 @@ public:
 
     //reyna 
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
-
+    
     int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
 
 	struct Row { juce::String left, right; };               // processing chain row
@@ -97,6 +97,7 @@ public:
     void savePresetToFile(const juce::File& file);
     void loadPresetFromFile(const juce::File& file);
     void loadDefaultPreset(const juce::String& type);
+    void clearAllNodes();       //for preset loading
 
 private:
     //============================== 

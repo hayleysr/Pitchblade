@@ -16,6 +16,16 @@ VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<st
 }
 
 void VisualizerPanel::paint(juce::Graphics& g) {
+
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.3f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
     g.fillRect(getLocalBounds());
     g.drawRect(getLocalBounds(), 2);
 

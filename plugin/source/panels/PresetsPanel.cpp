@@ -12,7 +12,7 @@ PresetsPanel::PresetsPanel(AudioPluginAudioProcessor& proc) : processor(proc) {
 
     saveButton.onClick = [this]() { handleSavePreset(); };
     loadButton.onClick = [this]() { handleLoadPreset(); };
-    defaultButton.onClick = [this]() { handleDefaultPreset(); };
+    defaultButton.onClick = [this]() { showDefaultMenu(); };
 
     // preset change confirmation message
     addAndMakeVisible(statusLabel);
@@ -55,15 +55,15 @@ void PresetsPanel::paint(juce::Graphics& g) {
 }
 
 void PresetsPanel::resized() {
-    auto area = getLocalBounds().reduced(40);
-    const int buttonH = 40;
+    auto area = getLocalBounds().reduced(45);
+    const int buttonH = 60;
 
-    saveButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
-    loadButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
-    defaultButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
+    saveButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
+    loadButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
+    defaultButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
 
     // Status label
-    area.removeFromTop(10);
+    area.removeFromTop(5);
     statusLabel.setBounds(area.removeFromTop(30));
 }
 
@@ -125,4 +125,36 @@ void PresetsPanel::handleDefaultPreset() {
     juce::MessageManager::callAsync([this]() {
         if (onPresetActionFinished) onPresetActionFinished();
         });
+}
+
+void PresetsPanel::showDefaultMenu() {
+    juce::PopupMenu menu;
+
+    //  all effects - all default effects
+    menu.addItem("All Effects", [this]() {
+        processor.loadDefaultPreset("default");
+        statusLabel.setText("Default preset loaded", juce::dontSendNotification);
+
+        juce::MessageManager::callAsync([this]() {
+            if (onPresetActionFinished) 
+                onPresetActionFinished();
+            });
+        });
+
+    // empty chain : clear everything
+    menu.addItem("Empty Chain", [this]() {
+        processor.clearAllNodes();
+        statusLabel.setText("Chain cleared", juce::dontSendNotification);
+
+        juce::MessageManager::callAsync([this]() {
+            if (onPresetActionFinished) onPresetActionFinished();
+            });
+        });
+    menu.setLookAndFeel(&getLookAndFeel());
+
+    menu.showMenuAsync( 
+        juce::PopupMenu::Options()
+        .withTargetComponent(&defaultButton)   
+        .withMinimumWidth(defaultButton.getWidth())
+    );
 }
