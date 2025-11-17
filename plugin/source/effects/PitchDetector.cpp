@@ -317,6 +317,7 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
 
  float PitchDetector::getCurrentMidiNote()
 {
+    if (dCurrentPitch <= 0.f) return 0.f;   
     return (int)(round(69.0f + 12.0f * log2(dCurrentPitch / 440.0f)));
 }
 
@@ -327,6 +328,7 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
   */
  float PitchDetector::getCurrentNote()
  {
+    if (dCurrentPitch <= 0.f) return 0.f;
     return 12 * std::log2(dCurrentPitch / dReferencePitch);
  }
 
