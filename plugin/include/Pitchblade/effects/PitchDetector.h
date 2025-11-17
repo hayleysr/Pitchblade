@@ -11,6 +11,12 @@
  #include <juce_audio_devices/juce_audio_devices.h>
  #include <juce_dsp/juce_dsp.h> 
  #include <cmath>
+
+ struct PitchCandidate{
+    float pitch;
+    float probability;
+    float cost;
+ };
  
  class PitchDetector{
     public:
@@ -45,8 +51,8 @@
         int absoluteThreshold();
         float calculateRMS(const std::vector<float>&);
 
-        float dCurrentPitch;                // Pitch of most recent sample batch in Hz
-        double dSampleRate;                 // Sample rate
+        float currentPitch;                // Pitch of most recent sample batch in Hz
+        double sampleRate;                 // Sample rate
         int dWindowSize;                    // interval i to 2W
         int dYinBufferSize;                 // W, on sum j = t + 1 to t + W
         int dLag;                           // Lag
@@ -81,12 +87,15 @@
         std::vector<float> calculateProbabilities(std::vector<std::pair<int, float>>&);
         float temporalTracking(std::vector<std::pair<int, float>>&, std::vector<float>&);
 
-        std::vector<std::vector<float>> dPitchCandidates; // Likely pitch per frame for pYIN
-        std::vector<float> dPitchProbabilities;           // Probabilities per candidate
-        std::vector<float> dSmoothedPitchTrack;           // Temporal smoothing
+        std::vector<std::vector<float>> pitchCandidates; // Likely pitch per frame for pYIN
+        std::vector<float> pitchProbabilities;           // Probabilities per candidate
+        std::vector<float> smoothedPitchTrack;           // Temporal smoothing
         float dVoiceThreshold;                            // Min threshold for a freq to be considered voiced
         int dMaxCandidates;                               // Number of candidates to consider
 
-        
-        
+        /**
+         * Viterbi
+         */
+        std::vector<PitchCandidate> previousCandidates;
+        float transitionCost = 15.f; // Penalty for changing pitch
  };
