@@ -7,7 +7,7 @@ add_executable(runTests
     test_main.cpp
     test_GainProcessor.cpp
     test_NoiseGateProcessor.cpp
-    # test_CompressorModule.cpp
+    test_CompressorProcessor.cpp
     # test_DeEsserModule.cpp
     # test_DeNoiserModule.cpp
     # test_Visualizers.cpp

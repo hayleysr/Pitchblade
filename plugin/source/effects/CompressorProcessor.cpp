@@ -39,8 +39,8 @@ void CompressorProcessor::setRelease(float releaseInMS){
 
 // Calculates the smoothing coefficients for the envelope detector. See NoiseGateProcessor.cpp for a clearer explanation, as this reuses the code from there
 void CompressorProcessor::updateAttackAndRelease(){
-    attackCoeff = exp(-1.0f / (0.001f * attackTime * sampleRate + 0.0000001f));
-    releaseCoeff = exp(-1.0f / (0.001f * releaseTime * sampleRate + 0.0000001f));
+    attackCoeff = exp(-3.5f / (0.001f * attackTime * sampleRate + 0.0000001f));
+    releaseCoeff = exp(-0.9f / (0.001f * releaseTime * sampleRate + 0.0000001f));
 }
 
 //helper for volume meter - reyna
