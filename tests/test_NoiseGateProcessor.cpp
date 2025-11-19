@@ -3,42 +3,95 @@
 #include "Pitchblade/effects/NoiseGateProcessor.h"
 
 // Helper class
-class NoiseGateTest : public::testing::Test{
+class NoiseGateProcessorTest : public::testing::Test{
 protected:
-    NoiseGateProcessor processor;
-    juce::AudioBuffer<float> buffer;
-    double sampleRate = 44100.0;
-    int bufferSize = 512;
+    std::unique_ptr<NoiseGateProcessor> processor;
 
-    NoiseGateTest()
-        : buffer(1, bufferSize){}
-
-    void SetUp() override{
-        processor.prepare(sampleRate);
-    }
-
-    //Helps to process multiple blocks to simulate time passing
-    void processBlocks(int numBlocks){
-        for(int i = 0; i < numBlocks; i++){
-            processor.process(buffer);
-        }
+    void SetUp() override {
+        processor = std::make_unique<NoiseGateProcessor>();
     }
 
     //Helper to calculate blocks needed for a duration in ms
     int blocksForMS(float ms){
-        return (int)(std::ceil((ms/1000) * sampleRate / (double)bufferSize));
+        return (int)(std::ceil((ms/1000) * 44100 / (double)512));
+    }
+
+    //Helper to simulate a constant signal
+    void simulateConstantSignal(juce::AudioBuffer<float>& buffer, float msDuration, float signalValue){
+        int numBlocks = blocksForMS(msDuration);
+        for(int i = 0; i < numBlocks; i++){
+            for (int channel = 0; channel < buffer.getNumChannels(); ++channel){
+                juce::FloatVectorOperations::fill(buffer.getWritePointer(channel), signalValue, buffer.getNumSamples());
+            }
+            processor->process(buffer);
+        }
     }
 };
 
 //Test for TC-05
-TEST_F(NoiseGateTest, TC_05){
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-        juce::FloatVectorOperations::fill(buffer.getWritePointer(channel), 0.01f, buffer.getNumSamples());
-    processor.setThreshold(-30.0f);
-    processor.setAttack(10.0f);
-    processor.setRelease(10.0f);
+TEST_F(NoiseGateProcessorTest, TC_05){
 
-    processBlocks(blocksForMS(0.5f));
+    juce::AudioBuffer<float> buffer(1, 512);
 
-    ASSERT_NEAR(buffer.getSample(0,100),0.0f,0.001f);
+    processor->prepare(44100);
+
+    processor->setThreshold(-30.0f);
+    processor->setAttack(10.0f);
+    processor->setRelease(10.0f);
+
+    simulateConstantSignal(buffer, 500.0f, juce::Decibels::decibelsToGain(-40.0f));
+
+    ASSERT_NEAR(buffer.getSample(0, 100),0.0f,0.001f);
+}
+
+//Test for TC-06
+TEST_F(NoiseGateProcessorTest, TC_06){
+
+    juce::AudioBuffer<float> buffer(1, 512);
+
+    processor->prepare(44100);
+
+    processor->setThreshold(-30.0f);
+    processor->setAttack(10.0f);
+    processor->setRelease(10.0f);
+
+    simulateConstantSignal(buffer, 500.0f, juce::Decibels::decibelsToGain(-20.0f));
+
+    ASSERT_NEAR(buffer.getSample(0, 100),juce::Decibels::decibelsToGain(-20.0f),0.001f);
+}
+
+//Test for TC-07
+TEST_F(NoiseGateProcessorTest, TC_07){
+
+    juce::AudioBuffer<float> buffer(1, 512);
+
+    processor->prepare(44100);
+
+    processor->setThreshold(-30.0f);
+    processor->setAttack(50.0f);
+    processor->setRelease(10.0f);
+
+    simulateConstantSignal(buffer, 500.0f, juce::Decibels::decibelsToGain(-40.0f));
+
+    simulateConstantSignal(buffer, 50.0f, juce::Decibels::decibelsToGain(-20.0f));
+
+    ASSERT_NEAR(buffer.getSample(0, 100),juce::Decibels::decibelsToGain(-20.0f),0.0001f);
+}
+
+//Test for TC-08
+TEST_F(NoiseGateProcessorTest, TC_08){
+
+    juce::AudioBuffer<float> buffer(1, 512);
+
+    processor->prepare(44100);
+
+    processor->setThreshold(-30.0f);
+    processor->setAttack(10.0f);
+    processor->setRelease(50.0f);
+
+    simulateConstantSignal(buffer, 500.0f, juce::Decibels::decibelsToGain(-20.0f));
+
+    simulateConstantSignal(buffer, 59.0f, juce::Decibels::decibelsToGain(-40.0f));
+
+    ASSERT_NEAR(buffer.getSample(0, 100),0.0,0.0001f);
 }
