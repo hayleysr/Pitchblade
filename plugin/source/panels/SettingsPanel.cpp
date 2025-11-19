@@ -20,13 +20,29 @@ SettingsPanel::SettingsPanel(AudioPluginAudioProcessor& p) : processor(p) {
 SettingsPanel::~SettingsPanel(){}
 
 void SettingsPanel::paint(juce::Graphics& g){
-    g.fillAll(Colors::background);
+    auto r = getLocalBounds().toFloat();
 
-    //Simple placeholder text
-    g.setColour(Colors::accent);
-    g.setFont(20.0f);
+    juce::ColourGradient gradient(
+        Colors::background.brighter(0.1f),
+        r.getX(), r.getY(),
+        Colors::background,
+        r.getX(), r.getBottom(),
+        false
+    );
 
-    //g.drawText("Settings Panel",getLocalBounds(),juce::Justification::centred,1);
+    g.setGradientFill(gradient);
+
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
+
+    g.setColour(Colors::buttonText);
+    g.setFont(24.0f);
+    g.drawText("Settings Panel", getLocalBounds().removeFromTop(50), juce::Justification::centred, true);
+
+    //horizontal line
+    g.setColour(Colors::background);
+    float y = (float)getLocalBounds().removeFromTop(42).getBottom();  
+    g.drawLine(10.0f, y, (float)getWidth() - 10.0f, y, 3.0f);
 }
 
 void SettingsPanel::resized(){

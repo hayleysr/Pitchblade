@@ -75,11 +75,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         }
     }
 
-
 	//tooltip manager / reyna ///////////////////////////////////////////
-	tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 800);  // .8 second delay
-    tooltipWindow->setLookAndFeel(&customLF);
-
 	// load tooltips from file or binary data (wouldnt read from file had to add to binary)
     auto tooltipFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
         .getParentDirectory()
@@ -100,6 +96,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         temp.replaceWithText(content);  
 		tooltipManager.loadTooltipsFromFile(temp);  // load from temp file
     }
+
+    tooltipManager.initialize( &customLF);     // initialize tooltpwindow using tooltipmanager
 
     //apply tooltips to every daisychain row
     auto applyRowTooltips = [this]() {
@@ -161,7 +159,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     }
                 }
                 
-
                 //Austin
                 //If the settings panel is open, then close it and reopen the proper thing in the daisy chain
                 if (isShowingSettings || isShowingPresets) {
@@ -183,7 +180,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     }
         //keeps daiychain ui reordering consistant with processor ////////////////////////////
         daisyChain.onReorderFinished = [this, applyRowTooltips]() {
-            // new API for multiple rows
+            // new API for multiple rows - get current UI layout and send it to the processor
             const auto& rows = daisyChain.getCurrentLayout();       // get current layout
             std::vector<AudioPluginAudioProcessor::Row> procRows;   // prepare processing rows
             procRows.reserve(rows.size());
@@ -198,7 +195,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
                     editor->closeOverlaysIfOpen();
             }
 
-            processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
+            //processorRef.requestReorder(daisyChain.getCurrentOrder());  // getting current ui order for reorder
 
             visualizer.clearVisualizer();   // safely clear old node references
             // reconnect buttons after reorder
@@ -271,25 +268,50 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
             //rebuild ui after preset data is updated
             juce::MessageManager::callAsync([this]() {
-                daisyChain.resetRowsToNodes();
 
+                //// pull layout from processor
+                //auto procRows = processorRef.getCurrentLayoutRows();
+                //if (!procRows.empty()) {
+                //    std::vector<DaisyChain::Row> uiRows;
+                //    uiRows.reserve(procRows.size());
+                //    for (const auto& r : procRows) {
+                //        DaisyChain::Row row;
+                //        row.left = r.left;
+                //        row.right = r.right;
+                //        uiRows.push_back(row);
+                //    }
+                //    daisyChain.setRows(uiRows);
+                //} else {
+                //    // when processor has no layout 
+                //    daisyChain.resetRowsToNodes();
+                //}
+                //daisyChain.setReorderLocked(true);
                 // full UI rebuild after preset operation
                 rebuildAndSyncUI();
             
                 // keep daisychain grayed out when presets panel is open
                 if (isShowingPresets) {
                     daisyChain.setChainControlsEnabled(false);
-                    daisyChain.setReorderLocked(true);
                 }
             });     
         };
     }
 }
 
-
-
 // reyna - rebuild daisy chain and effect panel ui to sync with processor
 void AudioPluginAudioProcessorEditor::rebuildAndSyncUI() {
+    //Pull fresh rows from processor before rebuilding UI
+    auto procRows = processorRef.getCurrentLayoutRows();
+    if (!procRows.empty()) {
+        daisyChain.setReorderLocked(false);
+        std::vector<DaisyChain::Row> uiRows;
+        uiRows.reserve(procRows.size());
+        for (const auto& r : procRows) {
+            uiRows.push_back({ r.left, r.right });
+        }
+        daisyChain.setRows(uiRows);
+    }
+
     std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     juce::Logger::outputDebugString("Rebuilding DaisyChain + Panels");
 
@@ -395,8 +417,11 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    g.fillAll(Colors::background);
+
+    // outer program border
+    g.setColour(juce::Colours::black);
+    g.drawRect(getLocalBounds().reduced(3), 6);   
 
 }
 
@@ -406,7 +431,7 @@ void AudioPluginAudioProcessorEditor::resized()
     // subcomponents in your editor..
     
     //ui reyna//////////////////////////////////////////
-    auto area = getLocalBounds();
+    auto area = getLocalBounds().reduced(6);
     //topbar height
     auto top = area.removeFromTop(40);
     topBar.setBounds(top);
@@ -416,9 +441,9 @@ void AudioPluginAudioProcessorEditor::resized()
 
     //Austin
     //Settings panel bounds are set while the area is the entire right side, since the settings don't need a visualizer division
-    settingsPanel.setBounds(area);
+    settingsPanel.setBounds(area.reduced(3));
 	// reyna presets panel
-    presetsPanel.setBounds(getLocalBounds().withTrimmedLeft(200).withTrimmedTop(40));
+    presetsPanel.setBounds(area.reduced(3));
 
     //effects panel
     auto center = area.removeFromTop(area.getHeight() / 2);

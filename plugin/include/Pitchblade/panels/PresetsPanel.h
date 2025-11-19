@@ -32,5 +32,7 @@ private:
     void handleLoadPreset();
     void handleDefaultPreset();
 
+    void showDefaultMenu();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PresetsPanel)
 };
