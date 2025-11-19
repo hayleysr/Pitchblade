@@ -5,7 +5,7 @@ project(PitchbladeTests)
 add_executable(runTests
     # List all your test files here as you create them
     test_GainProcessor.cpp
-    # test_NoiseGateProcessor.cpp
+    test_NoiseGateProcessor.cpp
     # test_CompressorModule.cpp
     # test_DeEsserModule.cpp
     # test_DeNoiserModule.cpp
