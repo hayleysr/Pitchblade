@@ -22,16 +22,18 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     compressorLabel.setText("Compressor", juce::dontSendNotification);
     addAndMakeVisible(compressorLabel);
     compressorLabel.setName("NodeTitle");
-
-    // Mode Button
-    //modeButton.setClickingTogglesState(true);
-    //addAndMakeVisible(modeButton);
     
     //  volumemeter - reyna
     volumeMeter = std::make_unique<SimpleVolumeBar>(
         [this]() -> float {
+            //post processing value
             if (!node) return -60.0f;
             return node->getOutputLevelAtomic().load();
+        },
+        //placeholder for pre prossessing volume level
+        [this]() -> float { 
+            if (!node) return -60.0f;
+            return node->getPriorLevelAtomic().load(); 
         }
     );
     addAndMakeVisible(volumeMeter.get());
@@ -62,11 +64,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
-
-    //// Threshold Label
-    //thresholdLabel.setText("Threshold", juce::dontSendNotification);
-    //thresholdLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(thresholdLabel);
     
     // Ratio slider
     ratioSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -75,22 +72,12 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     ratioSlider.setTextValueSuffix(" : 1");
     addAndMakeVisible(ratioSlider);
     
-    //// Ratio Label
-    //ratioLabel.setText("Ratio", juce::dontSendNotification);
-    //ratioLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(ratioLabel);
-
     // Attack slider
     attackSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
     attackSlider.setNumDecimalPlacesToDisplay(1);
     attackSlider.setTextValueSuffix(" ms");
-    addAndMakeVisible(attackSlider);
-    
-    //// Attack Label
-    //attackLabel.setText("Attack", juce::dontSendNotification);
-    //attackLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(attackLabel);
+    addAndMakeVisible(attackSlider);   
 
     // Release slider
     releaseSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -98,11 +85,6 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
-
-    //// Release Label
-    //releaseLabel.setText("Release", juce::dontSendNotification);
-    //releaseLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(releaseLabel);
 
     ///////////////////
     // Link sliders to local state properties
@@ -142,40 +124,12 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
 };
 
 void CompressorPanel::paint(juce::Graphics& g) {
-
-    ////background
-    //juce::Image bg = juce::ImageCache::getFromMemory(
-    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    //g.setColour(Colors::background.withAlpha(0.8f));
-
-    //if (bg.isValid()) {
-    //    g.drawImage(bg, getLocalBounds().toFloat());
-    //}
-    //else
-
-    g.fillAll(Colors::background);
     g.drawRect(getLocalBounds(), 2);
 
-    // volume meter - fake
-   /* g.setColour(Colors::panel);
-    g.fillRect(volumeMeter.getBounds());
-    g.setColour(Colors::accent);
-    g.drawRect(volumeMeter.getBounds(), 2);*/
-
-    // draw threshold line over the volume meter - reyna
-    if (volumeMeter)
-    {
+    if (volumeMeter) {
         float threshold = (float)localState.getProperty("CompThreshold", -20.0f);
         volumeMeter->setThresholdDecibels(threshold);
     }
-
-    // fake fill
-    /*auto meterBounds = volumeMeter.getLocalBounds().reduced(6);
-    int fillHeight = (int)(meterBounds.getHeight() * 0.6f);
-    juce::Rectangle<int> fillRect = meterBounds.removeFromBottom(fillHeight);
-    g.setColour(Colors::accentPink);
-    g.fillRect(fillRect);*/
 }
 
 void CompressorPanel::place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF) {

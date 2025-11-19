@@ -22,12 +22,26 @@ TopBar::TopBar()
     addAndMakeVisible(settingsButton);
     addAndMakeVisible(bypassButton);
     addAndMakeVisible(presetButton);
-    
+
+    //tooltip connection
+    presetButton.getProperties().set("tooltipKey", "presetButton");
+    settingsButton.getProperties().set("tooltipKey", "settingsButton");
+    bypassButton.getProperties().set("tooltipKey", "bypassButton");
 }
-void TopBar::paint(juce::Graphics& g)
-{
-    if (auto* lf = dynamic_cast<CustomLookAndFeel*>(&getLookAndFeel()))
-        lf->drawPanelBackground(g, *this);
+void TopBar::paint(juce::Graphics& g) {
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.15f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
 }
 
 void TopBar::resized()
@@ -37,7 +51,7 @@ void TopBar::resized()
 
     //pluginTitle.setBounds(area.removeFromLeft(150));
     //pluginTitle.setBounds(area.removeFromLeft(150));
-    auto logoArea = area.removeFromLeft(150);
+    auto logoArea = area.removeFromLeft(200);
     logo.setBounds(logoArea);
     
     settingsButton.setBounds(area.removeFromRight(80));

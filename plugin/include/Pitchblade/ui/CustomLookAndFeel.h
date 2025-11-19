@@ -303,6 +303,72 @@ struct CustomLookAndFeel : public juce::LookAndFeel_V4
         g.drawFittedText(button.getButtonText(), area.toNearestInt(), juce::Justification::centred, 1);
     }
 
+    // custom slider //////////////////////////////////////////////////////////////////
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos, float minSliderPos, float maxSliderPos,
+        const juce::Slider::SliderStyle style, juce::Slider& slider) override {
+
+        auto bounds = juce::Rectangle<float>(x, y, width, height).reduced(1.0f);
+        const float trackHeight = juce::jmax(4.0f, bounds.getHeight() * 0.90f);
+
+        // track
+        juce::Rectangle<float> track(bounds.getX(), bounds.getCentreY() - trackHeight * 0.5f, bounds.getWidth(), trackHeight);
+
+        // background track
+        juce::ColourGradient trackGrad(
+            Colors::panel.brighter(0.15f), track.getCentreX(), track.getY(),
+            Colors::panel.darker(0.35f), track.getCentreX(), track.getBottom(),
+            false
+        );
+        g.setGradientFill(trackGrad);
+        g.fillRoundedRectangle(track, trackHeight * 0.5f);
+
+        // gradient track 
+        const float localPos = juce::jmap((float)slider.getValue(), (float)slider.getMinimum(), (float)slider.getMaximum(), track.getX(), track.getRight());
+        float filledWidth = juce::jlimit(0.0f, track.getWidth(), localPos - track.getX());
+
+        if (filledWidth > 0.0f) {
+            const float minFill = trackHeight * 0.6f;  // safe rounded size
+            float filledWidth = juce::jlimit(0.0f, track.getWidth(), localPos - track.getX());
+
+            if (filledWidth > 0.0f && filledWidth < minFill)
+                filledWidth = minFill;
+
+            juce::Rectangle<float> filled(track.getX(), track.getY(), filledWidth, trackHeight);
+            juce::ColourGradient grad(
+                Colors::accentPink, filled.getX(), filled.getY(),
+                Colors::accentTeal, filled.getRight(), filled.getBottom(),
+                false
+            );
+            g.setGradientFill(grad);
+            g.fillRoundedRectangle(filled, trackHeight * 0.5f);
+        }
+
+        // track outline
+        g.setColour(juce::Colours::black);
+        g.drawRoundedRectangle(track, trackHeight * 0.5f, 2.0f);
+
+        // thumb
+        const float thumbSize = trackHeight * 0.9f;
+
+        // clamp thumb inside track
+        const float edgePadding = thumbSize * 0.5f;
+        float thumbX = juce::jlimit( track.getX() + edgePadding, track.getRight() - edgePadding, localPos);
+        juce::Rectangle<float> thumbRect( thumbX - thumbSize * 0.5f, track.getCentreY() - thumbSize * 0.5f, thumbSize, thumbSize );
+
+        // thumb color
+        juce::ColourGradient thumbGrad(
+            juce::Colours::white , thumbRect.getCentreX(), thumbRect.getY(),
+            juce::Colours::white.darker(0.4f), thumbRect.getCentreX(), thumbRect.getBottom(),
+            false
+        );
+        g.setGradientFill(thumbGrad);
+        g.fillEllipse(thumbRect);
+
+        // thumb outline
+        g.setColour(juce::Colours::black);
+        g.drawEllipse(thumbRect, 1.5f);
+    }
+
     //custom dial //////////////////////////////////////////////////////////////
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
         float sliderPosProportional, float rotaryStartAngle,

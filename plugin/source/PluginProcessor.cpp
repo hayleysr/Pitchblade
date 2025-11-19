@@ -125,181 +125,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
 
 }
 
-///// reorder request from UI thread///////////////////////////////////////
-// will instead store names of nodes in new order, and then apply reorder on audio thread 
-void AudioPluginAudioProcessor::requestReorder(const std::vector<juce::String>& newOrderNames) {
-	std::lock_guard<std::recursive_mutex> lock(audioMutex);   //lock mutex for thread safety
-	pendingOrderNames = newOrderNames;              //store new order
-	reorderRequested.store(true);                   //set flag to apply reorder
-}
-
-////// Apply pendingreorder onto audio thread 
-//reconnecting of effect nodes based on pending order names - reyna 
-void AudioPluginAudioProcessor::applyPendingReorder() {
-    std::scoped_lock lock(audioMutex);
-	if (!reorderRequested.exchange(false))  //check and reset flag
-        return;
-	// Debug output of pending rows
-    juce::Logger::outputDebugString("============================================");
-    juce::Logger::outputDebugString("=== applyPendingReorder called ===");
-    for (int i = 0; i < (int)pendingRows.size(); ++i) {
-        const auto& r = pendingRows[i];
-        juce::Logger::outputDebugString(
-            "[" + juce::String(i) + "] Left: " + (r.left.isNotEmpty() ? r.left : "(none)")
-            + " | Right: " + (r.right.isNotEmpty() ? r.right : "(none)")
-        );
-    }
-    juce::Logger::outputDebugString("=============");
-	// Debug output of current effect nodes and their modes
-    juce::Logger::outputDebugString("========== Effect Modes (Nodes) ==========");
-    for (int i = 0; i < (int)effectNodes.size(); ++i) {
-        if (auto& n = effectNodes[i]) {
-            auto modeToStr = [](ChainMode m) {
-                switch (m) {
-                case ChainMode::Down:       return "down";
-                case ChainMode::Split:      return "split";
-                case ChainMode::DoubleDown: return "doubleDown";
-                case ChainMode::Unite:      return "unite";
-                default:                    return "?";
-                }
-                };
-            juce::Logger::outputDebugString( "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + juce::String(modeToStr(n->chainMode))
-            );
-        }
-    }
-    juce::Logger::outputDebugString("===========================================");
-
-    //copy of current list
-    std::vector<std::shared_ptr<EffectNode>> oldNodes = std::move(effectNodes);
-    std::vector<std::shared_ptr<EffectNode>> newList;
-    newList.reserve(pendingOrderNames.size());  
-
-	// rebuild new list based on pending order names
-    for (const auto& name : pendingOrderNames) {
-        for (auto& n : oldNodes) {
-            if (n && n->effectName == name) {
-                newList.push_back(n);
-                break;
-            }
-        }
-    }
-
-    if (newList.empty()) {    //if no valid names found, do nothing
-        juce::Logger::outputDebugString("No valid nodes found to reorder.");
-        return;
-    }
-
-	//clear all connections in old and new lists > causing stack overflow crash
-    for (auto& n : newList) {
-        if (n) {
-            n->clearConnections();
-        }
-        juce::Logger::outputDebugString("Rebuilding chain connections safely...");
-    }
-
-	//reconnect nodes in new order using daisychain modes
-    for (int i = 0; i + 1 < (int)newList.size(); ++i) { 
-        auto& n = newList[i];
-        if (!n) { continue; 
-        }
-
-		// helper lambda to connect if valid index
-        auto connectIfValid = [&](int from, int to) {
-                if (to >= 0 && to < (int)newList.size()) {
-                    auto& src = newList[from];
-                    auto& dst = newList[to];
-                    if (src && dst) 
-                        src->connectTo(dst);
-                        juce::Logger::outputDebugString("connect " + src->effectName + " >>> " + dst->effectName);
-                    }
-            };
-
-		// connect based on chain mode
-        switch (n->chainMode) {
-            case ChainMode::Down:
-                connectIfValid(i, i + 1); 
-                juce::Logger::outputDebugString("mode Down : " + n->effectName);
-                break;
-
-            case ChainMode::Split:                   // connect to next two nodes
-                connectIfValid(i, i + 1);
-                connectIfValid(i, i + 2);
-                juce::Logger::outputDebugString("mode Split : " + n->effectName);
-                break;
-
-            case ChainMode::DoubleDown:             // parallel : connect to next and skip one
-                connectIfValid(i, i + 1);
-                connectIfValid(i, i + 2);
-                juce::Logger::outputDebugString("mode doubleDown : " + n->effectName);
-                break;
-
-            case ChainMode::Unite:                  // merge previous two nodes into this one
-                if (i - 1 >= 0 && newList[i - 1]) {
-                    newList[i - 1]->connectTo(n);
-                    juce::Logger::outputDebugString("connect " + newList[i - 1]->effectName + " >>> " + n->effectName);
-                }
-                if (i - 2 >= 0 && newList[i - 2]) {
-                    newList[i - 2]->connectTo(n);
-                    juce::Logger::outputDebugString("connect " + newList[i - 2]->effectName + " >>> " + n->effectName);
-                }
-                juce::Logger::outputDebugString("mode Unite : " + n->effectName);
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    // update effect node list
-    effectNodes = std::move(newList);
-    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
-	rootNode = !effectNodes.empty() ? effectNodes.front() : nullptr;    //reset root node
-    juce::Logger::outputDebugString("=== Reorder finished ===\n");
-
-	////////////////////////////////////debug printout : current effect chain ///////////////////////
-    juce::Logger::outputDebugString("============================================");
-    juce::Logger::outputDebugString("========== Current Effect Chain ==========");
-    for (int i = 0; i < (int)pendingRows.size(); ++i) {
-        const auto& row = pendingRows[i];
-        juce::String msg;
-        msg << "[" << i << "]  Left: " << (row.left.isNotEmpty() ? row.left : "(empty)");
-
-        if (row.right.isNotEmpty()) msg << " | Right: " << row.right;
-        else msg << " | Right: (none)";
-        juce::Logger::outputDebugString(msg);
-    }
-    juce::Logger::outputDebugString("========== Effect Modes ==========");
-    for (int i = 0; i < (int)effectNodes.size(); ++i) {
-        if (auto& n = effectNodes[i]) {
-            juce::String mode;
-            switch (n->chainMode) {
-            case ChainMode::Down:       mode = "down"; break;
-            case ChainMode::Split:      mode = "split"; break;
-            case ChainMode::DoubleDown: mode = "doubleDown"; break;
-            case ChainMode::Unite:      mode = "unite"; break;
-            default:                    mode = "unknown"; break;
-            }
-
-            juce::Logger::outputDebugString( "[" + juce::String(i) + "] " + n->effectName + " | Mode: " + mode);
-        }
-    }
-    juce::Logger::outputDebugString("===============================================");
-
-    //// rebuild ui
-    //juce::MessageManager::callAsync([this]() {
-    //        if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-    //            editor->rebuildAndSyncUI();
-    //    });
-    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
-        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
-        juce::MessageManager::callAsync([safe]() {
-            if (auto* e = safe.getComponent())
-                e->rebuildAndSyncUI();
-            });
-    }
-}
-
-
 //==============================================================================
 // layout request from UI thread 
 // stores new rows and applies on audio thread - reyna
@@ -314,6 +139,12 @@ static std::shared_ptr<EffectNode> findByName(const std::vector<std::shared_ptr<
     for (auto& n : list) if (n && n->effectName == name) return n;
     return {};
 }
+
+std::vector<AudioPluginAudioProcessor::Row> AudioPluginAudioProcessor::getCurrentLayoutRows() {
+    std::lock_guard<std::recursive_mutex> lock(audioMutex);
+    return pendingRows;
+}
+
 
 // apply pending layout on audio thread
 // reconnect effect nodes based on pending rows
@@ -389,13 +220,7 @@ void AudioPluginAudioProcessor::applyPendingLayout() {
         rootNode = effectNodes.front();
     }
 
-    // rebuild ui
-    /*juce::MessageManager::callAsync([this]() {
-            if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-                editor->rebuildAndSyncUI();
-        });*/
         // rebuild UI safely without capturing a raw this
-
     if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
     {
         juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
@@ -423,13 +248,34 @@ void AudioPluginAudioProcessor::savePresetToFile(const juce::File& file) {
         if (!node) continue;
 
 		auto nodeXml = node->toXml(); //effectnode subclass toXml
-        if (nodeXml != nullptr)
+        if (nodeXml != nullptr) {
+            // save bypass state
+            nodeXml->setAttribute("bypass", node->bypassed);
+            // chaining mode (1-4)
+            nodeXml->setAttribute("chainMode", (int)node->chainMode);
+
             nodes->addChildElement(nodeXml.release());
+        }
     }
+
 	// add nodes to root
     presetRoot.addChildElement(nodes);
 
+    //store layout rows
+    juce::XmlElement* layout = new juce::XmlElement("ChainLayout");
+    auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor());
+    if (ed != nullptr) {
+        for (auto& r : ed->getDaisyChain().getCurrentLayout()) {
+            juce::XmlElement* row = new juce::XmlElement("Row");
+            row->setAttribute("left", r.left);
+            if (r.right.isNotEmpty())
+                row->setAttribute("right", r.right);
+            layout->addChildElement(row);
+        }
+    }
+
     // also store global params
+    presetRoot.addChildElement(layout);
     juce::XmlElement* globals = new juce::XmlElement("GlobalParameters");
     globals->setAttribute("GLOBAL_FRAMERATE",
         (int)*apvts.getRawParameterValue("GLOBAL_FRAMERATE"));
@@ -467,7 +313,14 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
         else if (name == "FormantNode")     node = std::make_shared<FormantNode>(*this);
         else continue;
 
+        //load node list
         node->loadFromXml(*nodeXml);
+        //load bypass state
+        if (nodeXml->hasAttribute("bypass"))
+            node->bypassed = nodeXml->getBoolAttribute("bypass");
+        // restore chaining mode
+        if (nodeXml->hasAttribute("chainMode"))
+            node->chainMode = (ChainMode)nodeXml->getIntAttribute("chainMode");
 
         auto& vt = node->getMutableNodeState(); // node API from EffectNode
         vt.setProperty("uuid", juce::Uuid().toString(), nullptr);
@@ -478,17 +331,47 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
 
         effectNodes.push_back(node);
     }
+    // read chaining layout
+    auto* layout = xml->getChildByName("ChainLayout");
+    if (layout != nullptr) {
+        std::vector<Row> loadedRows;
 
-    //Audio wasn't routing through, so I copied the logic used when loading the default to try to fix that - Austin
-    // connect in order
-    for (auto& node : effectNodes)
-        if (node) node->clearConnections();
+        forEachXmlChildElement(*layout, rowXml) {
+            AudioPluginAudioProcessor::Row r;
+            r.left = rowXml->getStringAttribute("left");
+            r.right = rowXml->getStringAttribute("right");
+            loadedRows.push_back(r);
+        }
 
-    for (int i = 0; i + 1 < (int)effectNodes.size(); ++i)
-        effectNodes[i]->connectTo(effectNodes[i + 1]);
+        // tell the audio thread to rebuild connections from these rows
+        requestLayout(loadedRows);
+        // keep these rows as the current layout for the UI
+        pendingRows = loadedRows;
+        activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+        rootNode = effectNodes.empty() ? nullptr : effectNodes.front();
+    } else {
+        // no chainLayout in the preset: fall back to simple linear routing
+        for (auto& node : effectNodes)
+            if (node) node->clearConnections();
 
-    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
-    rootNode = effectNodes.front();
+        for (int i = 0; i + 1 < (int)effectNodes.size(); ++i)
+            effectNodes[i]->connectTo(effectNodes[i + 1]);
+
+        activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
+        rootNode = effectNodes.empty() ? nullptr : effectNodes.front();
+
+        // give that simple layout to the UI
+        pendingRows.clear();
+        for (auto& node : effectNodes) {
+            if (!node) continue;
+            Row r;
+            r.left = node->effectName;
+            r.right = {};
+            pendingRows.push_back(r);
+        }
+        // layout already applied by the direct connectTo calls above
+        layoutRequested.store(false);
+    }
 
     // update ui
     juce::MessageManager::callAsync([this]() {
@@ -496,15 +379,6 @@ void AudioPluginAudioProcessor::loadPresetFromFile(const juce::File& file) {
             editor->rebuildAndSyncUI();
         });
     juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
-
-//     if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
-//         juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
-//         juce::MessageManager::callAsync([safe]() {
-//             if (auto* e = safe.getComponent())
-//                 e->rebuildAndSyncUI();
-//             });
-//         juce::Logger::outputDebugString("loaded preset from: " + file.getFullPathName());
-//     }
 }
 
 //==============================================================================
@@ -653,7 +527,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     juce::ScopedNoDenormals noDenormals;
 
     applyPendingLayout();
-    applyPendingReorder();
+    //applyPendingReorder();
 
     // indivdual bypass checker reyna
 	// process and forward only if root node exists and plugin is not globally bypassed
@@ -751,13 +625,6 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
     activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);
     rootNode = effectNodes.front();
 
-	// update ui
-   // juce::MessageManager::callAsync([this]() {
-   //     if (auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
-			//editor->rebuildAndSyncUI(); // rebuild UI to reflect default preset
-   //     });
-   // juce::Logger::outputDebugString("default preset loaded ");
-
     if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor())) {
         juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
         juce::MessageManager::callAsync([safe]() {
@@ -765,6 +632,44 @@ void AudioPluginAudioProcessor::loadDefaultPreset(const juce::String& type) {
                 e->rebuildAndSyncUI();
             });
         juce::Logger::outputDebugString("default preset loaded ");
+    }
+
+    // reset pending layout rows
+    pendingRows.clear();
+    for (auto& node : effectNodes) {
+        if (!node) continue;
+        Row r;
+        r.left = node->effectName;
+        //r.right = {};
+        pendingRows.push_back(r);
+    }
+    layoutRequested.store(true);      
+}
+
+//for empty daisychain preset
+void AudioPluginAudioProcessor::clearAllNodes() {
+    const std::lock_guard<std::recursive_mutex> lock(getMutex());
+    // clear dsp
+    effectNodes.clear();
+    // clear layout rows
+    pendingRows.clear();
+
+    // notify audio thread to apply layout
+    layoutRequested.store(true);
+
+    // thread safe empty graph
+    rootNode = nullptr;
+    activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>();
+    // rebuild UI
+    if (auto* ed = dynamic_cast<AudioPluginAudioProcessorEditor*>(getActiveEditor()))
+    {
+        auto& dc = ed->getDaisyChain();
+        dc.clearRows();
+        juce::Component::SafePointer<AudioPluginAudioProcessorEditor> safe(ed);
+        juce::MessageManager::callAsync([safe]() {
+            if (auto* e = safe.getComponent())
+                e->rebuildAndSyncUI();
+            });
     }
 }
 

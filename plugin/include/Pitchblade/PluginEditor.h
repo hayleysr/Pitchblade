@@ -11,7 +11,6 @@
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
-#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/panels/EffectNode.h"
 

@@ -38,24 +38,7 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 	localState.addListener(this);   // listen to changes in local state
 }
 
-void GainPanel::paint(juce::Graphics& g)
-{
-    /*juce::Image bg = juce::ImageCache::getFromMemory(
-        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    g.setColour(Colors::background.withAlpha(0.8f));
-
-    if (bg.isValid()) {
-        g.drawImage(bg, getLocalBounds().toFloat());
-    }
-    else*/
-        g.fillAll(Colors::background);
-
-    //outline overlay
-    //g.setColour(Colors::background.withAlpha(0.5f));
-    //g.fillRect(getLocalBounds());
-
-    //g.setColour(Colors::accent);
+void GainPanel::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds(), 2);
 }
 
