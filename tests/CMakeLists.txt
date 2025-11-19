@@ -4,6 +4,7 @@ project(PitchbladeTests)
 # Create the test executable
 add_executable(runTests
     # List all your test files here as you create them
+    test_main.cpp
     test_GainProcessor.cpp
     test_NoiseGateProcessor.cpp
     # test_CompressorModule.cpp
@@ -11,6 +12,7 @@ add_executable(runTests
     # test_DeNoiserModule.cpp
     # test_Visualizers.cpp
     # test_ParameterIntegration.cpp
+    test_UI_DaisyChain.cpp
 )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)
@@ -20,7 +22,10 @@ add_dependencies(runTests Pitchblade BinaryData)
 # Link Google Test
 target_link_libraries(runTests
     PRIVATE
-        gtest_main
+        # gtest_main
+        gtest
+        Pitchblade
+        BinaryData
 )
 
 # --- Link your plugin's main processor ---
