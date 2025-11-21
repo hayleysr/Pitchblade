@@ -74,10 +74,6 @@ target_include_directories(runTests
         
         # This path is for the auto-generated "BinaryData.h"
         ${CMAKE_BINARY_DIR}/plugin/Pitchblade_artefacts/BinaryData
-
-        # Explicitly add the gtest header paths.
-        ${gtest_SOURCE_DIR}/googletest/include
-        ${gtest_SOURCE_DIR}/googlemock/include
 )
 
 # --- CTest Integration ---
