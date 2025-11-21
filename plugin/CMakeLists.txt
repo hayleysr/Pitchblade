@@ -6,7 +6,7 @@ project(Pitchblade VERSION 0.1.0)
 
 # RubberBand configuration==============================================
 set(RUBBERBAND_DIR ${CMAKE_SOURCE_DIR}/plugin/third-party/rubberband)
-set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/rubberband)
+set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/)
 
 # Select Release or Debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -21,6 +21,9 @@ set_target_properties(RubberBand PROPERTIES
     IMPORTED_LOCATION ${RUBBERBAND_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${RUBBERBAND_INCLUDE_DIR}
 )
+
+set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+file(MAKE_DIRECTORY ${LIB_DIR})
 
 # Verify the library exists
 if(NOT EXISTS ${RUBBERBAND_LIBRARY})

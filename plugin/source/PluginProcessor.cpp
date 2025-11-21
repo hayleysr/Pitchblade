@@ -21,13 +21,14 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
+                       pitchProcessor(pitchDetector, pitchShifter),
 
 	//apvts contructor: attachs this to processor
     // AudioProcessorValueTreeState used to managea ValueTree that is used to manage an AudioProcessor's entire state
     apvts(*this, nullptr, "Parameters", createParameterLayout()) {
 	        // check if effectNodes tree exists
         if (!apvts.state.hasType("EffectNodes")) {
-            apvts.state = juce::ValueTree("EffectNodes");
+            apvts.state = juce::ValueTree("EffectNodes");   
         }
     }
 
