@@ -15,14 +15,12 @@ TEST(GainProcessorTest, TC_01)
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
         juce::FloatVectorOperations::fill(buffer.getWritePointer(channel), 0.5f, buffer.getNumSamples());
     
-    // --- 2. ACT ---
-    // No prepareToPlay() needed, per your code
     processor.process(buffer);
 
     // --- 3. ASSERT ---
     // Check if the gain was applied
     // 0.5 (input) * 2.0 (gain) = 1.0 (output)
-    ASSERT_FLOAT_EQ(buffer.getSample(0, 100), 1.0f); // Check a random sample
+    ASSERT_FLOAT_EQ(buffer.getSample(0, 100), 1.0f);
     ASSERT_FLOAT_EQ(buffer.getSample(0, 200), 1.0f);
 }
 
