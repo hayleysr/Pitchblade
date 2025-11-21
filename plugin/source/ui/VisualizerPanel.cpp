@@ -2,19 +2,36 @@
 #include <JuceHeader.h>
 #include "Pitchblade/ui/VisualizerPanel.h"
 #include "Pitchblade/PluginProcessor.h"
-
+#include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 VisualizerPanel::VisualizerPanel(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes)
                                                                         : processor(proc), effectNodes(nodes) {
     tabs.setTabBarDepth(0);  // hide tab bar
+    setOpaque(false);        // prevents hiding tooltip 
     addAndMakeVisible(tabs);
     refreshTabs();
+
+    setInterceptsMouseClicks(false, false);
 }
 
 void VisualizerPanel::paint(juce::Graphics& g) {
-    //placeholder
-    g.fillAll(juce::Colours::black);
+
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.3f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
+
+    auto bounds = getLocalBounds().reduced(4);   // padding
+    g.setColour(Colors::accentPurple.withAlpha(0.6f));
+    g.drawRect(bounds, 1);   // thickness 3
 }
 
 void VisualizerPanel::resized() {

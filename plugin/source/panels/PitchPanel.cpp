@@ -21,7 +21,10 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         )
     )
 {
-    pitchName.setText("Pitch", juce::dontSendNotification);
+    //panel label - reyna
+    panelTitle.setText("Pitch", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle");
+    addAndMakeVisible(panelTitle);
 
     startTimerHz(8);
 
@@ -138,19 +141,16 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         };
 
     localState.addListener(this);
-    //startTimerHz(8);    // Update 4x/second
-
-    //panel label - reyna
-    //panelTitle.setText("Pitch", juce::dontSendNotification);
-    panelTitle.setName("NodeTitle"); 
-    addAndMakeVisible(panelTitle);
+    //startTimerHz(8);    // Update 4x/second  
 }
 
 void PitchPanel::resized()
 {
-    auto area = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
 
-    pitchName.setBounds(area.removeFromTop(area.getHeight() * 0.1f));
+    // panel title
+    panelTitle.setBounds(area.removeFromTop(30));
+    area = area.reduced(10);
 
     auto y = area.getCentreY() + area.getHeight();
 
@@ -195,19 +195,8 @@ void PitchPanel::resized()
 
 }
 
-void PitchPanel::paint(juce::Graphics& g)
-{
-    /*juce::Image bg = juce::ImageCache::getFromMemory(
-        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    g.setColour(Colors::background.withAlpha(0.8f));
-
-    if (bg.isValid()) {
-        g.drawImage(bg, getLocalBounds().toFloat());
-    }
-    else*/
-        g.fillAll(Colors::background);
-        g.drawRect(getLocalBounds(), 2);
+void PitchPanel::paint(juce::Graphics& g) {
+    g.drawRect(getLocalBounds(), 2);
 
     auto bounds = getLocalBounds().toFloat();
     drawStaticContent(g, bounds);

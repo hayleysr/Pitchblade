@@ -77,18 +77,6 @@ DeNoiserPanel::~DeNoiserPanel(){
 }
 
 void DeNoiserPanel::paint(juce::Graphics& g){
-    ////background
-    //juce::Image bg = juce::ImageCache::getFromMemory(
-    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    //g.setColour(Colors::background.withAlpha(0.8f));
-
-    //if (bg.isValid()) {
-    //    g.drawImage(bg, getLocalBounds().toFloat());
-    //}
-    //else
-
-    g.fillAll(Colors::background);
     g.drawRect(getLocalBounds(),2);
 }
 
@@ -96,11 +84,11 @@ void DeNoiserPanel::resized(){
     auto area = getLocalBounds();
 
     //Title label at the top
-    deNoiserLabel.setBounds(area.removeFromTop(30));
-    learnButton.setBounds(area.removeFromTop(30).reduced(10,5));
+    deNoiserLabel.setBounds(area.removeFromTop(50));
+    learnButton.setBounds(area.removeFromTop(30).reduced(20,-5));
 
     //Bounds for status label below the button
-    statusLabel.setBounds(area.removeFromTop(20));
+    statusLabel.setBounds(area.removeFromTop(30));
 
     auto dials = area.reduced(10);
 
@@ -110,7 +98,7 @@ void DeNoiserPanel::resized(){
     auto reductionArea = dials.removeFromLeft(dialWidth).reduced(5);
 
     //Positioning reduction label and slider
-    reductionLabel.setBounds(reductionArea.removeFromTop(20));
+    reductionLabel.setBounds(reductionArea.removeFromTop(10));
     reductionSlider.setBounds(reductionArea);
 }
 

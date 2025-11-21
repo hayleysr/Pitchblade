@@ -8,12 +8,6 @@
 // ===================== EqualizerPanel =====================
 EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree& state)
     : processor(proc), localState(state)
-      /*lowFreqAttachment   (processor.apvts, "EQ_LOW_FREQ",  lowFreq),
-      lowGainAttachment   (processor.apvts, "EQ_LOW_GAIN",  lowGain),
-      midFreqAttachment   (processor.apvts, "EQ_MID_FREQ",  midFreq),
-      midGainAttachment   (processor.apvts, "EQ_MID_GAIN",  midGain),
-      highFreqAttachment  (processor.apvts, "EQ_HIGH_FREQ", highFreq),
-      highGainAttachment  (processor.apvts, "EQ_HIGH_GAIN", highGain)*/
 {
     //label names for dials - reyna
     lowFreq.setName("Low Freq");
@@ -51,12 +45,12 @@ EqualizerPanel::EqualizerPanel (AudioPluginAudioProcessor& proc, juce::ValueTree
     midGain.setLookAndFeel(&smallDialLF);
     highGain.setLookAndFeel(&smallDialLF);
 
-    addAndMakeVisible (lowFreq);   //addAndMakeVisible (lowFreqLabel);
-    addAndMakeVisible (lowGain);   //addAndMakeVisible (lowGainLabel);
-    addAndMakeVisible (midFreq);   //addAndMakeVisible (midFreqLabel);
-    addAndMakeVisible (midGain);   //addAndMakeVisible (midGainLabel);
-    addAndMakeVisible (highFreq);  //addAndMakeVisible (highFreqLabel);
-    addAndMakeVisible (highGain);  //addAndMakeVisible (highGainLabel);
+    addAndMakeVisible (lowFreq);   
+    addAndMakeVisible (lowGain);   
+    addAndMakeVisible (midFreq);   
+    addAndMakeVisible (midGain);  
+    addAndMakeVisible (highFreq);  
+    addAndMakeVisible (highGain); 
 
     auto updateTree = [this](juce::Slider& s, const juce::String& key) {
         s.onValueChange = [this, &s, key]() {
@@ -147,24 +141,10 @@ void EqualizerPanel::resized()
 }
 
 void EqualizerPanel::paint(juce::Graphics& g) {
-
-    ////background
-    //juce::Image bg = juce::ImageCache::getFromMemory(
-    //    BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
-
-    //g.setColour(Colors::background.withAlpha(0.8f));
-
-    //if (bg.isValid()) {
-    //    g.drawImage(bg, getLocalBounds().toFloat());
-    //}
-    //else
-    g.fillAll(Colors::background);
-
-    g.fillAll(Colors::background);
     g.drawRect(getLocalBounds(), 2);
 
     //horizontal line
-    g.setColour(juce::Colours::black.withAlpha(0.2f));
+    g.setColour(Colors::panel.withAlpha(0.2f));
     int midY = getHeight() * 0.58;
     g.drawLine(10.0f, (float)midY, (float)getWidth() - 10.0f, (float)midY, 2.0f);
 }

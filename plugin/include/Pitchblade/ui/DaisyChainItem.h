@@ -33,8 +33,12 @@ public:
 		button.setButtonText(effectName);
 		addAndMakeVisible(button);
 
-        button.setOpaque(true);
-        rightButton.setOpaque(true);
+        button.setOpaque(false);
+        rightButton.setOpaque(false);
+        modeButton.setOpaque(false);
+        bypass.setOpaque(false);
+        rightMode.setOpaque(false);
+        rightBypass.setOpaque(false);
 
         button.onClick = [this] {         // turn active button pink on click
             onEffectSelected = !onEffectSelected; // toggle selection state
@@ -82,6 +86,11 @@ public:
         // Set initial size
 		setSize(200, 40);               
         setInterceptsMouseClicks(true, true);  
+
+        //tooltip connection
+        button.getProperties().set("tooltipKey", "effect." + effectName);
+        bypass.getProperties().set("tooltipKey", "bypass");
+        modeButton.getProperties().set("tooltipKey", "modeButton");
 	} 
 
     //layout

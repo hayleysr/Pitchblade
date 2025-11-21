@@ -27,15 +27,19 @@ endif()
 # Create the test executable
 add_executable(runTests
     # List all your test files here as you create them
+    test_main.cpp
     test_GainProcessor.cpp
     test_PitchDetector.cpp
     test_PitchCorrector.cpp
-    # test_NoiseGateProcessor.cpp
-    # test_CompressorModule.cpp
-    # test_DeEsserModule.cpp
-    # test_DeNoiserModule.cpp
+    test_NoiseGateProcessor.cpp
+    test_CompressorProcessor.cpp
+    test_DeEsserProcessor.cpp
+    test_DeNoiserProcessor.cpp
     # test_Visualizers.cpp
     # test_ParameterIntegration.cpp
+    test_UI_DaisyChain.cpp
+    test_Integration_Amplitude.cpp
+    test_Integration_Performance.cpp
 )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)

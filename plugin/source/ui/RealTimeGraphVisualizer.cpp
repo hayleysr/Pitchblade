@@ -53,6 +53,16 @@ void RealTimeGraphVisualizer::paint(juce::Graphics& g){
     g.saveState();
     g.reduceClipRegion(graphBounds);
 
+    //{   // background gradient - reyna
+    //    juce::ColourGradient grad(
+    //        Colors::accentPink.withAlpha(0.15f), graphBounds.getX(), graphBounds.getY(),
+    //        Colors::accentTeal.withAlpha(0.15f), graphBounds.getX(), graphBounds.getBottom(),
+    //        false
+    //    );
+    //    g.setGradientFill(grad);
+    //    g.fillRect(graphBounds);
+    //}
+
     //Draw graph. Lock the dataMutex to ensure the audio thread doesn't modify the queue while it is being read
     //Curly brackets are used to create a new, inner scope, where objects can be created inside and not exist outside of it
     {
@@ -66,6 +76,10 @@ void RealTimeGraphVisualizer::paint(juce::Graphics& g){
 
 void RealTimeGraphVisualizer::resized(){
     auto bounds = getLocalBounds();
+
+    //padding 
+    constexpr int pad = 15;
+    bounds = bounds.reduced(pad);
 
     labelBounds = bounds.removeFromLeft(labelWidth);
 
@@ -172,6 +186,7 @@ void RealTimeGraphVisualizer::drawGraph(juce::Graphics& g){
     }
 
     juce::Path graphPath;
+    juce::Path fillPath;        // added underneath fillpath to graph -reyna
 
     g.setColour(Colors::accent);
 
@@ -179,6 +194,7 @@ void RealTimeGraphVisualizer::drawGraph(juce::Graphics& g){
 
     const float graphW = (float)graphBounds.getWidth();
     const float graphH = (float)graphBounds.getHeight();
+    const float graphX = (float)graphBounds.getX();
     const float graphY = (float)graphBounds.getY();
     const float graphB = (float)graphBounds.getBottom();
 
@@ -190,21 +206,39 @@ void RealTimeGraphVisualizer::drawGraph(juce::Graphics& g){
     float startY = mapValuetoY(firstValue);
 
     //Start the path at the first data point at the left side of the graph
-    graphPath.startNewSubPath(graphBounds.getX(),startY);
+    graphPath.startNewSubPath(graphX,startY);
+
+    fillPath.startNewSubPath(graphX, graphB);
+    fillPath.lineTo(graphX, startY);
 
     //Calculate how many pixels wide each data point is
     float stepX = graphW / (float)maxDataPoints;
-    float currentX = (float)graphBounds.getX() + stepX;
+    float currentX = graphX + stepX;
 
     //Add remaining points to the path
     for(size_t i = 1; i < dataQueue.size(); i++){
         float value = dataQueue[i];
         float y = mapValuetoY(value);
         graphPath.lineTo(currentX,y);
+        fillPath.lineTo(currentX, y);
         currentX+=stepX;
     }
 
+    fillPath.lineTo(currentX - stepX, graphB);
+    fillPath.closeSubPath();
+
+    // fill gradient under the line - reyna
+    juce::ColourGradient grad(
+        Colors::accentPink.withAlpha(0.5f), graphBounds.getX(), graphBounds.getY(),
+        Colors::panel.withAlpha(0.5f), graphBounds.getX(), graphBounds.getBottom(),
+        false
+    );
+
+    g.setGradientFill(grad);
+    g.fillPath(fillPath);
+
     //Draw the path to the screen with a 2 pixel stroke
+    g.setColour(Colors::accent);
     g.strokePath(graphPath,juce::PathStrokeType(2.0f));
 }
 

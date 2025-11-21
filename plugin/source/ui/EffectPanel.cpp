@@ -15,6 +15,7 @@ EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc, const std::vector<std:
     //hide top tab buttons
     tabs.setTabBarDepth(0);
     tabs.setOpaque(false);
+    tabs.getTabbedButtonBar().setOpaque(false);
     addAndMakeVisible(tabs);
 }
 
@@ -31,21 +32,26 @@ void EffectPanel::showEffect(int index)
 }
 
 
-void EffectPanel::paint(juce::Graphics& g)
-{
-    juce::Image bg = juce::ImageCache::getFromMemory(
-        BinaryData::panel_bg_png, BinaryData::panel_bg_pngSize);
+void EffectPanel::paint(juce::Graphics& g) {
+    auto r = getLocalBounds().toFloat();
 
-    g.setColour(Colors::background.withAlpha(0.8f));
+    juce::ColourGradient gradient(
+        Colors::background.brighter(0.2f),
+        r.getX(), r.getY(),
+        Colors::background.brighter(0.05f),
+        r.getX(), r.getBottom(),
+        false
+    );
 
-    if (bg.isValid()) {
-        g.drawImage(bg, getLocalBounds().toFloat());
-    }
-    else
-        g.fillAll(Colors::background);
+    g.setGradientFill(gradient);
 
     g.fillRect(getLocalBounds());
     g.drawRect(getLocalBounds(), 2);
+
+    auto bounds = getLocalBounds().reduced(4);   // padding
+    g.setColour(Colors::accentPurple.withAlpha(0.6f));
+    g.drawRect(bounds, 1);   // thickness 3
+
 }
 
 void EffectPanel::refreshTabs()
@@ -59,7 +65,7 @@ void EffectPanel::refreshTabs()
 		{   // create panel from node
             auto panel = node->createPanel(processor);
             if (panel)   
-                tabs.addTab(node->effectName, Colors::background, panel.release(), true);
+                tabs.addTab(node->effectName, juce::Colours::transparentBlack, panel.release(), true);
         }
     }
 }

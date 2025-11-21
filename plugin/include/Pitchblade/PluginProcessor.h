@@ -85,18 +85,19 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////// reyna 
 
     //reyna 
-	void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 	void setRootNode(std::shared_ptr<EffectNode> node) { rootNode = std::move(node); }  // set root node for processing chain
-
+    
     int getCurrentBlockSize() const {return currentBlockSize;}; // Austin - Was having an issue initializing de-esser
 
 	struct Row { juce::String left, right; };               // processing chain row
 	void requestLayout(const std::vector<Row>& newRows);    // request new layout for processing chain 
+    std::vector<Row> getCurrentLayoutRows();                //getter for current layout of rows for ui 
 
 	// preset management
     void savePresetToFile(const juce::File& file);
     void loadPresetFromFile(const juce::File& file);
     void loadDefaultPreset(const juce::String& type);
+    void clearAllNodes();       //for preset loading
 
 private:
     //============================== 
@@ -129,14 +130,16 @@ private:
 	//std::mutex audioMutex;    
 	std::recursive_mutex audioMutex;                    // mutex for audio thread safety
 	std::atomic<bool> reorderRequested{ false };        // flag for reorder request
-	std::vector<juce::String> pendingOrderNames;        // new order to apply
 
 	//layout  rows
 	std::vector<Row> pendingRows;   // new layout to apply
     std::atomic<bool> layoutRequested{ false };
     void applyPendingLayout();
 
-    void applyPendingReorder();
+    //removed to simplify code, stop using single list entirely, only use rows
+    //std::vector<juce::String> pendingOrderNames;        // new order to apply
+    //void applyPendingReorder();
+    //void requestReorder(const std::vector<juce::String>& newOrderNames);    // reorder using effect names
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };
