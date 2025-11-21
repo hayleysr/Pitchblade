@@ -442,16 +442,20 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
+    setRateAndBufferSizeDetails(sampleRate, samplesPerBlock);
+
     juce::ignoreUnused (sampleRate, samplesPerBlock);
     
     currentBlockSize = samplesPerBlock; // Austin
 
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
-    noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
-    compressorProcessor.prepare(sampleRate);                    //Austin
-    deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    deNoiserProcessor.prepare(sampleRate);                      //Austin
+    //We can likely get rid of these 4 I commented out. It seems to work fine without them
+    //noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    //compressorProcessor.prepare(sampleRate);                    //Austin
+    //deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
+    //deNoiserProcessor.prepare(sampleRate);                      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda

@@ -10,9 +10,11 @@ add_executable(runTests
     test_CompressorProcessor.cpp
     test_DeEsserProcessor.cpp
     test_DeNoiserProcessor.cpp
+    test_Integration_Amplitude.cpp
     # test_Visualizers.cpp
     # test_ParameterIntegration.cpp
     test_UI_DaisyChain.cpp
+    test_Integration_Performance.cpp
 )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)
