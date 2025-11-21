@@ -95,6 +95,8 @@ TEST(DaisyChainTest, EffectNodeNamesMapToRowsCorrectly) {
 // verifies that toggling the bypass button updates the EffectNode bypass state
 TEST(DaisyChainTest, ItemBypassTogglesNodeState) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -128,6 +130,8 @@ TEST(DaisyChainTest, ItemBypassTogglesNodeState) {
 // verifies two presses restore the original active state and do not affect other nodes
 TEST(DaisyChainTest, ItemBypassDoubleClickRestoresState) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -314,6 +318,8 @@ TEST(DaisyChainTest, UniteModeCollapsesDoubleRow) {
 // TC-32 Mode Change Constraint Behavior
 TEST(DaisyChainTest, ModeChangesBlockedByConstraints) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -352,6 +358,8 @@ TEST(DaisyChainTest, ModeChangesBlockedByConstraints) {
 // TC-33 Add, Copy, and Delete Buttons
 TEST(DaisyChainTest, AddCopyDeleteModifyBothUIAndProcessor) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     // Build initial DaisyChain from current nodes
@@ -416,6 +424,8 @@ TEST(DaisyChainTest, AddCopyDeleteModifyBothUIAndProcessor) {
 // TC-34 Settings and Presets Overlay Lock Behavior
 TEST(DaisyChainTest, SettingsAndPresetsLockReorder) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -443,8 +453,11 @@ TEST(DaisyChainTest, SettingsAndPresetsLockReorder) {
 }
 
 // TC-35 Overlay Close Unlock Behavior
+//FAILED ////////////////////
 TEST(DaisyChainTest, ClosingOverlayUnlocksReorder) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -485,6 +498,8 @@ TEST(DaisyChainTest, ClosingOverlayUnlocksReorder) {
 // TC-36 Global Bypass Button Behavior
 TEST(DaisyChainTest, GlobalBypassUpdatesProcessorAndUI) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -527,9 +542,10 @@ TEST(DaisyChainTest, GlobalBypassUpdatesProcessorAndUI) {
 }
 
 // TC-37 Per Node Bypass Preservation
-TEST(DaisyChainTest, NodeBypassStatesArePreservedAfterGlobalBypassToggle)
-{
+TEST(DaisyChainTest, NodeBypassStatesArePreservedAfterGlobalBypassToggle) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
@@ -567,6 +583,8 @@ TEST(DaisyChainTest, NodeBypassStatesArePreservedAfterGlobalBypassToggle)
 TEST(DaisyChainTest, StateLoadReconstructsExactDaisyChainLayout) {
     // First processor : create save state
     AudioPluginAudioProcessor proc1;
+    proc1.prepareToPlay(44100.0, 512);
+
     auto& nodes1 = proc1.getEffectNodes();
 
     DaisyChain dc1(proc1, nodes1);
@@ -589,6 +607,8 @@ TEST(DaisyChainTest, StateLoadReconstructsExactDaisyChainLayout) {
 
     // second processor : load state, build DaisyChain, check it matches
     AudioPluginAudioProcessor proc2;
+    proc2.prepareToPlay(44100.0, 512);
+
     proc2.setStateInformation(state.getData(), (int)state.getSize());
 
     auto& nodes2 = proc2.getEffectNodes();
@@ -602,8 +622,11 @@ TEST(DaisyChainTest, StateLoadReconstructsExactDaisyChainLayout) {
 }
 
 // TC-39 State Synchronization on UI Actions
+//FAILED ////////////////////
 TEST(DaisyChainTest, UIChangesInstantlyUpdateValueTreeAndReloadCorrectly) {
     AudioPluginAudioProcessor proc;
+    proc.prepareToPlay(44100.0, 512);
+
     auto& nodes = proc.getEffectNodes();
 
     DaisyChain dc(proc, nodes);
