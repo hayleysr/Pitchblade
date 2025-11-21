@@ -8,8 +8,8 @@ add_executable(runTests
     test_GainProcessor.cpp
     test_NoiseGateProcessor.cpp
     test_CompressorProcessor.cpp
-    # test_DeEsserModule.cpp
-    # test_DeNoiserModule.cpp
+    test_DeEsserProcessor.cpp
+    test_DeNoiserProcessor.cpp
     # test_Visualizers.cpp
     # test_ParameterIntegration.cpp
     test_UI_DaisyChain.cpp
