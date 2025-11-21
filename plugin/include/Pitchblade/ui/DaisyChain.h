@@ -57,14 +57,14 @@ public:
 
     void resetRowsToNodes(); // force rows to mirror processor/effectNodes for loading presets
 
-private:
+//private:
 	// reorder handler for multi row support
     // kind: -1 vertical insert, -2 right-slot insert (double row)
     void handleReorder(int kind, const juce::String& dragName, int targetRow);
 
 	std::shared_ptr<EffectNode> findNodeByName(const juce::String& name) const; // helper to find node by name
     std::vector<std::shared_ptr<EffectNode>>& effectNodes;  // refern to processor's chain
-
+private:
     std::vector<Row> rows;
     juce::Viewport scrollArea;
     juce::Component effectsContainer;

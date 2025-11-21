@@ -7,14 +7,22 @@
 
 #pragma once
 #include <JuceHeader.h>
-#include "../../third-party/rubberband/include/rubberband/RubberBandStretcher.h"
+#include <rubberband/RubberBandStretcher.h>
 
-class PitchShifter{
+class IPitchShifter{
+public:
+    virtual ~IPitchShifter() = default;
+    virtual void prepare(double, int) = 0;
+    virtual void setPitchShiftRatio(float) = 0;
+    virtual void processBlock(juce::AudioBuffer<float>&) = 0;
+};
+
+class PitchShifter : public IPitchShifter{
     public:
         PitchShifter() = default;
-        void prepare(double, int);
-        void setPitchShiftRatio(float);
-        void processBlock(juce::AudioBuffer<float>&);
+        void prepare(double, int) override;
+        void setPitchShiftRatio(float) override;
+        void processBlock(juce::AudioBuffer<float>&) override;
     private:
         void processRubberBand(int);
         int getAvailableSamples() const;

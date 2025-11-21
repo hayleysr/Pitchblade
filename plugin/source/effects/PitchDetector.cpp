@@ -42,7 +42,7 @@
  
  void PitchDetector::prepare(double sampleRate, int samplesPerBlock, double hopSizeDenominator = 4)
  {
-    dSampleRate = sampleRate;
+    this->sampleRate = sampleRate;
     frame.assign(dWindowSize, 0.0f);
     r.assign(dYinBufferSize + 1, 0.0f);
 
@@ -67,9 +67,9 @@
         dWindowFunction[i] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * i / (dWindowSize - 1)));
     }
 
-    dPitchCandidates.clear();
-    dPitchProbabilities.clear();
-    dSmoothedPitchTrack.clear();
+    pitchCandidates.clear();
+    pitchProbabilities.clear();
+    smoothedPitchTrack.clear();
  }
 
 void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
@@ -106,19 +106,19 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
  {
     dCurrentAmp = calculateRMS(frame);  // Check if amp is below threshold
     if(dCurrentAmp < dAmpThreshold){
-        dCurrentPitch = 0.0f;           // Set pitch to 0
+        currentPitch = 0.0f;           // Set pitch to 0
         return;
     }
 
     difference(frame);      // Populate dYinBuffer with difference function
     cumulative();           // Apply cumulative mean to dYinBuffer
     
-    //dCurrentPitch = absoluteThreshold();    //yin algorithm
+    //currentPitch = absoluteThreshold();    //yin algorithm
 
     std::vector<std::pair<int, float>> candidates = findPitchCandidates();
     std::vector<float> probabilities = calculateProbabilities(candidates);
 
-    dCurrentPitch = temporalTracking(candidates, probabilities);
+    currentPitch = temporalTracking(candidates, probabilities);
  }
 
  void PitchDetector::difference(const std::vector<float>& frame)
@@ -307,17 +307,18 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
  float PitchDetector::convertLagToPitch(int lag)
  {
     if (lag <= 0) return 0.0f;
-    return static_cast<float>(dSampleRate) / static_cast<float>(lag);
+    return static_cast<float>(sampleRate) / static_cast<float>(lag);
  }
 
  float PitchDetector::getCurrentPitch()
  {
-    return dCurrentPitch;
+    return currentPitch;
  }
 
  float PitchDetector::getCurrentMidiNote()
 {
-    return (int)(round(69.0f + 12.0f * log2(dCurrentPitch / 440.0f)));
+    if (currentPitch <= 0.f) return 0.f;   
+    return (int)(round(69.0f + 12.0f * log2(currentPitch / 440.0f)));
 }
 
  /**
@@ -327,7 +328,8 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
   */
  float PitchDetector::getCurrentNote()
  {
-    return 12 * std::log2(dCurrentPitch / dReferencePitch);
+    if (currentPitch <= 0.f) return 0.f;
+    return 12 * std::log2(currentPitch / dReferencePitch);
  }
 
  float PitchDetector::getSemitoneError()

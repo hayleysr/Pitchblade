@@ -107,8 +107,8 @@ float PitchCorrector::applyParameters(float &midi){
 }
 
 void PitchCorrector::setScaleType(int scaleType){
-    if(scaleType == 0) this->scaleType = scaleType::Major;
-    else scaleType == scaleType::Minor;
+    if(scaleType == 1) this->scaleType = scaleType::Minor;
+    else this->scaleType = scaleType::Major;
 }
 void PitchCorrector::setScaleOffset(int scaleOffset){
     this->scaleOffset = juce::jlimit(-12, 0, scaleOffset);
@@ -182,6 +182,6 @@ std::string PitchCorrector::getTargetNoteName(){
     return aNoteNames[index];
 }
 
-PitchDetector& PitchCorrector::getDetector() {
+IPitchDetector& PitchCorrector::getDetector() {
     return pitchDetector;  
 }
