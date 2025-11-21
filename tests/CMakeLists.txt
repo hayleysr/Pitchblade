@@ -1,6 +1,7 @@
 # Project name for tests
 project(PitchbladeTests)
 
+
 # RubberBand configuration==============================================
 set(RUBBERBAND_DIR ${CMAKE_SOURCE_DIR}/plugin/third-party/rubberband)
 set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/)
