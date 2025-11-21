@@ -1,6 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
-#include "../../../third-party/rubberband/include/rubberband/RubberBandStretcher.h" // TEST BUG FIX: corrected relative path so tests can include RubberBandStretcher
+#include "rubberband/RubberBandStretcher.h" // TEST BUG FIX: corrected relative path so tests can include RubberBandStretcher
 
 /*
 ==============================================================================
