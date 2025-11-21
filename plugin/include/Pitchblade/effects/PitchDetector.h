@@ -12,13 +12,23 @@
  #include <juce_dsp/juce_dsp.h> 
  #include <cmath>
 
+ // Public interface class for testing
+ class IPitchDetector{
+ public:
+    virtual ~IPitchDetector() = default;
+    virtual void prepare(double, int, double) = 0;
+    virtual void processBlock(const juce::AudioBuffer<float>&) = 0;
+    virtual float getCurrentPitch() = 0;
+    virtual float getCurrentMidiNote() = 0;
+ };
+
  struct PitchCandidate{
     float pitch;
     float probability;
     float cost;
  };
  
- class PitchDetector{
+ class PitchDetector : public IPitchDetector{
     public:
         // Constructor
         PitchDetector(int, float);
@@ -26,17 +36,17 @@
         PitchDetector();
 
         // Prepare detector
-        void prepare(double, int, double);
+        void prepare(double, int, double) override;
 
         // Process a block of audio
-        void processBlock(const juce::AudioBuffer<float>&);
+        void processBlock(const juce::AudioBuffer<float>&) override;
 
         void processFrame(const std::vector<float>&);
 
-        float getCurrentPitch();
+        float getCurrentPitch() override;
         float getSemitoneError();
         float getCurrentNote();
-        float getCurrentMidiNote();
+        float getCurrentMidiNote() override;
         std::string getCurrentNoteName();
 
         // Destructor

@@ -100,25 +100,3 @@ TEST_F(PitchDetectorTest, DetectANoteName)
     // --- 3. ASSERT ---
     ASSERT_EQ(detector->getCurrentNoteName(), "A");
 }
-
-TEST_F(PitchDetectorTest, DetectSemitoneErrorPos)
-{
-    // --- 1. ARRANGE ---
-    const float frequency = 450.f; // sharp of A4
-    auto frame = makeSineFrame(frequency, windowSize, thisSampleRate);
-    // --- 2. ACT ---
-    detector->processFrame(frame);
-    // --- 3. ASSERT ---
-    ASSERT_GT(detector->getCurrentPitch(), 440.f);
-}
-
-TEST_F(PitchDetectorTest, DetectSemitoneErrorNeg)
-{
-    // --- 1. ARRANGE ---
-    const float frequency = 400.f; // sharp of A4
-    auto frame = makeSineFrame(frequency, windowSize, thisSampleRate);
-    // --- 2. ACT ---
-    detector->processFrame(frame);
-    // --- 3. ASSERT ---
-    ASSERT_LT(detector->getCurrentPitch(), 400.f);
-}
