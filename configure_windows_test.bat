@@ -5,5 +5,5 @@ cmake --build build --target runTests
 if %errorlevel% neq 0 goto :eof
 
 cd build
-ctest
+ctest --output-on-failure
 cd ..

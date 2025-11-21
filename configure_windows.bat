@@ -1,4 +1,5 @@
 @echo off
+REM Rebuilds entire configuration. Run this the first time to setup the project and test suite.
 REM USAGE: sh .\ configure_windows.sh
 
 DEL /S /F /Q "build"

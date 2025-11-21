@@ -76,13 +76,13 @@ TEST_F(DeNoiserProcessorTest, TC_19) {
 
     processor->setLearning(true);
 
-    simulateSineSignal(buffer, 500.0f, 1000, juce::Decibels::decibelsToGain(-40.0f));
+    simulateSineSignal(buffer, 500.0f, 1000.0f, juce::Decibels::decibelsToGain(-40.0f));
 
     processor->setLearning(false);
 
     processor->setReduction(1.0f);
 
-    simulateSineSignal(buffer, 500.0f, 1000, juce::Decibels::decibelsToGain(-40.0f));
+    simulateSineSignal(buffer, 500.0f, 1000.0f, juce::Decibels::decibelsToGain(-40.0f));
 
     float rms = buffer.getRMSLevel(0, 0, 512);
     ASSERT_LT(rms, 0.0001f);
