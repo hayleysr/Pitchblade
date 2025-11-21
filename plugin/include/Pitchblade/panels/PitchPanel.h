@@ -111,7 +111,8 @@ private:
 
 class PitchNode : public EffectNode {
 public:
-    explicit PitchNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "PitchNode", "Pitch"), processor(proc) {
+    explicit PitchNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "PitchNode", "Pitch"), processor(proc),
+        pitchDetector(), pitchShifter(), pitchDSP(pitchDetector, pitchShifter) {
         if (!getMutableNodeState().hasProperty("PitchRetune"))
             getMutableNodeState().setProperty("PitchRetune", 0.3f, nullptr);
         if (!getMutableNodeState().hasProperty("PitchNoteTransition"))
@@ -130,7 +131,6 @@ public:
             processor.apvts.state = juce::ValueTree("EffectNodes");
 
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
-
         pitchDSP.prepare(proc.getSampleRate(), proc.getBlockSize());
 
     }
@@ -200,5 +200,7 @@ public:
 
 private:
     AudioPluginAudioProcessor& processor;
+    PitchDetector pitchDetector;
+    PitchShifter pitchShifter;
     PitchCorrector pitchDSP;
 };

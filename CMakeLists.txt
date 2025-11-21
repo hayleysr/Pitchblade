@@ -14,6 +14,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 file(MAKE_DIRECTORY ${LIB_DIR}) 
 
+# Gently guide GTest and GMock to its own headers
+set(gtest_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/gtest-src) 
+# set(gmock_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/gtest-src)
+# set(gtest_include_dirs "${gtest_SOURCE_DIR}/googletest/include")
+
 # Try to find Juce locally
 find_package(JUCE 8.0.9 QUIET)
 
@@ -35,8 +40,38 @@ if(NOT JUCE_FOUND)
         GITHUB_REPOSITORY google/googletest
         GIT_TAG v1.14.0  # Or any recent tag
         VERSION 1.14.0
-        OPTIONS "INSTALL_GTEST OFF"
+        OPTIONS 
+            "INSTALL_GTEST OFF"
+            "gtest_disable_pthreads ON"
+            "gtest_force_shared_crt ON" 
     )
+
+    # If google test is being unreasonable
+    target_include_directories(gtest PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googlemock/include>
+    )
+    target_include_directories(gmock PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googlemock/include>
+    )
+    target_include_directories(gtest PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest>
+    )
+    target_include_directories(gmock PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest>
+    )
+    target_include_directories(gtest_main PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googlemock/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest>
+    )
+    target_include_directories(gmock_main PUBLIC 
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googlemock/include>
+        $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/googletest>
+    )
+
 endif()
 
 # Report all warnings as errors
