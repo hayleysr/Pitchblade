@@ -11,8 +11,24 @@
  #include <juce_audio_devices/juce_audio_devices.h>
  #include <juce_dsp/juce_dsp.h> 
  #include <cmath>
+
+ // Public interface class for testing
+ class IPitchDetector{
+ public:
+    virtual ~IPitchDetector() = default;
+    virtual void prepare(double, int, double) = 0;
+    virtual void processBlock(const juce::AudioBuffer<float>&) = 0;
+    virtual float getCurrentPitch() = 0;
+    virtual float getCurrentMidiNote() = 0;
+ };
+
+ struct PitchCandidate{
+    float pitch;
+    float probability;
+    float cost;
+ };
  
- class PitchDetector{
+ class PitchDetector : public IPitchDetector{
     public:
         // Constructor
         PitchDetector(int, float);
@@ -20,17 +36,17 @@
         PitchDetector();
 
         // Prepare detector
-        void prepare(double, int, double);
+        void prepare(double, int, double) override;
 
         // Process a block of audio
-        void processBlock(const juce::AudioBuffer<float>&);
+        void processBlock(const juce::AudioBuffer<float>&) override;
 
         void processFrame(const std::vector<float>&);
 
-        float getCurrentPitch();
+        float getCurrentPitch() override;
         float getSemitoneError();
         float getCurrentNote();
-        float getCurrentMidiNote();
+        float getCurrentMidiNote() override;
         std::string getCurrentNoteName();
 
         // Destructor
@@ -45,8 +61,8 @@
         int absoluteThreshold();
         float calculateRMS(const std::vector<float>&);
 
-        float dCurrentPitch;                // Pitch of most recent sample batch in Hz
-        double dSampleRate;                 // Sample rate
+        float currentPitch;                // Pitch of most recent sample batch in Hz
+        double sampleRate;                 // Sample rate
         int dWindowSize;                    // interval i to 2W
         int dYinBufferSize;                 // W, on sum j = t + 1 to t + W
         int dLag;                           // Lag
@@ -81,12 +97,15 @@
         std::vector<float> calculateProbabilities(std::vector<std::pair<int, float>>&);
         float temporalTracking(std::vector<std::pair<int, float>>&, std::vector<float>&);
 
-        std::vector<std::vector<float>> dPitchCandidates; // Likely pitch per frame for pYIN
-        std::vector<float> dPitchProbabilities;           // Probabilities per candidate
-        std::vector<float> dSmoothedPitchTrack;           // Temporal smoothing
+        std::vector<std::vector<float>> pitchCandidates; // Likely pitch per frame for pYIN
+        std::vector<float> pitchProbabilities;           // Probabilities per candidate
+        std::vector<float> smoothedPitchTrack;           // Temporal smoothing
         float dVoiceThreshold;                            // Min threshold for a freq to be considered voiced
         int dMaxCandidates;                               // Number of candidates to consider
 
-        
-        
+        /**
+         * Viterbi
+         */
+        std::vector<PitchCandidate> previousCandidates;
+        float transitionCost = 15.f; // Penalty for changing pitch
  };

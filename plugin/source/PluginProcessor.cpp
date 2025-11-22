@@ -21,13 +21,14 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
+                       pitchProcessor(pitchDetector, pitchShifter),
 
 	//apvts contructor: attachs this to processor
     // AudioProcessorValueTreeState used to managea ValueTree that is used to manage an AudioProcessor's entire state
     apvts(*this, nullptr, "Parameters", createParameterLayout()) {
 	        // check if effectNodes tree exists
         if (!apvts.state.hasType("EffectNodes")) {
-            apvts.state = juce::ValueTree("EffectNodes");
+            apvts.state = juce::ValueTree("EffectNodes");   
         }
     }
 
@@ -242,6 +243,8 @@ void AudioPluginAudioProcessor::savePresetToFile(const juce::File& file) {
     juce::XmlElement presetRoot("PitchbladePreset");
     presetRoot.setAttribute("version", 1.0);
 
+    applyPendingLayout();
+
     // save each active node explicitly
     juce::XmlElement* nodes = new juce::XmlElement("EffectNodes");
     for (auto& node : effectNodes) {
@@ -442,20 +445,23 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
+    setRateAndBufferSizeDetails(sampleRate, samplesPerBlock);
+
     juce::ignoreUnused (sampleRate, samplesPerBlock);
     
     currentBlockSize = samplesPerBlock; // Austin
 
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
-    noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
-    compressorProcessor.prepare(sampleRate);                    //Austin
-    deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    deNoiserProcessor.prepare(sampleRate);                      //Austin
+    //We can likely get rid of these 4 I commented out. It seems to work fine without them
+    //noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
+    //compressorProcessor.prepare(sampleRate);                    //Austin
+    //deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
+    //deNoiserProcessor.prepare(sampleRate);                      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
-
 
     std::lock_guard<std::recursive_mutex> lock(audioMutex);
 
@@ -470,11 +476,15 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     effectNodes.push_back(std::make_shared<PitchNode>(*this));
     effectNodes.push_back(std::make_shared<EqualizerNode>(*this));
 
+    //connect chain
 	// set up default chain: Gain > Noise gate > formant > Pitch
-	for (auto& n : effectNodes) if (n) n->clearConnections();   //clear any existing connections
+	for (auto& n : effectNodes) 
+        if (n) n->clearConnections();   //clear any existing connections
+
     for (size_t i = 0; i + 1 < effectNodes.size(); ++i) {
         effectNodes[i]->connectTo(effectNodes[i + 1]);
     }
+
 	activeNodes = std::make_shared<std::vector<std::shared_ptr<EffectNode>>>(effectNodes);  // shared pointer to active nodes for audio thread
     rootNode = effectNodes.front();
 
