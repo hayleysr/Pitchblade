@@ -5,6 +5,7 @@
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 #include "BinaryData.h"
 #include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/PluginEditor.h"
 
 //effects panel section
 EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc, const std::vector<std::shared_ptr<EffectNode>>& nodes)    //const read only reference to vector
@@ -65,7 +66,32 @@ void EffectPanel::refreshTabs()
 		{   // create panel from node
             auto panel = node->createPanel(processor);
             if (panel)   
+                applyTooltipsToChildren(panel.get());
                 tabs.addTab(node->effectName, juce::Colours::transparentBlack, panel.release(), true);
         }
     }
+}
+
+void EffectPanel::applyTooltipsToChildren(juce::Component* comp)
+{
+    if (!comp) return;
+
+    auto key = comp->getProperties().getWithDefault("tooltipKey", juce::String()).toString();
+
+    if (key.isNotEmpty()) {
+        auto* editor = dynamic_cast<AudioPluginAudioProcessorEditor*>(getParentComponent());
+        if (editor) {
+            auto text = editor->getTooltipManager().getTooltipFor(key);
+
+            if (auto* bc = dynamic_cast<juce::Button*>(comp))
+                bc->setTooltip(text);
+            else if (auto* sc = dynamic_cast<juce::Slider*>(comp))
+                sc->setTooltip(text);
+            else if (auto* lc = dynamic_cast<juce::Label*>(comp))
+                lc->setTooltip(text);
+        }
+    }
+
+    for (int i = 0; i < comp->getNumChildComponents(); ++i)
+        applyTooltipsToChildren(comp->getChildComponent(i));
 }

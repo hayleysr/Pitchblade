@@ -13,6 +13,7 @@ public:
     void resized() override;
     void showEffect(int index);
     void paint(juce::Graphics&) override;
+    void applyTooltipsToChildren(juce::Component* comp);
 
 	//refresh tabs when effects are added/removed
     void refreshTabs();

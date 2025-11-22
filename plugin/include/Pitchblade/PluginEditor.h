@@ -42,6 +42,7 @@ public:
     DaisyChain& getDaisyChain() { return daisyChain; }
     EffectPanel& getEffectPanel() { return effectPanel; }
     VisualizerPanel& getVisualizer() { return visualizer; }
+    TooltipManager& getTooltipManager() { return tooltipManager; }
 
 	// helpers to close overlays - reyna
     void closeOverlaysIfOpen();

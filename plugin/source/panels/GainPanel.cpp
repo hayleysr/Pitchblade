@@ -17,6 +17,9 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
     gainLabel.setName("NodeTitle");
     addAndMakeVisible(gainLabel);
 
+    gainLabel.getProperties().set("tooltipKey", "gain.label");
+    gainSlider.getProperties().set("tooltipKey", "gain.slider");
+
     // Gain slider - Austin
     gainSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     //Set the isReadOnly flag to false to allow user to edit - Austin

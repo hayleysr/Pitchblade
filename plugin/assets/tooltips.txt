@@ -28,3 +28,23 @@ effect.Pitch		= Detects pitch to the nearest target note
 effect.De-Esser		= Reduces harsh, high-frequency 's', 'sh', and 't' sounds (sibilance)
 effect.De-Noiser    = Removes background noise
 effect.Equalizer	= Adjusts balance of frequency components
+
+//each effect panels textboxs/sliders/buttons
+effect.Gain.level			= Adjusts the output volume level
+effect.Noise Gate.threshold	= Sets the level below which audio is muted
+effect.Noise Gate.attack	= Sets how quickly the gate opens when audio exceeds the threshold
+effect.Noise Gate.release	= Sets how quickly the gate closes when audio falls below the threshold
+effect.Compressor.threshold	= Sets the level above which compression is applied
+effect.Compressor.ratio		= Sets the amount of compression applied to audio above the threshold
+effect.Compressor.attack	= Sets how quickly compression is applied when audio exceeds the threshold
+effect.Compressor.release	= Sets how quickly compression is released when audio falls below the threshold
+effect.Formant.shift		= Adjusts the amount of formant shifting applied
+effect.Pitch.correction		= Sets the strength of pitch correction applied
+effect.Pitch.speed			= Sets how quickly pitch correction is applied
+effect.De-Esser.threshold	= Sets the level above which de-essing is applied
+effect.De-Esser.frequency	= Sets the frequency range targeted for de-essing
+effect.De-Noiser.threshold	= Sets the level above which noise reduction is applied
+effect.De-Noiser.reduction	= Sets the amount of noise reduction applied
+effect.Equalizer.lowGain	= Adjusts the gain for low frequencies
+effect.Equalizer.midGain	= Adjusts the gain for mid frequencies
+effect.Equalizer.highGain	= Adjusts the gain for high frequencies
