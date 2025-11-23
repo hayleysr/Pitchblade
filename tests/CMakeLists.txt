@@ -44,8 +44,9 @@ add_executable(runTests
     test_Equalizer.cpp
     test_Integration_Amplitude.cpp
     test_Integration_Performance.cpp
+    test_Integration_VisualizerPanel.cpp
     test_Equalizer.cpp
-)
+ )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)
 # *before* it tries to build 'runTests'. This fixes the "JuceHeader.h not found" error.
