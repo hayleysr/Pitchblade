@@ -221,7 +221,7 @@ void PitchPanel::drawStaticContent(juce::Graphics& g, juce::Rectangle<float> bou
 
 void PitchPanel::drawDynamicLabels(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-        auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
+    auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
     auto radius = targetPitchDisplayBounds.getWidth() * 0.5f;
 
     g.setFont(30.0f); 

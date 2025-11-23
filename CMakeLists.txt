@@ -77,7 +77,8 @@ endif()
 # Report all warnings as errors
 if(MSVC)
     #add_compile_options(/Wall /WX)
-    add_compile_options(/wd4514)
+    #add_compile_options(/wd4514)
+    add_compile_options(/W0)    # i don't want to see them.
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
