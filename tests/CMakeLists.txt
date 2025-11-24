@@ -40,6 +40,7 @@ add_executable(runTests
     test_UI_DaisyChain.cpp
     test_Integration_Amplitude.cpp
     test_Integration_Performance.cpp
+    test_Integration_PitchCorrector.cpp
 )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)

@@ -19,6 +19,7 @@ protected:
         detector->prepare(thisSampleRate, 512, 4);
     }
     
+    //from hayley: Helper to construct individual frame of sine wave
     std::vector<float> makeSineFrame(float frequency, int bufferSize, double thisSampleRate){
         std::vector<float> sineFrame(bufferSize);
         for(int i = 0; i < bufferSize; ++i){

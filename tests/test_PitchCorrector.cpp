@@ -10,16 +10,20 @@
 
 #define PI 3.141592653589793238
 
+
 // Test setup; use TEST_F for tests that require auxilary classes
 class PitchCorrectorTest : public ::testing::Test{
 protected:
     void SetUp() override{
         thisSampleRate = 44100.f;
         blockSize = 1024;
+        detector = std::make_unique<PitchDetector>();
+        shifter = std::make_unique<PitchShifter>();
         corrector = std::make_unique<PitchCorrector>(*detector, *shifter);
         corrector->prepare(thisSampleRate, blockSize);
     }
     
+    //from hayley: Helper to construct individual frame of sine wave
     std::vector<float> makeSineFrame(float frequency, int bufferSize, double thisSampleRate){
         std::vector<float> sineFrame(bufferSize);
         for(int i = 0; i < bufferSize; ++i){
@@ -35,6 +39,7 @@ protected:
     std::unique_ptr<PitchDetector> detector;
     std::unique_ptr<PitchShifter> shifter;
 };
+
 
 // Unit Tests---------------------------------------------------------
 TEST(PitchCorrectorTest, SetRetuneClamps)
@@ -151,27 +156,3 @@ TEST(PitchCorrectorTest, SetScaleType)
     // --- 3. ASSERT ---
     ASSERT_FLOAT_EQ(corrector.getScaleType(), 0); // Does it default major?
 }
-/*
-// Integration Tests--------------------------------------------------
-TEST_F(PitchCorrectorTest, DetectSemitoneErrorPos)
-{
-    // --- 1. ARRANGE ---
-    const float frequency = 450.f; // sharp of A4
-    auto frame = makeSineFrame(frequency, blockSize, thisSampleRate);
-    // --- 2. ACT ---
-    corrector->processBlock(frame);
-    // --- 3. ASSERT ---
-    ASSERT_GT(detector->getCurrentPitch(), 440.f);
-}
-
-TEST_F(PitchCorrectorTest, DetectSemitoneErrorNeg)
-{
-    // --- 1. ARRANGE ---
-    const float frequency = 400.f; // sharp of A4
-    auto frame = makeSineFrame(frequency, windowSize, thisSampleRate);
-    // --- 2. ACT ---
-    detector->processFrame(frame);
-    // --- 3. ASSERT ---
-    ASSERT_LT(detector->getCurrentPitch(), 400.f);
-}
-    */
