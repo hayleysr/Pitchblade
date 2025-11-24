@@ -22,6 +22,7 @@ class PitchShifter : public IPitchShifter{
         PitchShifter() = default;
         void prepare(double, int) override;
         void setPitchShiftRatio(float) override;
+        float getPitchShiftRatio() { return pitchRatio.load(); }
         void processBlock(juce::AudioBuffer<float>&) override;
     private:
         void processRubberBand(int);

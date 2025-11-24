@@ -84,3 +84,32 @@ TEST_F(PitchCorrectorIntegrationTest, DetectSemitoneErrorNeg)
     // --- 3. ASSERT ---
     ASSERT_LT(detector->getCurrentPitch(), 440.f);
 }
+
+TEST_F(PitchCorrectorIntegrationTest, BypassZeroPitch)
+{
+    // --- 1. ARRANGE ---
+    const float frequency = 0.f; // empty
+    juce::AudioBuffer<float> buffer(1, blockSize);
+    // --- 2. ACT ---
+    simulateSineSignal(buffer, 500.f, frequency, juce::Decibels::decibelsToGain(-40.0f));
+    // --- 3. ASSERT ---
+    ASSERT_FLOAT_EQ(shifter->getPitchShiftRatio(), 1.f); // on bypass, ratio is set to 1
+}
+
+TEST_F(PitchCorrectorIntegrationTest, StablePitchCallsCorrection)
+{
+    // --- 1. ARRANGE ---
+    const float frequency = 460.f; // sharp of A4
+    const float permitted_error = 0.01f; //correction should be below 99%
+    juce::AudioBuffer<float> buffer(1, blockSize);
+    // --- 2. ACT ---
+    for(unsigned int i = 0; i < 30; ++i)
+        simulateSineSignal(buffer, 500.f, frequency, juce::Decibels::decibelsToGain(-40.0f));
+    // --- 3. ASSERT ---
+    EXPECT_TRUE(std::abs(shifter->getPitchShiftRatio() - 1.f) > permitted_error); //on sharp note, correction should be not bypassed
+}
+
+TEST_F(PitchCorrectorIntegrationTest, LivePitchCorrectionBehavior)
+{
+    
+}
