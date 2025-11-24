@@ -567,19 +567,29 @@ void AudioPluginAudioProcessorEditor::showPresets() {
 
 // reyna - close both overlays if any are open
 void AudioPluginAudioProcessorEditor::closeOverlaysIfOpen() {
+    bool closedSomething = false;
+
     if (isShowingSettings) {
         isShowingSettings = false;
         settingsPanel.setVisible(false);
         topBar.setButtonActive(topBar.settingsButton, false);
+        closedSomething = true;
     }
     if (isShowingPresets) {
         isShowingPresets = false;
         presetsPanel.setVisible(false);
         topBar.setButtonActive(topBar.presetButton, false);
+        closedSomething = true;
+    }
+	// if either was open, we close
+    if (closedSomething) {
+        daisyChain.setReorderLocked(false);
+        daisyChain.setChainControlsEnabled(true);
+        daisyChain.repaint();
     }
 
-    daisyChain.setChainControlsEnabled(true);
-    daisyChain.setReorderLocked(false);
+    //daisyChain.setChainControlsEnabled(true);
+    //daisyChain.setReorderLocked(false);
     visualizer.setVisible(true);
     effectPanel.setVisible(true);
 
