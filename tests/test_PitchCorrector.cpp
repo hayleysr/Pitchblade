@@ -139,17 +139,17 @@ TEST(PitchCorrectorTest, SetScaleType)
     MockPitchShifter shifter;
     PitchCorrector corrector(detector, shifter);
     // --- 2. ACT ---
-    corrector.setScaleOffset(scaleType::Major);
+    corrector.setScaleType(scaleType::Major);
     // --- 3. ASSERT ---
     ASSERT_FLOAT_EQ(corrector.getScaleType(), 0); // Does it assign major?
     // --- 2. ACT ---
-    corrector.setScaleOffset(scaleType::Minor);
+    corrector.setScaleType(scaleType::Minor);
     // --- 3. ASSERT ---
-    ASSERT_FLOAT_EQ(corrector.getScaleOffset(), 1); // Does it assign minor?
+    ASSERT_FLOAT_EQ(corrector.getScaleType(), 1); // Does it assign minor?
     // --- 2. ACT ---
-    corrector.setScaleOffset(-6);
+    corrector.setScaleType(-6);
     // --- 3. ASSERT ---
-    ASSERT_FLOAT_EQ(corrector.getScaleOffset(), 0); // Does it default major?
+    ASSERT_FLOAT_EQ(corrector.getScaleType(), 0); // Does it default major?
 }
 /*
 // Integration Tests--------------------------------------------------

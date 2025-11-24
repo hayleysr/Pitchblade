@@ -52,7 +52,7 @@ TEST_F(PitchDetectorTest, Detect440Hz)
     detector->processFrame(frame);
     // --- 3. ASSERT ---
     float detected = detector->getCurrentPitch();
-    const float tolerance = 20.f;   //highest difference between G# and A
+    const float tolerance = 5.f;   //highest difference between G# and A
     EXPECT_NEAR(detected, frequency, tolerance);
 }
 
@@ -70,14 +70,15 @@ TEST_F(PitchDetectorTest, DetectEmptyMidi)
 TEST_F(PitchDetectorTest, Detect69Midi)
 {
     // --- 1. ARRANGE ---
-    const int frequency = 69; // A4
+    const int targetnote = 69; // A4
+    const int frequency = 440.f;
     auto frame = makeSineFrame(frequency, windowSize, thisSampleRate);
     // --- 2. ACT ---
     detector->processFrame(frame);
     // --- 3. ASSERT ---
     float detected = detector->getCurrentMidiNote();
     const float tolerance = 0;
-    EXPECT_NEAR(detected, frequency, tolerance);
+    EXPECT_NEAR(detected, targetnote, tolerance);
 }
 
 TEST_F(PitchDetectorTest, DetectEmptyNoteName)
