@@ -39,9 +39,11 @@ To generate the project files and build the solution completely (Debug mode):
 .\configure_windows.bat
 ```
 
+After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/
+
 ## Test Case Instructions
 
-After building, you can run the various test cases included in ./tests by running the provided helper script.
+After building, you can run the various test cases included in ./tests/ by running the provided helper script.
 ```bat
 .\configure_windows_test.bat
 ```
