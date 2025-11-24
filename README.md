@@ -23,7 +23,7 @@ Pitchblade also includes a few quality-of-life features to make the user experie
 ## Prerequisites
 
 Before building, ensure you have the following installed:
-* **CMake:** Version 3.22 or higher
+* **CMake:** Version 3.22 or higher (Can be found at https://cmake.org/download/)
 * **C++ Compiler:** Must support **C++23** (e.g., Visual Studio 2022 v17.x on Windows).
 * **Git:** For version control.
 * *Note: JUCE and GoogleTest dependencies are automatically handled via the specific CMake configuration.*
