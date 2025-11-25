@@ -21,6 +21,10 @@ public:
     void resized() override;
     void paint(juce::Graphics& g) override;
 
+    // INTEGRATION TEST BUG: expose sliders so tests can validate APVTS wiring
+    juce::Slider& getShiftSlider() { return formantSlider; }
+    juce::Slider& getMixSlider()   { return mixSlider; }
+
 private:
     AudioPluginAudioProcessor& processor;
     juce::Slider gainSlider;
@@ -134,7 +138,7 @@ public:
 private:
     AudioPluginAudioProcessor& processor;
 
-    // --- new: buffer to hold the dry input for dry/wet mixing
+    //buffer to hold the dry input for dry/wet mixing
     juce::AudioBuffer<float> dryBuffer;
     // Visualization-only: wet copy for formant detection (independent of mix)
     juce::AudioBuffer<float> wetBuffer;

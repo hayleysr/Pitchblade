@@ -44,6 +44,7 @@ add_executable(runTests
     test_Integration_Amplitude.cpp
     test_Integration_Performance.cpp
     test_Equalizer.cpp
+    test_Integration_Formant.cpp
 )
 
 # This forces CMake to build the 'Pitchblade' target (and generate JuceHeader.h)
