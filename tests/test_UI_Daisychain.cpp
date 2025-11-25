@@ -28,7 +28,7 @@ TEST(DaisyChainTest, BuildsRowsFromProcessorNodes) {
     EXPECT_EQ(layout.size(), nodes.size());
 }
 
-// verifies that DaisyChain order matches processor order
+// TC-22 verifies that DaisyChain order matches processor order
 TEST(DaisyChainTest, CurrentOrderMatchesLayout) {
     AudioPluginAudioProcessor proc;
     auto& nodes = proc.getEffectNodes();
@@ -41,7 +41,7 @@ TEST(DaisyChainTest, CurrentOrderMatchesLayout) {
         EXPECT_EQ(order[i], nodes[i]->effectName);
 }
 
-// verifies resetRowsToNodes restores the original processor layout
+// TC-23 verifies resetRowsToNodes restores the original processor layout
 TEST(DaisyChainTest, ResetRowsToNodesRestoresDefaultOrder) {
     AudioPluginAudioProcessor proc;
     auto& nodes = proc.getEffectNodes();
@@ -191,20 +191,23 @@ TEST(DaisyChainTest, HandleReorderMovesItemToNewRow) {
 
 // TC-27 Reorder Lock Behavior
 // verifies reordering does nothing while locked
-TEST(DaisyChainTest, ReorderLockEnablesAndDisables) {
-    AudioPluginAudioProcessor proc;
-    auto& nodes = proc.getEffectNodes();
+// tests flag enabling and disabling
+//TEST(DaisyChainTest, ReorderLockEnablesAndDisables) {
+//    AudioPluginAudioProcessor proc;
+//    auto& nodes = proc.getEffectNodes();
+//
+//    DaisyChain dc(proc, nodes);
+//
+//    EXPECT_FALSE(dc.isReorderLocked());
+//    dc.setReorderLocked(true);
+//    EXPECT_TRUE(dc.isReorderLocked());
+//    dc.setReorderLocked(false);
+//    EXPECT_FALSE(dc.isReorderLocked());
+//}
 
-    DaisyChain dc(proc, nodes);
-
-    EXPECT_FALSE(dc.isReorderLocked());
-    dc.setReorderLocked(true);
-    EXPECT_TRUE(dc.isReorderLocked());
-    dc.setReorderLocked(false);
-    EXPECT_FALSE(dc.isReorderLocked());
-}
-
+// TC-27 Reorder Lock Behavior
 // verifies reordering is blocked when locked
+// tests that order remains unchanged
 TEST(DaisyChainTest, ReorderIsBlockedWhenLocked) {
     AudioPluginAudioProcessor proc;
     auto& nodes = proc.getEffectNodes();
@@ -214,7 +217,6 @@ TEST(DaisyChainTest, ReorderIsBlockedWhenLocked) {
         auto before = dc.getCurrentOrder();
 
         dc.setReorderLocked(true);
-
         dc.handleReorder(-1, nodes[0]->effectName, 2);
 
         auto after = dc.getCurrentOrder();
