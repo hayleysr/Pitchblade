@@ -30,7 +30,6 @@ void DeNoiserProcessor::prepare(const double sRate){
 
     inputBufferPos = 0;
     outputBufferPos = 0;
-    samplesProcessed = 0;
     noiseProfileSamples = 0;
 
     //Visualizer stuff
