@@ -51,6 +51,11 @@ public:
     bool isSettingsVisible() const;
 
     void setActiveEffectByName(const juce::String& effectName);  //daisychain active button
+	// bypass helpers
+    bool areAllEffectsBypassed() const;
+    void setAllEffectsBypassed(bool shouldBypass);
+    void syncGlobalBypassButton();
+    bool isLockBypassActive = false;
 
 private:
     // This reference is provided as a quick way for your editor to access the processor object that created it.

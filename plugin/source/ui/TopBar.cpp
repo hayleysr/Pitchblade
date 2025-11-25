@@ -22,11 +22,14 @@ TopBar::TopBar()
     addAndMakeVisible(settingsButton);
     addAndMakeVisible(bypassButton);
     addAndMakeVisible(presetButton);
+    addAndMakeVisible(lockBypassButton);
 
     //tooltip connection
     presetButton.getProperties().set("tooltipKey", "presetButton");
     settingsButton.getProperties().set("tooltipKey", "settingsButton");
     bypassButton.getProperties().set("tooltipKey", "bypassButton");
+    lockBypassButton.getProperties().set("tooltipKey", "lockBypassButton");
+
 }
 void TopBar::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
@@ -47,13 +50,11 @@ void TopBar::paint(juce::Graphics& g) {
 void TopBar::resized()
 {
     // laying out each component
-    auto area = getLocalBounds();
-
-    //pluginTitle.setBounds(area.removeFromLeft(150));
-    //pluginTitle.setBounds(area.removeFromLeft(150));
+    auto area = getLocalBounds();;
     auto logoArea = area.removeFromLeft(200);
     logo.setBounds(logoArea);
     
+    lockBypassButton.setBounds(area.removeFromRight(60));
     settingsButton.setBounds(area.removeFromRight(80));
     presetButton.setBounds(area.removeFromRight(80));
     bypassButton.setBounds(area.removeFromRight(80));

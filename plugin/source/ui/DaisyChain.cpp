@@ -143,14 +143,17 @@ void DaisyChain::rebuild() {
         const bool leftBypassed = nodeLeft ? nodeLeft->bypassed : false;
         row->updateBypassVisual(leftBypassed);
 
-        // update global bypass state visually
         row->onBypassChanged = [this, name = rowData.left, row](int index, bool state) {
             // find node by name and update its bypass state
-            if (auto n = findNodeByName(name)) { 
-                n->bypassed = state; 
+            if (auto n = findNodeByName(name)) {
+                n->bypassed = state;
             }
+
             row->updateBypassVisual(state);
-         };
+            // notify editor that some bypass changed
+            if (onAnyBypassChanged)
+                onAnyBypassChanged();
+            };
 
         // find neighboring row states for ui connections 
         int leftModeId = 1;
@@ -188,11 +191,15 @@ void DaisyChain::rebuild() {
                 row->updateSecondaryBypassVisual(nodeR->bypassed);      // update right bypass visual
                 row->onSecondaryBypassChanged = [this, name = rowData.right, row](int index, bool state) {  // right bypass callback
                     // find node by name and update its bypass state
-                    if (auto n = findNodeByName(name)) { 
-                        n->bypassed = state; 
-                    }                   
+                    if (auto n = findNodeByName(name)) {
+                        n->bypassed = state;
+                    }
                     row->updateSecondaryBypassVisual(state);     // update visual
-                };
+
+                    // notify editor that some bypass changed
+                    if (onAnyBypassChanged)
+                        onAnyBypassChanged();
+                    };
             }
 
         } else {
@@ -481,55 +488,48 @@ std::vector<juce::String> DaisyChain::getCurrentOrder() const {
 
 // grey out individual bypass when global bypassed
 void DaisyChain::setGlobalBypassVisual(bool state) {
+	// now just store the state and apply to all items
     globalBypassed = state;
+
     for (auto* row : items) {
-        // LEFT
-        if (globalBypassed) {
-            // grey out
-            row->bypass.setEnabled(false);
-            row->bypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
-            row->bypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
-            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
-            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
-        } else {
-            // restore
-            const bool state = row->bypassed;
-            const auto bg = state ? juce::Colours::hotpink : Colors::panel;
+        if (!row) continue;
 
-            row->bypass.setEnabled(true);
-            row->bypass.setColour(juce::TextButton::buttonColourId, bg);
-            row->bypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
-            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
-        }
-        row->bypass.repaint();
+        // left bypass
+        row->bypass.setEnabled(!state);
+        row->bypass.setAlpha(state ? 0.5f : 1.0f);
 
-        // RIGHT (if present)
+        // right bypass
         if (row->isDoubleRow) {
-            if (globalBypassed) {
-                row->rightBypass.setEnabled(false);
-                row->rightBypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
-                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
-            }
-            else {
-                const bool stateR = row->rightBypassed;
-                const auto bgR = stateR ? juce::Colours::hotpink : Colors::panel;
+            row->rightBypass.setEnabled(!state);
+            row->rightBypass.setAlpha(state ? 0.5f : 1.0f);
+        }
 
-                row->rightBypass.setEnabled(true);
-                row->rightBypass.setColour(juce::TextButton::buttonColourId, bgR);
-                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
-            }
-            row->rightBypass.repaint();
+        // mode buttons
+        row->modeButton.setEnabled(!state);
+        row->modeButton.setAlpha(state ? 0.5f : 1.0f);
+
+        if (row->isDoubleRow) {
+            row->rightMode.setEnabled(!state);
+            row->rightMode.setAlpha(state ? 0.5f : 1.0f);
+        }
+
+        // open effect buttons
+        row->button.setEnabled(!state);
+        row->button.setAlpha(state ? 0.5f : 1.0f);
+
+        if (row->isDoubleRow) {
+            row->rightButton.setEnabled(!state);
+            row->rightButton.setAlpha(state ? 0.5f : 1.0f);
         }
     }
 }
 
 // enable/disable chain controls (for locking during preset/settings)
 void DaisyChain::setChainControlsEnabled(bool enabled) {
+    // stops unlocking if lockBypass is active
+    if (globalBypassed && enabled)
+        return;
+
     addButton.setEnabled(enabled);
     duplicateButton.setEnabled(enabled);
     deleteButton.setEnabled(enabled);
@@ -543,6 +543,10 @@ void DaisyChain::setChainControlsEnabled(bool enabled) {
 
 // lock reordering and drag/drop when viewing settings/presets
 void DaisyChain::setReorderLocked(bool locked) {
+    // stops unlocking if lockBypass is active
+    if (globalBypassed && !locked)
+        return;
+
     reorderLocked = locked;
     
 	// store in properties

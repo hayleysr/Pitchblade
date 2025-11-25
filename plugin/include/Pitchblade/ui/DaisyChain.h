@@ -55,6 +55,9 @@ public:
     // called when a daisyChainItem mouseUp happens
     std::function<void()> onItemMouseUp;
 
+    // notify editor when any bypass state changes
+    std::function<void()> onAnyBypassChanged;
+
     void resetRowsToNodes(); // force rows to mirror processor/effectNodes for loading presets
 
     int getNumItems() const { return items.size(); }

@@ -17,6 +17,7 @@ public:
     juce::TextButton presetButton{ "Presets" };
     juce::TextButton bypassButton{ "Bypass" };
     juce::TextButton settingsButton{ "Settings" };
+    juce::TextButton lockBypassButton{ "Lock" };
 
     juce::ImageComponent logo;
 };
