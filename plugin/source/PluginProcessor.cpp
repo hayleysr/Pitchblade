@@ -454,11 +454,6 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 
 	//intialize dsp processors
     formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
-    //We can likely get rid of these 4 I commented out. It seems to work fine without them
-    //noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor AUSTIN HILLS
-    //compressorProcessor.prepare(sampleRate);                    //Austin
-    //deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    //deNoiserProcessor.prepare(sampleRate);                      //Austin
     pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
     formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
     equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
