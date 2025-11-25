@@ -83,7 +83,7 @@
          * YIN
          */
         double dThresh;                     // Threshold for YIN
-        float convertLagToPitch(int);       // Helper function for YIN
+        float convertLagToPitch(float);     // Helper function for YIN
         float dReferencePitch;              // Pitch that notes are tuned to
         std::string cNoteNames[12] = {
                 "A", "A#", "B", "C", "C#", "D", 
@@ -93,7 +93,6 @@
         /**
          * pYIN
          */
-        std::vector<std::pair<int, float>> findPitchCandidates();
         std::vector<float> calculateProbabilities(std::vector<std::pair<int, float>>&);
         float temporalTracking(std::vector<std::pair<int, float>>&, std::vector<float>&);
 
@@ -108,4 +107,7 @@
          */
         std::vector<PitchCandidate> previousCandidates;
         float transitionCost = 15.f; // Penalty for changing pitch
+        float parabolicMinimum(int);
+        std::vector<std::pair<int, float>> findPitchCandidates();
+        float processViterbi(std::vector<std::pair<int, float>>&);
  };

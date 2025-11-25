@@ -544,6 +544,10 @@ void DaisyChain::setChainControlsEnabled(bool enabled) {
 // lock reordering and drag/drop when viewing settings/presets
 void DaisyChain::setReorderLocked(bool locked) {
     reorderLocked = locked;
+    
+	// store in properties
+    getProperties().set("ReorderLocked", locked);
+
     // disable add/copy/delete
     addButton.setEnabled(!locked);
     duplicateButton.setEnabled(!locked);

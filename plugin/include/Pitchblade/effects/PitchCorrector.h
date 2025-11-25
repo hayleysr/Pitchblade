@@ -76,7 +76,7 @@ private:
     float lastStableMidi;
     bool wasBypassing;
     int stableCount;
-    const int stableThreshold = 100;
+    const int stableThreshold = 3;
 
     // Hz
     float targetPitch;
