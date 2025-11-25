@@ -277,25 +277,22 @@ TEST_F(FormantNodeIntegrationTest,
 // FormantNode - Positive shift with fully wet mix.
 // Compare against neutral baseline: output & formants differ.
 
+//Altered by Austin to account for the changes to the formant panel
 TEST_F(FormantNodeIntegrationTest,
        TC_87_FormantNodePositiveShift_FullyWet_ChangesOutputAndFormants)
 {
     insertSingleFormantNode();
 
-    auto& apvts = getApvts(processor);
-    auto* shiftParam = apvts.getRawParameterValue("FORMANT_SHIFT");
-    auto* mixParam   = apvts.getRawParameterValue("FORMANT_MIX");
-
-    ASSERT_NE(shiftParam, nullptr);
-    ASSERT_NE(mixParam, nullptr);
+    auto node = findNode(processor, "Formant");
+    ASSERT_NE(node, nullptr);
 
     const float amplitude  = 0.18f;
     const double frequency = 800.0;
     juce::MidiBuffer midi;
 
     //Baseline
-    shiftParam->store(0.0f);
-    mixParam->store(1.0f);
+    node->getMutableNodeState().setProperty("FORMANT_SHIFT", 0.0f, nullptr);
+    node->getMutableNodeState().setProperty("FORMANT_MIX", 1.0f, nullptr);
 
     const int baselineBlocks =
         std::max(48, (processor.getLatencySamples() / blockSize) + 16);
@@ -317,8 +314,8 @@ TEST_F(FormantNodeIntegrationTest,
     ASSERT_FALSE(formantsNeutral.empty());
 
     //Shifted run
-    shiftParam->store(40.0f);
-    mixParam->store(1.0f);
+    node->getMutableNodeState().setProperty("FORMANT_SHIFT", 40.0f, nullptr);
+    node->getMutableNodeState().setProperty("FORMANT_MIX", 1.0f, nullptr);
 
     const double durationSeconds = 0.5;
     const int totalSamplesNeeded = static_cast<int>(durationSeconds * sampleRate);
@@ -377,20 +374,17 @@ TEST_F(FormantNodeIntegrationTest,
 // Active: shifted output.
 // Bypassed: dry/neutral signal regardless of shift/mix settings.
 
+//Altered by Austin to account for the changes to the formant panel
 TEST_F(FormantNodeIntegrationTest,
        TC_88_FormantNodeBypassProducesDrySignal)
 {
     insertSingleFormantNode();
 
-    auto& apvts = getApvts(processor);
-    auto* shiftParam = apvts.getRawParameterValue("FORMANT_SHIFT");
-    auto* mixParam = apvts.getRawParameterValue("FORMANT_MIX");
+    auto node = findNode(processor, "Formant");
+    ASSERT_NE(node, nullptr);
 
-    ASSERT_NE(shiftParam, nullptr);
-    ASSERT_NE(mixParam, nullptr);
-
-    shiftParam->store(40.0f);
-    mixParam->store(1.0f);
+    node->getMutableNodeState().setProperty("FORMANT_SHIFT", 40.0f, nullptr);
+    node->getMutableNodeState().setProperty("FORMANT_MIX", 1.0f, nullptr);
 
     const float amplitude= 0.2f;
     const double frequency = 800.0;
