@@ -33,6 +33,7 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& sta
 
     mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 30);
+    mixSlider.setRange(0.0, 1.0, 0.01);
     addAndMakeVisible(mixSlider);
 
     // Initialize from ValueTree
