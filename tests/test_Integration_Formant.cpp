@@ -468,13 +468,19 @@ protected:
     }
 };
 
+//Altered by Austin to make sure this can run with the current changes that Reyna included with her unit test fixes to allow save and load
 TEST_F(FormantPanelApvtsTest,
        TC_89_FormantPanelSlidersUpdateApvtsParameters)
 {
-    auto& apvts = getApvts(processor);
+
+    juce::ValueTree testState("FormantNode");
+    
+    // Initialize properties (mimicking FormantNode constructor)
+    testState.setProperty("FORMANT_SHIFT", 0.0f, nullptr);
+    testState.setProperty("FORMANT_MIX", 1.0f, nullptr);
 
     // Construct panel with the processor
-    FormantPanel panel(processor);
+    FormantPanel panel(processor,testState);
 
     // Make sure panel is properly initialized
     panel.setSize(400, 200);
@@ -489,14 +495,8 @@ TEST_F(FormantPanelApvtsTest,
     shiftSlider.setValue(targetShift, juce::NotificationType::sendNotificationSync);
     mixSlider.setValue(targetMix, juce::NotificationType::sendNotificationSync);
 
-    auto* shiftParam = apvts.getRawParameterValue("FORMANT_SHIFT");
-    auto* mixParam = apvts.getRawParameterValue("FORMANT_MIX");
-
-    ASSERT_NE(shiftParam, nullptr);
-    ASSERT_NE(mixParam, nullptr);
-
-    const float shiftVal = shiftParam->load();
-    const float mixVal = mixParam->load();
+    const float shiftVal = (float)testState.getProperty("FORMANT_SHIFT");
+    const float mixVal  = (float)testState.getProperty("FORMANT_MIX");
 
     EXPECT_NEAR(shiftVal, targetShift, 0.5f);
     EXPECT_NEAR(mixVal, targetMix, 0.05f);
