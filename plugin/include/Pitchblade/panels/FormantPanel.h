@@ -23,6 +23,9 @@ public:
     void resized() override;
     void paint(juce::Graphics& g) override;
 
+    // INTEGRATION TEST BUG: expose sliders so tests can validate APVTS wiring
+    juce::Slider& getShiftSlider() { return formantSlider; }
+    juce::Slider& getMixSlider()   { return mixSlider; }
     // ValueTree listener
     void valueTreePropertyChanged(juce::ValueTree& tree,
         const juce::Identifier& property) override;
@@ -146,7 +149,7 @@ public:
 private:
     AudioPluginAudioProcessor& processor;
 
-    // --- new: buffer to hold the dry input for dry/wet mixing
+    //buffer to hold the dry input for dry/wet mixing
     juce::AudioBuffer<float> dryBuffer;
     // Visualization-only: wet copy for formant detection (independent of mix)
     juce::AudioBuffer<float> wetBuffer;
