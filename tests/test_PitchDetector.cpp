@@ -19,6 +19,7 @@ protected:
         detector->prepare(thisSampleRate, 512, 4);
     }
     
+    //from hayley: Helper to construct individual frame of sine wave
     std::vector<float> makeSineFrame(float frequency, int bufferSize, double thisSampleRate){
         std::vector<float> sineFrame(bufferSize);
         for(int i = 0; i < bufferSize; ++i){
@@ -52,7 +53,7 @@ TEST_F(PitchDetectorTest, Detect440Hz)
     detector->processFrame(frame);
     // --- 3. ASSERT ---
     float detected = detector->getCurrentPitch();
-    const float tolerance = 40.f;   //highest difference between G# and A
+    const float tolerance = 5.f;   //highest difference between G# and A
     EXPECT_NEAR(detected, frequency, tolerance);
 }
 
@@ -70,14 +71,15 @@ TEST_F(PitchDetectorTest, DetectEmptyMidi)
 TEST_F(PitchDetectorTest, Detect69Midi)
 {
     // --- 1. ARRANGE ---
-    const float frequency = 440.f; // A4
+    const int targetnote = 69; // A4
+    const int frequency = 440.f;
     auto frame = makeSineFrame(frequency, windowSize, thisSampleRate);
     // --- 2. ACT ---
     detector->processFrame(frame);
     // --- 3. ASSERT ---
     float detected = detector->getCurrentMidiNote();
-    const float tolerance = 1.f;
-    EXPECT_NEAR(detected, frequency, tolerance);
+    const float tolerance = 0;
+    EXPECT_NEAR(detected, targetnote, tolerance);
 }
 
 TEST_F(PitchDetectorTest, DetectEmptyNoteName)
@@ -87,7 +89,7 @@ TEST_F(PitchDetectorTest, DetectEmptyNoteName)
     // --- 2. ACT ---
     detector->processFrame(zeroes);
     // --- 3. ASSERT ---
-    ASSERT_EQ(detector->getCurrentNoteName(), "F#"); 
+    ASSERT_EQ(detector->getCurrentNoteName(), "A"); 
 }
 
 TEST_F(PitchDetectorTest, DetectANoteName)

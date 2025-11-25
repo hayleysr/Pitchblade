@@ -107,18 +107,18 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
     dCurrentAmp = calculateRMS(frame);  // Check if amp is below threshold
     if(dCurrentAmp < dAmpThreshold){
         currentPitch = 0.0f;           // Set pitch to 0
+        previousCandidates.clear();    // Reset Viterbi
         return;
     }
 
     difference(frame);      // Populate dYinBuffer with difference function
     cumulative();           // Apply cumulative mean to dYinBuffer
-    
-    //currentPitch = absoluteThreshold();    //yin algorithm
 
-    std::vector<std::pair<int, float>> candidates = findPitchCandidates();
-    std::vector<float> probabilities = calculateProbabilities(candidates);
+    auto candidates = findPitchCandidates();
+    //std::vector<float> probabilities = calculateProbabilities(candidates);
+    //currentPitch = temporalTracking(candidates, probabilities);
 
-    currentPitch = temporalTracking(candidates, probabilities);
+    currentPitch = processViterbi(candidates);
  }
 
  void PitchDetector::difference(const std::vector<float>& frame)
@@ -205,49 +205,127 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
     return 0.0f; // No pitch found
  }
 
+ // Estimate optimization curve using parabolic interpretation for sample accuracy
+ float PitchDetector::parabolicMinimum(int tau)
+ {
+    if(tau <= 0 || tau >= dYinBufferSize+1) return (float)tau;
+
+    float x = (float) tau;  //for x = tau find nearest y to left and right
+    float y1 = dYinBuffer[tau - 1];
+    float y2 = dYinBuffer[tau];
+    float y3 = dYinBuffer[tau + 1];
+
+    float denominator = 2 * (2* y2-y1-y3);
+    if(std::abs(denominator) < 0.0001) return x;
+
+    float delta = (y3 - y1) / denominator;
+    return x + delta;
+ }
+
  std::vector<std::pair<int, float>> PitchDetector::findPitchCandidates()
  {
     std::vector<std::pair<int, float>> pitchCandidates;
-    const int numThresholds = 3; //number of frequency-probability pairs
-    float thresholds[] = {0.1f, 0.2f, 0.3f};
-
-    for(int t = 0; t < numThresholds; ++t){
-        for(int tau = 2; tau < dYinBufferSize - 1; ++tau){
-            //compare to entry before and after, sliding window of 3
-            if (dYinBuffer[tau] < thresholds[t] && 
-                dYinBuffer[tau] < dYinBuffer[tau-1] && 
-                dYinBuffer[tau] < dYinBuffer[tau+1]) {
-                pitchCandidates.emplace_back(tau, dYinBuffer[tau]);
-            }
+    
+    // Find all local minima below threshold
+    for(int tau = 2; tau < dYinBufferSize-1; ++tau){
+        // If it is a local minimum, it is a candidate
+        if(dYinBuffer[tau] < dYinBuffer[tau-1] && dYinBuffer[tau] < dYinBuffer[tau+1]){
+            pitchCandidates.emplace_back(tau, dYinBuffer[tau]);
         }
     }
 
-    // fallback: global minimum
-    if (pitchCandidates.empty())
-    {
+    // Fallback for silence: find global min
+    if(pitchCandidates.empty()){
         float minVal = std::numeric_limits<float>::max();
         int minTau = -1;
-        
         for (int tau = 2; tau < dYinBufferSize - 1; ++tau) {
             if (dYinBuffer[tau] < minVal) {
                 minVal = dYinBuffer[tau];
                 minTau = tau;
             }
         }
-        
-        if (minTau > 0) {
-            pitchCandidates.emplace_back(minTau, minVal);
+        if (minTau > 0) pitchCandidates.emplace_back(minTau, minVal);
+    }
+
+    return pitchCandidates;
+ }
+
+ // DP algorithm for most probable hidden state sequence
+ // in this case, finding the most likely pitch given the pitch context
+ float PitchDetector::processViterbi(std::vector<std::pair<int, float>>& rawCandidates)
+ {
+    std::vector<PitchCandidate> currentCandidates;  
+
+    //1. use parabolic interpolation to get pitch-probability-cost objects for each candidate
+    for(auto&p : rawCandidates){
+        PitchCandidate c;
+
+        //parabolic interpolation
+        float parabolicLag = parabolicMinimum(p.first);
+        c.pitch = convertLagToPitch(parabolicLag);
+
+        if(p.second < 0.001f) p.second = 0.001f;
+        c.probability = 1.0f - p.second;
+        if(c.probability < 0) c.probability = 0;
+
+        c.cost = 0.0f;
+        currentCandidates.push_back(c);
+    }
+
+    //safeguard against white noise
+    if(currentCandidates.empty()){
+        previousCandidates.clear();
+        return 0.f; 
+    }
+
+    //2. Initialize if in initial state
+    if(previousCandidates.empty()){
+        previousCandidates = currentCandidates;
+        auto best = std::max_element(currentCandidates.begin(), currentCandidates.end(),
+            [](const PitchCandidate& a, const PitchCandidate& b){return a.probability < b.probability; });
+        return best->pitch;
+    }
+
+    //3. Induction: cheapest path from prev to current
+    // Cost function: (1 - prob) + transitionCost * log2(pitchdiff)
+    int bestCandidate_x = 0;    //index of best candidate
+    float minGlobalCost = std::numeric_limits<float>::max();    //spawn minimum cost at max
+
+    for(int i = 0; i < currentCandidates.size(); ++i){
+        float minPathCost = std::numeric_limits<float>::max(); // minimum for this particular path
+
+        // Go through all previous notes to find the shortest path from current note to previous
+        for(const auto&prev : previousCandidates){
+            // Calculate distance between pitches
+            float pitchRatio = currentCandidates[i].pitch / (prev.pitch + 0.001f);
+            float dist = std::abs(std::log2(pitchRatio));
+
+            // Penalize large distance, to cut transients
+            float penalty = transitionCost * dist;
+
+            // Cost to get to prev + jump penalty + unlikelihood of note (from step 1)
+            float currentCost = prev.cost + penalty + (1.f - currentCandidates[i].probability);
+
+            // Update minimum
+            if(currentCost < minPathCost) minPathCost = currentCost;
+        }
+
+        // Handle last index
+        currentCandidates[i].cost = minPathCost;
+
+        // Update new minimum
+        if(minPathCost < minGlobalCost){
+            minGlobalCost = minPathCost;
+            bestCandidate_x = i;
         }
     }
 
-    //sort by yin
-    std::sort(pitchCandidates.begin(), pitchCandidates.end(), 
-        [](const auto& a, const auto& b) { return a.second < b.second; });
+    //4. Update state
+    previousCandidates = currentCandidates;
 
-    if(pitchCandidates.size() > dMaxCandidates)
-        pitchCandidates.resize(dMaxCandidates);
-
-    return pitchCandidates;
+    //5. Return ideal pitch + gate to cut the transients
+    if(currentCandidates[bestCandidate_x].probability < dVoiceThreshold) return 0.f;
+    return currentCandidates[bestCandidate_x].pitch;
  }
 
  std::vector<float> PitchDetector::calculateProbabilities(std::vector<std::pair<int, float>>& candidates)
@@ -304,7 +382,7 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
     return std::sqrt(sumSquares / frame.size());
  }
 
- float PitchDetector::convertLagToPitch(int lag)
+ float PitchDetector::convertLagToPitch(float lag)
  {
     if (lag <= 0) return 0.0f;
     return static_cast<float>(sampleRate) / static_cast<float>(lag);
@@ -339,7 +417,7 @@ void PitchDetector::processBlock(const juce::AudioBuffer<float> &buffer)
 
  std::string PitchDetector::getCurrentNoteName()
  {
-    int index = (int)(getCurrentNote()+9) % 12;
+    int index = (int)(getCurrentNote()) % 12;
     if (index < 0) index += 12;
     return cNoteNames[index];
  }
