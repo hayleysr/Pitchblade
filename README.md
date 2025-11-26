@@ -40,7 +40,7 @@ To generate the project files and build the solution completely (Debug mode):
 .\configure_windows.bat
 ```
 
-After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/. Alternatively, the installer script can be found in ./build/.
+After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/. Alternatively, the installer script can be found in the root folder.
 
 ## Test Case Instructions
 
