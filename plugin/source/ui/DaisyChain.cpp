@@ -20,19 +20,45 @@
 
 // helper to make unique effect names when adding/duplicating
 static juce::String makeUniqueName(const juce::String& baseName, const std::vector<std::shared_ptr<EffectNode>>& nodes) {
-    int counter = 1;
-    juce::String newName = baseName;
-	// lambda to check if name exists
+    // get base name by removing any existing numbers
+    juce::String cleanBase = baseName.trim();
+
+    // find last space
+    int lastSpace = cleanBase.lastIndexOfChar(' ');
+    if (lastSpace > 0) {
+        juce::String suffix = cleanBase.substring(lastSpace + 1);
+
+        // check if suffix is a number
+        bool isNumber = true;
+        for (auto c : suffix)
+            if (!juce::CharacterFunctions::isDigit(c))
+                isNumber = false;
+
+        if (isNumber)
+            cleanBase = cleanBase.substring(0, lastSpace); // remove the number
+    }
+
+    // make unique name
+    juce::String newName = cleanBase;
+    int counter = 2;
+
+	// check if name exists
     auto nameExists = [&](const juce::String& name) {
-            for (auto& n : nodes)
-				if (n && n->effectName == name)     // check against effect names in nodes
-                    return true;
-            return false;
+        for (auto& n : nodes)
+            if (n && n->effectName == name)
+                return true;
+        return false;
         };
-	
-    while (nameExists(newName)) {
-        newName = baseName + " " + juce::String(++counter);  } // ++ until unique
-    return newName;
+
+    if (!nameExists(newName))
+        return newName;
+
+	// append numbers until unique
+    while (nameExists(cleanBase + " " + juce::String(counter)))
+        counter++;
+
+	// return unique name
+    return cleanBase + " " + juce::String(counter);
 }
 
 //convert UI rows into processor rows
