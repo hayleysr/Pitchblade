@@ -1,5 +1,6 @@
 #include "Pitchblade/panels/PitchPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
+#include "Pitchblade/ui/CustomLookAndFeel.h"
 
 PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
     : processor(proc), localState(state),
@@ -20,7 +21,10 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         )
     )
 {
-    pitchName.setText("Pitch", juce::dontSendNotification);
+    //panel label - reyna
+    panelTitle.setText("Pitch", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle");
+    addAndMakeVisible(panelTitle);
 
     startTimerHz(8);
 
@@ -137,13 +141,16 @@ PitchPanel::PitchPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
         };
 
     localState.addListener(this);
+    //startTimerHz(8);    // Update 4x/second  
 }
 
 void PitchPanel::resized()
 {
-    auto area = getLocalBounds().reduced(10);
+    auto area = getLocalBounds();
 
-    pitchName.setBounds(area.removeFromTop(area.getHeight() * 0.1f));
+    // panel title
+    panelTitle.setBounds(area.removeFromTop(30));
+    area = area.reduced(10);
 
     auto y = area.getCentreY() + area.getHeight();
 
@@ -188,8 +195,9 @@ void PitchPanel::resized()
 
 }
 
-void PitchPanel::paint(juce::Graphics& g)
-{
+void PitchPanel::paint(juce::Graphics& g) {
+    g.drawRect(getLocalBounds(), 2);
+
     auto bounds = getLocalBounds().toFloat();
     drawStaticContent(g, bounds);
     drawDynamicLabels(g, bounds);
@@ -213,7 +221,7 @@ void PitchPanel::drawStaticContent(juce::Graphics& g, juce::Rectangle<float> bou
 
 void PitchPanel::drawDynamicLabels(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-        auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
+    auto targetPitchDisplayBounds = bounds.reduced(bounds.getWidth() * 0.45, bounds.getHeight() * 0.45);
     auto radius = targetPitchDisplayBounds.getWidth() * 0.5f;
 
     g.setFont(30.0f); 
@@ -259,6 +267,33 @@ void PitchPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
     }
 }
+
+PitchVisualizer::~PitchVisualizer(){
+    //Stop listening
+    if(localState.isValid()){
+        localState.removeListener(this);
+    }
+}
+
+//Update the graph
+void PitchVisualizer::timerCallback(){
+    float newPitch = pitchNode.getPitchAtomic().load();
+
+    //Push it to graph
+    if(pitchNode.getWasBypassing()){
+        pushData(newPitch);
+        lastStablePitch = newPitch;
+    }else{
+        pushData(lastStablePitch);
+    }
+
+    //Call the graph visualizer's timerCallback
+    RealTimeGraphVisualizer::timerCallback();
+}
+
+void PitchVisualizer::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property){
+}
+
 // XML serialization for saving/loading - reyna
 std::unique_ptr<juce::XmlElement> PitchNode::toXml() const {
     auto xml = std::make_unique<juce::XmlElement>("PitchNode");

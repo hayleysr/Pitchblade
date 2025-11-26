@@ -47,7 +47,61 @@ private:
     juce::Label pitchName;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PitchPanel)
+    juce::Label panelTitle;
 };
+
+
+// Visualizer node for pitch correction
+#include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/ui/RealTimeGraphVisualizer.h"
+
+class PitchNode;
+
+class PitchVisualizer : public RealTimeGraphVisualizer, public juce::ValueTree::Listener{
+public:
+    explicit PitchVisualizer(AudioPluginAudioProcessor& proc, PitchNode& node, juce::ValueTree& state)
+        : RealTimeGraphVisualizer(proc.apvts, "note", {55.f, 3520.f}, true, 7),
+            processor(proc),
+            pitchNode(node),
+            localState(state)
+    {
+        //Listen for changes
+        localState.addListener(this);
+
+        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
+
+        switch(initialIndex){
+            case 0:
+                startTimerHz(5);
+                break;
+            case 1:
+                startTimerHz(15);
+                break;
+            case 2:
+                startTimerHz(30);
+                break;
+            case 3:
+                startTimerHz(60);
+                break;
+            default:
+                startTimerHz(30);
+                break;
+        }
+    }
+
+    ~PitchVisualizer() override;
+
+    //Update the graph
+    void timerCallback() override;
+
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+private:
+    AudioPluginAudioProcessor& processor;
+    PitchNode& pitchNode;
+    juce::ValueTree localState;
+    float lastStablePitch = 0.f;
+};
+
 ////////////////////////////////////////////////////////////
 //reynas changes > added dsp node defn to ui panel creation
 // pitch dsp node , processes audio + makes own panel
@@ -57,7 +111,8 @@ private:
 
 class PitchNode : public EffectNode {
 public:
-    explicit PitchNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "PitchNode", "Pitch"), processor(proc) {
+    explicit PitchNode(AudioPluginAudioProcessor& proc) : EffectNode(proc, "PitchNode", "Pitch"), processor(proc),
+        pitchDetector(), pitchShifter(), pitchDSP(pitchDetector, pitchShifter) {
         if (!getMutableNodeState().hasProperty("PitchRetune"))
             getMutableNodeState().setProperty("PitchRetune", 0.3f, nullptr);
         if (!getMutableNodeState().hasProperty("PitchNoteTransition"))
@@ -76,7 +131,6 @@ public:
             processor.apvts.state = juce::ValueTree("EffectNodes");
 
         processor.apvts.state.addChild(getMutableNodeState(), -1, nullptr);
-
         pitchDSP.prepare(proc.getSampleRate(), proc.getBlockSize());
 
     }
@@ -104,6 +158,7 @@ public:
         proc.getPitchCorrector().processBlock(buffer);   
         float pitchHz = proc.getPitchCorrector().getCurrentPitch();
         pitchDSP.currentOutputPitch.store(pitchHz);
+        DBG(pitchHz);
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override
@@ -111,9 +166,16 @@ public:
         return std::make_unique<PitchPanel>(proc, getMutableNodeState());
     }
 
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override {
+        return std::make_unique<PitchVisualizer>(proc, *this, getMutableNodeState());
+    }
+
+
     std::atomic<float>& getPitchAtomic(){
         return pitchDSP.currentOutputPitch;
     }
+
+    bool getWasBypassing() { return pitchDSP.getWasBypassing(); }
 
     //////////////////////////////////////////////////////////// reyna
 
@@ -138,5 +200,7 @@ public:
 
 private:
     AudioPluginAudioProcessor& processor;
+    PitchDetector pitchDetector;
+    PitchShifter pitchShifter;
     PitchCorrector pitchDSP;
 };

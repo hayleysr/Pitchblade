@@ -5,7 +5,8 @@
 //Constructor
 DeNoiserProcessor::DeNoiserProcessor() :
     forwardFFT(fftOrder),
-    window(fftSize,juce::dsp::WindowingFunction<float>::hann)
+    //Adding the below will fix the errors relating to added gain in the denoiser. Going to do fully when unit testing
+    window(fftSize,juce::dsp::WindowingFunction<float>::hann, false)
 {
     //Initialize buffers
     inputBuffer.resize(fftSize,0.0f);
@@ -176,8 +177,8 @@ void DeNoiserProcessor::processFrame(){
             float reducedMag0 = std::max(0.0f,magnitude0-reduction0);
             float reducedMag1024 = std::max(0.0f,magnitude1024-reduction1024);
 
-            float floor0 = magnitude0 * 0.02f;
-            float floor1024 = magnitude1024 * 0.02f;
+            float floor0 = magnitude0 * 0.001f;
+            float floor1024 = magnitude1024 * 0.001f;
             
             fftData[0] = std::max(reducedMag0,floor0);
             fftData[1] = std::max(reducedMag1024,floor1024);
@@ -219,7 +220,7 @@ void DeNoiserProcessor::processFrame(){
 
             //If the sound is complete silence, then don't completely make it empty. Give a little bit of noise (can be removed with noise gate)
             //This is to prevent artifacting in the sound 
-            float floor = magnitude * 0.02f;
+            float floor = magnitude * 0.001f;
 
             //This is the final decision, and it chooses the greater value between the reducedMag and the floor value
             magnitude = std::max(reducedMag,floor);

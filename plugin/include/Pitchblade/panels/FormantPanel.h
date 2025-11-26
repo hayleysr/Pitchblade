@@ -5,6 +5,7 @@
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/effects/FormantDetector.h"
 #include "Pitchblade/effects/FormantShifter.h"
+#include "Pitchblade/ui/FormantVisualizer.h"
 
 #ifndef PARAM_FORMANT_SHIFT
   #define PARAM_FORMANT_SHIFT "FORMANT_SHIFT"
@@ -13,33 +14,33 @@
   #define PARAM_FORMANT_MIX "FORMANT_MIX"
 #endif
 
-class FormantPanel : public juce::Component,
-                     public juce::Button::Listener,     // To handle button clicks - huda
-                     private juce::Timer                 // adding a timer to update formants - huda
-{
+class FormantPanel : public juce::Component, public juce::ValueTree::Listener {
 public:
     explicit FormantPanel(AudioPluginAudioProcessor& proc);
+    FormantPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
+    ~FormantPanel() override;
+
     void resized() override;
     void paint(juce::Graphics& g) override;
 
+    // ValueTree listener
+    void valueTreePropertyChanged(juce::ValueTree& tree,
+        const juce::Identifier& property) override;
+
 private:
-    void buttonClicked(juce::Button* button) override;
-    void timerCallback() override;
-
     AudioPluginAudioProcessor& processor;
-
-    bool showingFormants = false;
-
-    juce::ToggleButton toggleViewButton{ "Show Formants" };
     juce::Slider gainSlider;
+    juce::Label panelTitle;
 
     // --- Formant Shifter controls
     juce::Label  formantLabel, mixLabel;
     juce::Slider formantSlider, mixSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> formantAttach, mixAttach;
 
-    // Optional: drawing area for detector overlay below the sliders
-    juce::Rectangle<int> detectorArea;
+    // node local state for this panel
+    juce::ValueTree localState;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FormantPanel)
 };
 
 ////////////////////////////////////////////////////////////
@@ -47,25 +48,26 @@ private:
 // reynas changes > added dsp node defn to ui panel creation
 // formant dsp node , processes audio + makes own panel
 // inherits from EffectNode base class
-class FormantNode : public EffectNode
-{
+class FormantNode : public EffectNode {
 public:
-    FormantNode (AudioPluginAudioProcessor& proc)
-        : EffectNode (proc, "FormantNode", "Formant"), processor (proc) {}
+    FormantNode (AudioPluginAudioProcessor& proc) : EffectNode (proc, "FormantNode", "Formant"), processor (proc) {
+        auto& state = getMutableNodeState();
 
-    void process (AudioPluginAudioProcessor& proc,
-                  juce::AudioBuffer<float>& buffer) override
-    {
-        // --- 0) Grab UI params
-        const auto* shiftParam = proc.apvts.getRawParameterValue (PARAM_FORMANT_SHIFT);
-        const auto* mixParam   = proc.apvts.getRawParameterValue (PARAM_FORMANT_MIX);
+        if (!state.hasProperty("FORMANT_SHIFT"))
+            state.setProperty("FORMANT_SHIFT", 0.0f, nullptr);   // slider range  -50 to 50
 
-        float shift = shiftParam ? shiftParam->load() : 0.0f;
-        float mix   = mixParam   ? mixParam->load()   : 1.0f;   // 0=dry, 1=wet
+        if (!state.hasProperty("FORMANT_MIX"))
+            state.setProperty("FORMANT_MIX", 1.0f, nullptr);     // slider range  0 to 1
+    }
+
+    void process (AudioPluginAudioProcessor& proc, juce::AudioBuffer<float>& buffer) override {
+        // --- 0) Grab params from this node's local state
+        auto state = getNodeState();
+        float shift = (float)state.getProperty("FORMANT_SHIFT", 0.0f);
+        float mix = (float)state.getProperty("FORMANT_MIX", 1.0f);   // 0 dry, 1 wet
 
         // If this node is bypassed, force neutral formant and fully dry
-        if (bypassed)
-        {
+        if (bypassed) {
             shift = 0.0f;
             mix   = 0.0f;
         }
@@ -90,6 +92,10 @@ public:
         // Process in-place to get the wet signal
         sh.processBlock (buffer); // buffer = wet
 
+        // Keep a copy of the fully-wet output for visualization regardless of Dry/Wet mix
+        wetBuffer.setSize (numCh, numSamples, false, false, true);
+        wetBuffer.makeCopyOf (buffer);
+
         //Crossfade dry/wet into buffer
         const float wetGain  = juce::jlimit (0.0f, 1.0f, mix);
         const float dryGain  = 1.0f - wetGain;
@@ -103,8 +109,8 @@ public:
                 wet[n] = dryGain * dry[n] + wetGain * wet[n];
         }
 
-        //Analyze the post-mix output for the panel
-        det.processBlock (buffer);
+        // Analyze the fully wet (shifted) output for the visualizer so motion is obvious
+        det.processBlock (wetBuffer);
         auto freqsWet = det.getFormantFrequencies();
 
         std::sort (freqsWet.begin(), freqsWet.end());
@@ -117,9 +123,16 @@ public:
         proc.setLatestFormants (freqsWet);
     }
 
-    std::unique_ptr<juce::Component> createPanel (AudioPluginAudioProcessor& proc) override
+    std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
+        juce::ignoreUnused(proc);
+        return std::make_unique<FormantPanel>(proc, getMutableNodeState());
+    }
+
+
+    // Provide a visualizer for the bottom VisualizerPanel area
+    std::unique_ptr<juce::Component> createVisualizer(AudioPluginAudioProcessor& proc) override
     {
-        return std::make_unique<FormantPanel> (proc);
+        return std::make_unique<FormantVisualizer>(proc, proc.apvts);
     }
 
     std::shared_ptr<EffectNode> clone() const override
@@ -135,4 +148,6 @@ private:
 
     // --- new: buffer to hold the dry input for dry/wet mixing
     juce::AudioBuffer<float> dryBuffer;
+    // Visualization-only: wet copy for formant detection (independent of mix)
+    juce::AudioBuffer<float> wetBuffer;
 };

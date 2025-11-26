@@ -3,36 +3,27 @@
 #include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 
-FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
-    : processor(proc)
-{
+FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state)
+    : processor(proc), localState(state) {
+    // Labels + sliders
     //label names for dials - reyna
     formantSlider.setName("Formant");
     mixSlider.setName("Dry/Wet");
-    
-    // Formant toggle button - huda
-    //toggleViewButton.setClickingTogglesState(true);
-    static CustomLookAndFeel gSwitchLF; //for custom toggle
-    toggleViewButton.setLookAndFeel(&gSwitchLF);
-    toggleViewButton.onClick = [this]()
-        {
-            showingFormants = toggleViewButton.getToggleState();
-            toggleViewButton.setButtonText(showingFormants ? "Hide Formants" : "Show Formants");
-            repaint();
-        };
 
-    addAndMakeVisible(toggleViewButton);
+	// Listen to local state changes
+    localState.addListener(this);
 
-    startTimerHz(4); // repaint timer 4 times per second - huda
+    // Panel title - reyna
+    panelTitle.setText("Formant Shifter", juce::dontSendNotification);
+    panelTitle.setName("NodeTitle");
+    addAndMakeVisible(panelTitle);
 
-    //startTimerHz(10); // repaint timer 10 times per second - huda
-
-        // Labels + sliders
     formantLabel.setText("Formant", juce::dontSendNotification);
     addAndMakeVisible(formantLabel);
 
     formantSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    formantSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    formantSlider.setRange(-50.0, 50.0, 0.1);
+    formantSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 30);
     formantSlider.setRange(-50.0, 50.0, 0.1);
     formantSlider.setSkewFactorFromMidPoint(1.0);
     addAndMakeVisible(formantSlider);
@@ -41,93 +32,68 @@ FormantPanel::FormantPanel(AudioPluginAudioProcessor& proc)
     addAndMakeVisible(mixLabel);
 
     mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-    mixSlider.setRange(0.0, 1.0, 0.001);
+    mixSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 30);
+    mixSlider.setRange(0.0, 1.0, 0.01);
     addAndMakeVisible(mixSlider);
 
-    // Attachments
-    formantAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        processor.apvts, PARAM_FORMANT_SHIFT, formantSlider);
-    mixAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        processor.apvts, PARAM_FORMANT_MIX, mixSlider);
+    // Initialize from ValueTree
+    formantSlider.setValue((float)localState.getProperty("FORMANT_SHIFT", 0.0f), juce::dontSendNotification);
+    mixSlider.setValue((float)localState.getProperty("FORMANT_MIX", 1.0f), juce::dontSendNotification);
 
+    // Write back to node state
+    formantSlider.onValueChange = [this]() {
+        localState.setProperty("FORMANT_SHIFT",
+            (float)formantSlider.getValue(), nullptr);
+        };
+
+    mixSlider.onValueChange = [this]() {
+        localState.setProperty("FORMANT_MIX",
+            (float)mixSlider.getValue(), nullptr);
+        };
 }
 
-void FormantPanel::resized()
-{
-    auto r = getLocalBounds().reduced(10);
-    toggleViewButton.setBounds(r.removeFromTop(30));
+FormantPanel::~FormantPanel() {
+    if (localState.isValid())
+        localState.removeListener(this);
+}
 
+void FormantPanel::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) {
+    if (tree != localState)
+        return;
 
-    auto row1 = r.removeFromTop(40);
-    formantLabel .setBounds(row1.removeFromLeft(90));
+    if (property == juce::Identifier("FORMANT_SHIFT")) {
+        formantSlider.setValue( (float)localState.getProperty("FORMANT_SHIFT", formantSlider.getValue()), juce::dontSendNotification);
+    } else if (property == juce::Identifier("FORMANT_MIX")) {
+        mixSlider.setValue( (float)localState.getProperty("FORMANT_MIX", mixSlider.getValue()), juce::dontSendNotification);
+    }
+}
+
+void FormantPanel::resized() {
+    panelTitle.setBounds(getLocalBounds().removeFromTop(30));
+
+    auto r = getLocalBounds().reduced(12);
+    const int labelWidth = 70;     
+    const int sliderHeight = 60;
+    const int verticalGap = 2;    
+
+    r.removeFromTop(30);
+
+    // Row 1: Formant
+    auto row1 = r.removeFromTop(sliderHeight);
+    formantLabel.setBounds(row1.removeFromLeft(labelWidth));
     formantSlider.setBounds(row1);
+    r.removeFromTop(verticalGap);
 
-    auto row2 = r.removeFromTop(40);
-    mixLabel.setBounds(row2.removeFromLeft(90));
+    // Row 2: Dry Wet
+    auto row2 = r.removeFromTop(sliderHeight);
+    mixLabel.setBounds(row2.removeFromLeft(labelWidth));
     mixSlider.setBounds(row2);
-
-    detectorArea = r; // if you use an overlay for the detector lines
-
 }
 
-void FormantPanel::paint(juce::Graphics& g)
-{
-    g.fillAll(Colors::background);
-    if (!showingFormants) return;
-
-    // local copies: never mutate detectorArea
-    auto header = detectorArea.withHeight(16);
-    auto plot   = detectorArea.withTrimmedTop(16).reduced(2);
-
-    // Title (smaller)
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
-    g.setFont(14.0f);
-    g.drawText("Formant Detector Output", header, juce::Justification::centredLeft, false);
-
-    // Frame
-    g.setColour(juce::Colours::darkgrey.withAlpha(0.6f));
-    g.drawRect(plot);
-
-    // Formants
-    const auto formantsCopy = processor.getLatestFormants();
-    constexpr float fMin = 0.0f, fMax = 5000.0f;
-
-    g.setColour(juce::Colours::red.withAlpha(0.95f));
-    g.setFont(10.0f);
-
-    for (float freqHz : formantsCopy)
-    {
-        const float f = juce::jlimit(fMin, fMax, freqHz);
-        const float x = juce::jmap(f, fMin, fMax,
-                                   (float)plot.getX(), (float)plot.getRight());
-
-        g.drawLine(x, (float)plot.getY(), x, (float)plot.getBottom(), 2.0f);
-
-        juce::Rectangle<int> tag((int)x - 26, plot.getBottom() - 14, 52, 12);
-        g.setColour(juce::Colours::white);
-        g.drawFittedText(juce::String(freqHz, 0) + " Hz", tag, juce::Justification::centred, 1);
-        g.setColour(juce::Colours::red.withAlpha(0.95f));
-    }
+void FormantPanel::paint(juce::Graphics& g) {
+    g.drawRect(getLocalBounds(), 2);
 }
 
-//Button to show formants vs gain - huda
-void FormantPanel::buttonClicked(juce::Button* button)
-{
-    if (button == &toggleViewButton)
-    {
-        showingFormants = !showingFormants;
-        toggleViewButton.setButtonText(showingFormants ? "Show Gain" : "Show Formants");
-        //resized();
-        repaint();
-    }
-}
-
-void FormantPanel::timerCallback() {
-    if (showingFormants) { // refresh if formants are visible
-        repaint();
-    }
-}
 
 // XML serialization for saving/loading - reyna
 std::unique_ptr<juce::XmlElement> FormantNode::toXml() const {

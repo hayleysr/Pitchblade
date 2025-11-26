@@ -12,12 +12,12 @@ PresetsPanel::PresetsPanel(AudioPluginAudioProcessor& proc) : processor(proc) {
 
     saveButton.onClick = [this]() { handleSavePreset(); };
     loadButton.onClick = [this]() { handleLoadPreset(); };
-    defaultButton.onClick = [this]() { handleDefaultPreset(); };
+    defaultButton.onClick = [this]() { showDefaultMenu(); };
 
     // preset change confirmation message
     addAndMakeVisible(statusLabel);
     statusLabel.setJustificationType(juce::Justification::centred);
-    statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    statusLabel.setColour(juce::Label::textColourId, Colors::buttonText);
     statusLabel.setText("", juce::dontSendNotification);
 
     statusLabel.setText("Preset loaded successfully!", juce::dontSendNotification);
@@ -28,22 +28,42 @@ PresetsPanel::PresetsPanel(AudioPluginAudioProcessor& proc) : processor(proc) {
 }
 
 void PresetsPanel::paint(juce::Graphics& g) {
-    g.fillAll(Colors::background);
-    g.setColour(Colors::accent);
+    auto r = getLocalBounds().toFloat();
+
+    juce::ColourGradient gradient(
+        Colors::background.brighter(0.1f),
+        r.getX(), r.getY(),
+        Colors::background,
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+    
+
+    g.fillRect(getLocalBounds());
+    g.drawRect(getLocalBounds(), 2);
+
+    g.setColour(Colors::buttonText);
     g.setFont(24.0f);
     g.drawText("Preset Manager", getLocalBounds().removeFromTop(50), juce::Justification::centred, true);
+
+    //horizontal line
+    g.setColour(Colors::background);
+    float y = (float)getLocalBounds().removeFromTop(42).getBottom();
+    g.drawLine(10.0f, y, (float)getWidth() - 10.0f, y, 3.0f);
 }
 
 void PresetsPanel::resized() {
-    auto area = getLocalBounds().reduced(40);
-    const int buttonH = 40;
+    auto area = getLocalBounds().reduced(45);
+    const int buttonH = 60;
 
-    saveButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
-    loadButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
-    defaultButton.setBounds(area.removeFromTop(buttonH).reduced(0, 10));
+    saveButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
+    loadButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
+    defaultButton.setBounds(area.removeFromTop(buttonH).reduced(0, 5));
 
     // Status label
-    area.removeFromTop(10);
+    area.removeFromTop(5);
     statusLabel.setBounds(area.removeFromTop(30));
 }
 
@@ -66,15 +86,12 @@ void PresetsPanel::handleSavePreset() {
                 processor.savePresetToFile(result);
                 // update label
                 statusLabel.setText("Preset saved!", juce::dontSendNotification);
-                juce::MessageManager::callAsync([this]() {
-                    if (onPresetActionFinished) onPresetActionFinished();
-                    });
             } else {
                 statusLabel.setText("Save canceled", juce::dontSendNotification);
             }
             chooser.reset();
         });
-	if (onPresetActionFinished) onPresetActionFinished();   // callback after preset action
+	//if (onPresetActionFinished) onPresetActionFinished();   // callback after preset action
 }
 
 void PresetsPanel::handleLoadPreset() {
@@ -83,9 +100,7 @@ void PresetsPanel::handleLoadPreset() {
 
     chooser = std::make_unique<juce::FileChooser>("Load Preset", initialDir, "*.xml");
 
-    chooser->launchAsync(juce::FileBrowserComponent::openMode |
-        juce::FileBrowserComponent::canSelectFiles,
-        [this](const juce::FileChooser& c) {
+    chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this](const juce::FileChooser& c) {
             auto result = c.getResult();
             if (result.existsAsFile()) {
                 processor.loadPresetFromFile(result);
@@ -99,7 +114,7 @@ void PresetsPanel::handleLoadPreset() {
             }
             chooser.reset();
         });
-    if (onPresetActionFinished) onPresetActionFinished();
+    //if (onPresetActionFinished) onPresetActionFinished();
 }
 
 void PresetsPanel::handleDefaultPreset() {
@@ -110,4 +125,36 @@ void PresetsPanel::handleDefaultPreset() {
     juce::MessageManager::callAsync([this]() {
         if (onPresetActionFinished) onPresetActionFinished();
         });
+}
+
+void PresetsPanel::showDefaultMenu() {
+    juce::PopupMenu menu;
+
+    //  all effects - all default effects
+    menu.addItem("All Effects", [this]() {
+        processor.loadDefaultPreset("default");
+        statusLabel.setText("Default preset loaded", juce::dontSendNotification);
+
+        juce::MessageManager::callAsync([this]() {
+            if (onPresetActionFinished) 
+                onPresetActionFinished();
+            });
+        });
+
+    // empty chain : clear everything
+    menu.addItem("Empty Chain", [this]() {
+        processor.clearAllNodes();
+        statusLabel.setText("Chain cleared", juce::dontSendNotification);
+
+        juce::MessageManager::callAsync([this]() {
+            if (onPresetActionFinished) onPresetActionFinished();
+            });
+        });
+    menu.setLookAndFeel(&getLookAndFeel());
+
+    menu.showMenuAsync( 
+        juce::PopupMenu::Options()
+        .withTargetComponent(&defaultButton)   
+        .withMinimumWidth(defaultButton.getWidth())
+    );
 }

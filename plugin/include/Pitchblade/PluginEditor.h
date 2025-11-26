@@ -11,7 +11,6 @@
 #include "ui/DaisyChain.h"
 #include "ui/EffectPanel.h"
 #include "ui/VisualizerPanel.h"
-#include "Pitchblade/panels/PresetsPanel.h"
 
 #include "Pitchblade/panels/EffectNode.h"
 
@@ -33,6 +32,8 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+
+	void applyRowTooltips();    //reyna tooltip helper
 
     //Austin
     void buttonClicked(juce::Button* button) override;

@@ -81,6 +81,10 @@ void FrequencyGraphVisualizer::paint(juce::Graphics& g){
 void FrequencyGraphVisualizer::resized(){
     auto bounds = getLocalBounds();
 
+    //padding 
+    constexpr int pad = 15;
+    bounds = bounds.reduced(pad);
+
     xLabelBounds = bounds.removeFromBottom(labelHeight);
     yLabelBounds = bounds.removeFromLeft(labelWidth);
     graphBounds = bounds.reduced(0, 5);
@@ -286,7 +290,63 @@ void FrequencyGraphVisualizer::drawSpectrum(juce::Graphics& g){
     }
 
     //Draw path with a 2 pixel stroke
-    g.strokePath(spectrumPath,juce::PathStrokeType(2.0f));
+    g.strokePath(spectrumPath, juce::PathStrokeType(2.0f));
+
+    // add gradient under graph - reyna /////////
+    {
+        juce::Path fillPath;
+        float bottom = graphBounds.getBottom();
+        float left = graphBounds.getX();
+
+        // start bottom left
+        fillPath.startNewSubPath(left, bottom);
+        int lastX = -1;
+        float accY = 0.0f;
+        int accCount = 0;
+
+        for (int i = 0; i < displayedSpectrumData.size(); i++) {
+            float freq = displayedSpectrumData[i].getX();
+            float amp = displayedSpectrumData[i].getY();
+            if (freq >= xAxisRange.getStart() && freq <= xAxisRange.getEnd()) {
+                float x = mapFreqToX(freq);
+                float y = mapAmpToY(amp);
+                int px = (int)x;
+                if (i == 0) {
+                    fillPath.lineTo(x, y);
+                    lastX = px;
+                    accY = y;
+                    accCount = 1;
+                } else if (px != lastX) {
+                    float averagedY = (accCount > 0 ? accY / (float)accCount : y);
+                    fillPath.lineTo(x, averagedY);
+
+                    lastX = px;
+                    accY = y;
+                    accCount = 1;
+                } else {
+                    accY += y;
+                    accCount++;
+                }
+            }
+        }
+
+        if (accCount > 0)
+            fillPath.lineTo((float)lastX, accY / (float)accCount);
+
+        // close at bottom
+        fillPath.lineTo((float)lastX, bottom);
+        fillPath.closeSubPath();
+
+        // gradient
+        juce::ColourGradient grad(
+            Colors::accentPink.withAlpha(0.35f), graphBounds.getX(), graphBounds.getY(),
+            Colors::panel.withAlpha(0.35f), graphBounds.getX(), graphBounds.getBottom(),
+            false
+        );
+
+        g.setGradientFill(grad);
+        g.fillPath(fillPath);
+    } 
 }
 
 //Another graph drawing function. The function assumes that the dataMutex is already locked

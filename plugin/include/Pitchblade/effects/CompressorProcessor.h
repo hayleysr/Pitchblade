@@ -36,9 +36,15 @@ private:
     //Updates the attack and release coefficients based on user settings and sample rate
     void updateAttackAndRelease();
 
+    //volume meter - reyna
+    float currentAmplitude = 0.0f;  // tracks RMS amplitude 
+
 public:
     //Constructor
     CompressorProcessor();
+
+    //volume meter
+    float getCurrentLevelDb() const;
 
     // Called before processing to prepare the compressor with the current sample rate
     void prepare(const double sRate);
@@ -54,5 +60,7 @@ public:
 
     //Store the latest output level in dB for the visualizer
     std::atomic<float> currentOutputLevelDb {-100.0f};
+
+    std::atomic<float> priorOutputLevelDb {-100.0f};
 
 };

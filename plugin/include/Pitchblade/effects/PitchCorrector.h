@@ -15,7 +15,9 @@ enum scaleType{
 
 class PitchCorrector{
 public:
-    PitchCorrector() = default;
+    PitchCorrector(IPitchDetector& detector, IPitchShifter& shifter)
+        : pitchDetector(detector), pitchShifter(shifter) {}
+
     void prepare(double, int);
     void processBlock(juce::AudioBuffer<float>&);
 
@@ -27,6 +29,7 @@ public:
     void setWaver(float);
 
     int getScaleType() { return scaleType; }
+    int getScaleOffset() { return scaleOffset; }
     float getCorrectionRatio() { return smoothing; }
     float getRetuneSpeed() { return retuneSpeed; } 
     float getNoteTransition() { return noteTransition; }
@@ -39,8 +42,9 @@ public:
     std::string getTargetNoteName();
     
     std::atomic<float> currentOutputPitch{69.f};
+    bool getWasBypassing(){ return wasBypassing; };
 
-    PitchDetector& getDetector();
+    IPitchDetector& getDetector();
 
 private:
     int quantizeToScale(int);
@@ -48,8 +52,8 @@ private:
     static float frequencyToNote(float freq);
     float applyParameters(float &midi);
 
-    PitchDetector pitchDetector;
-    PitchShifter pitchShifter;
+    IPitchDetector& pitchDetector;
+    IPitchShifter& pitchShifter;
 
     juce::AudioBuffer<float> monoBuffer;
 
@@ -72,7 +76,7 @@ private:
     float lastStableMidi;
     bool wasBypassing;
     int stableCount;
-    const int stableThreshold = 100;
+    const int stableThreshold = 3;
 
     // Hz
     float targetPitch;

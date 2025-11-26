@@ -3,7 +3,7 @@
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/ui/CustomLookAndFeel.h"
-
+#include "BinaryData.h"
 #include "Pitchblade/panels/EffectNode.h"
 
 //effects panel section
@@ -14,6 +14,8 @@ EffectPanel::EffectPanel(AudioPluginAudioProcessor& proc, const std::vector<std:
 
     //hide top tab buttons
     tabs.setTabBarDepth(0);
+    tabs.setOpaque(false);
+    tabs.getTabbedButtonBar().setOpaque(false);
     addAndMakeVisible(tabs);
 }
 
@@ -30,10 +32,26 @@ void EffectPanel::showEffect(int index)
 }
 
 
-void EffectPanel::paint(juce::Graphics& g)
-{
-    g.fillAll(Colors::background);
+void EffectPanel::paint(juce::Graphics& g) {
+    auto r = getLocalBounds().toFloat();
+
+    juce::ColourGradient gradient(
+        Colors::background.brighter(0.2f),
+        r.getX(), r.getY(),
+        Colors::background.brighter(0.05f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+
+    g.fillRect(getLocalBounds());
     g.drawRect(getLocalBounds(), 2);
+
+    auto bounds = getLocalBounds().reduced(4);   // padding
+    g.setColour(Colors::accentPurple.withAlpha(0.6f));
+    g.drawRect(bounds, 1);   // thickness 3
+
 }
 
 void EffectPanel::refreshTabs()
@@ -47,7 +65,7 @@ void EffectPanel::refreshTabs()
 		{   // create panel from node
             auto panel = node->createPanel(processor);
             if (panel)   
-                tabs.addTab(node->effectName, Colors::background, panel.release(), true);
+                tabs.addTab(node->effectName, juce::Colours::transparentBlack, panel.release(), true);
         }
     }
 }

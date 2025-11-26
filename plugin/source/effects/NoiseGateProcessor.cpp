@@ -29,8 +29,8 @@ void NoiseGateProcessor::updateAttackAndRelease(){
     //These functions essentially create a value really close to 1, which when using the sample rate, can cause the gate to open or close in the specified time respectively
     //Furthermore, a linear value is not used simply to make it sound better
     //Finally, in case the user selects an attack or release time of 0, a very small number is added on to prevent a crash
-    attackCoeff = exp(-1.0f / (0.001f * attackTime * sampleRate + 0.0000001f));
-    releaseCoeff = exp(-1.0f / (0.001f * releaseTime * sampleRate + 0.0000001f));
+    attackCoeff = exp(-9.21f / (0.001f * attackTime * sampleRate + 0.0000001f));
+    releaseCoeff = exp(-4.6f / (0.001f * releaseTime * sampleRate + 0.0000001f));
 }
 
 //Processes the input buffer

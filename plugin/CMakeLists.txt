@@ -6,7 +6,7 @@ project(Pitchblade VERSION 0.1.0)
 
 # RubberBand configuration==============================================
 set(RUBBERBAND_DIR ${CMAKE_SOURCE_DIR}/plugin/third-party/rubberband)
-set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/rubberband)
+set(RUBBERBAND_INCLUDE_DIR ${RUBBERBAND_DIR}/include/)
 
 # Select Release or Debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -21,6 +21,9 @@ set_target_properties(RubberBand PROPERTIES
     IMPORTED_LOCATION ${RUBBERBAND_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${RUBBERBAND_INCLUDE_DIR}
 )
+
+set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+file(MAKE_DIRECTORY ${LIB_DIR})
 
 # Verify the library exists
 if(NOT EXISTS ${RUBBERBAND_LIBRARY})
@@ -67,7 +70,9 @@ target_sources(${PROJECT_NAME}
         source/ui/RealTimeGraphVisualizer.cpp
         source/ui/FrequencyGraphVisualizer.cpp
         source/ui/EqualizerVisualizer.cpp
+        source/ui/FormantVisualizer.cpp
         source/panels/PresetsPanel.cpp
+        
 
         #remember to add your panel and processors here
         source/panels/GainPanel.cpp
@@ -106,6 +111,7 @@ juce_add_binary_data(BinaryData
         assets/pitchblade_logo.png
         assets/pb_logo.png
         assets/tooltips.txt
+        assets/panel_bg.png
 )
 
 #Include these libraries in build

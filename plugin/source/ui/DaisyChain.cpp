@@ -35,11 +35,26 @@ static juce::String makeUniqueName(const juce::String& baseName, const std::vect
     return newName;
 }
 
+//convert UI rows into processor rows
+static std::vector<AudioPluginAudioProcessor::Row> toProcessorRows(const std::vector<DaisyChain::Row>& uiRows) {
+    std::vector<AudioPluginAudioProcessor::Row> out;
+    out.reserve(uiRows.size());
+    for (auto& r : uiRows)
+        out.push_back({ r.left, r.right });
+    return out;
+}
+
 DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes) :processorRef(proc), effectNodes(nodes) {
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
     addAndMakeVisible(duplicateButton);
     addAndMakeVisible(deleteButton);
+
+    //tooltip conection
+    addButton.getProperties().set("tooltipKey", "addButton");
+    duplicateButton.getProperties().set("tooltipKey", "duplicateButton");
+    deleteButton.getProperties().set("tooltipKey", "deleteButton");
+
 	// scroll area for effects
     addAndMakeVisible(scrollArea);
     scrollArea.setViewedComponent(&effectsContainer, false);
@@ -49,6 +64,7 @@ DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_
     deleteButton.onClick = [this]() { showDeleteMenu(); };
 
     // if there are existing nodes in the processor, create default rows
+    // creates the default rows in the daisychain on first launch
 	{   // lock processor mutex for thread safety
         std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
         if (!effectNodes.empty() && rows.empty()) {
@@ -88,6 +104,7 @@ static std::tuple<int, bool, bool> findRowAndSide(const std::vector<DaisyChain::
 }
 
 //reset rows to match effectNodes vector
+//rebuilds the rows from effectNodes as straight one per row
 void DaisyChain::resetRowsToNodes() {
     std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());
     rows.clear();
@@ -137,28 +154,32 @@ void DaisyChain::rebuild() {
 
         // find neighboring row states for ui connections 
         int leftModeId = 1;
-        const bool prevIsDouble = (i > 0) ? rows[i - 1].hasRight() : false;
-        const bool currIsDouble = rowData.hasRight();
-        const bool nextIsDouble = (i + 1 < (int)rows.size()) ? rows[i + 1].hasRight() : false;
+        if (nodeLeft) {
+            // use the nodes existing chainMode that was set by preset
+            leftModeId = juce::jlimit(1, 4, (int)nodeLeft->chainMode);
+        } else {
+            const bool prevIsDouble = (i > 0) ? rows[i - 1].hasRight() : false;
+            const bool currIsDouble = rowData.hasRight();
+            const bool nextIsDouble = (i + 1 < (int)rows.size()) ? rows[i + 1].hasRight() : false;
 
-        // find left node chain mode for ui
-        if (currIsDouble)          leftModeId = 3;          // double down
-        else if (prevIsDouble)     leftModeId = 4;          // unite
-        else if (nextIsDouble)     leftModeId = 2;          // split
-
+            // find left node chain mode for ui
+            if (currIsDouble)          leftModeId = 3;          // double down
+            else if (prevIsDouble)     leftModeId = 4;          // unite
+            else if (nextIsDouble)     leftModeId = 2;          // split
+        }
 		// set left node chain mode
         row->setChainModeId(leftModeId);
         row->updateModeVisual();    
-        if (auto nodeLeft = findNodeByName(rowData.left)) {
+       /* if (auto nodeLeft = findNodeByName(rowData.left)) {
             nodeLeft->chainMode = (ChainMode)leftModeId;
-        }
+        }*/
 
         // Right node if present //////////////////////
         if (rowData.right.isNotEmpty()) {
 			auto nodeR = findNodeByName(rowData.right); // find right node by name
             if (!nodeR) { 
 				rightToClear.add(i);                                    // mark for clearing if node not found
-            } else if (nodeR) {
+            } else {
 				// set right effect
                 row->setSecondaryEffect(rowData.right);
                 if (nodeR) nodeR->chainMode = ChainMode::DoubleDown;    // secondary mode is always DoubleDown in a double row
@@ -192,10 +213,11 @@ void DaisyChain::rebuild() {
 
             if (row->getName().isNotEmpty())     { handleMode(row->getName()); } // left
             if (!row->rightEffectName.isEmpty()) { handleMode(row->rightEffectName); } // right
-			processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
+			//processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
+            processorRef.requestLayout(toProcessorRows(rows));
         };
 
-        row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback ui
+        row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback from drag n drop ui
 			if (reorderLocked) return; // prevent reordering if locked
             handleReorder(kind, dragName, targetRow);
             };
@@ -282,6 +304,8 @@ void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targe
     // rebuild asynchronously 
     juce::MessageManager::callAsync([this]() {
         rebuild();
+        /*if (onReorderFinished) onReorderFinished();*/
+        processorRef.requestLayout(toProcessorRows(rows));
         if (onReorderFinished) onReorderFinished();
         });
 }
@@ -346,7 +370,17 @@ void DaisyChain::resized() {
 }
 
 void DaisyChain::paint(juce::Graphics& g) {
-    g.fillAll(Colors::panel);
+    auto r = getLocalBounds().toFloat();
+    juce::ColourGradient gradient(
+        Colors::panel,
+        r.getX(), r.getY(),
+        Colors::panel.darker(0.3f),
+        r.getX(), r.getBottom(),
+        false
+    );
+
+    g.setGradientFill(gradient);
+    g.fillRect(r);
     g.drawRect(getLocalBounds(), 2);
 
     if (items.size() <= 1)
@@ -453,10 +487,10 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
         if (globalBypassed) {
             // grey out
             row->bypass.setEnabled(false);
-            row->bypass.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
-            row->bypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkgrey);
-            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::background);
-            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::background);
+            row->bypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
+            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
         } else {
             // restore
             const bool state = row->bypassed;
@@ -465,8 +499,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
             row->bypass.setEnabled(true);
             row->bypass.setColour(juce::TextButton::buttonColourId, bg);
             row->bypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-            row->bypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-            row->bypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            row->bypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+            row->bypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
         }
         row->bypass.repaint();
 
@@ -474,10 +508,10 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
         if (row->isDoubleRow) {
             if (globalBypassed) {
                 row->rightBypass.setEnabled(false);
-                row->rightBypass.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
-                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkgrey);
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::background);
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::background);
+                row->rightBypass.setColour(juce::TextButton::buttonColourId, Colors::accent.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::buttonOnColourId, Colors::accent.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText.withAlpha(0.5f));
+                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText.withAlpha(0.5f));
             }
             else {
                 const bool stateR = row->rightBypassed;
@@ -486,8 +520,8 @@ void DaisyChain::setGlobalBypassVisual(bool state) {
                 row->rightBypass.setEnabled(true);
                 row->rightBypass.setColour(juce::TextButton::buttonColourId, bgR);
                 row->rightBypass.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightgrey);
-                row->rightBypass.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-                row->rightBypass.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+                row->rightBypass.setColour(juce::TextButton::textColourOffId, Colors::buttonText);
+                row->rightBypass.setColour(juce::TextButton::textColourOnId, Colors::buttonText);
             }
             row->rightBypass.repaint();
         }
@@ -510,6 +544,10 @@ void DaisyChain::setChainControlsEnabled(bool enabled) {
 // lock reordering and drag/drop when viewing settings/presets
 void DaisyChain::setReorderLocked(bool locked) {
     reorderLocked = locked;
+    
+	// store in properties
+    getProperties().set("ReorderLocked", locked);
+
     // disable add/copy/delete
     addButton.setEnabled(!locked);
     duplicateButton.setEnabled(!locked);
@@ -572,13 +610,17 @@ void DaisyChain::showAddMenu() {
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
     menu.addItem(3, "Compressor");
-    menu.addItem(4, "Formant");
-    menu.addItem(5, "Pitch");
-    menu.addItem(6, "De-Esser");
-    menu.addItem(7, "De-Noiser");
+    menu.addItem(4, "De-Esser");
+    menu.addItem(5, "De-Noiser");
+    menu.addItem(6, "Formant");
+    menu.addItem(7, "Pitch");
     menu.addItem(8, "Equalizer");
 
+    menu.setLookAndFeel(&getLookAndFeel());
+    addButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&addButton), [this](int result) {
+        addButton.setColour(juce::TextButton::buttonColourId, Colors::button);
+
             if (result == 0) return;
 			// create new node based on selection
             std::shared_ptr<EffectNode> newNode;
@@ -586,9 +628,9 @@ void DaisyChain::showAddMenu() {
             case 1: newNode = std::make_shared<GainNode>(processorRef); break;
             case 2: newNode = std::make_shared<NoiseGateNode>(processorRef); break;
             case 3: newNode = std::make_shared<CompressorNode>(processorRef); break;
-            case 4: newNode = std::make_shared<FormantNode>(processorRef); break;
+            case 4: newNode = std::make_shared<DeEsserNode>(processorRef); break;
             case 5: newNode = std::make_shared<PitchNode>(processorRef); break;
-            case 6: newNode = std::make_shared<DeEsserNode>(processorRef); break;
+            case 6: newNode = std::make_shared<FormantNode>(processorRef); break;
             case 7: newNode = std::make_shared<DeNoiserNode>(processorRef); break;
             case 8: newNode = std::make_shared<EqualizerNode>(processorRef); break;
             }
@@ -608,7 +650,8 @@ void DaisyChain::showAddMenu() {
                 onReorderFinished = nullptr;
                 rebuild();
                 onReorderFinished = oldCb;
-                
+                processorRef.requestLayout(toProcessorRows(rows));
+
                 if (onReorderFinished) onReorderFinished();
             }
         });
@@ -624,9 +667,11 @@ void DaisyChain::showDuplicateMenu() {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
     }
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton),
-        [this](int result)
+    menu.setLookAndFeel(&getLookAndFeel());
+    duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton), [this](int result)
         {
+            duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::button);
             if (result == 0) return;
             const int index = result - 1;
             if (index < 0 || index >= effectNodes.size()) return;
@@ -656,6 +701,8 @@ void DaisyChain::showDuplicateMenu() {
             onReorderFinished = nullptr;    
             rebuild();
             onReorderFinished = oldCb;          
+            processorRef.requestLayout(toProcessorRows(rows));
+
             if (onReorderFinished) onReorderFinished();
         });
 }
@@ -669,10 +716,11 @@ void DaisyChain::showDeleteMenu() {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
     }
-
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton),
-        [this](int result)
+    menu.setLookAndFeel(&getLookAndFeel());
+    deleteButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton), [this](int result)
         {
+            deleteButton.setColour(juce::TextButton::buttonColourId, Colors::button);
             if (result == 0) return; // user canceled
             const int index = result - 1;
             if (index < 0 || index >= effectNodes.size()) return;
@@ -693,6 +741,7 @@ void DaisyChain::showDeleteMenu() {
             // rebuild the chain
             juce::MessageManager::callAsync([this]() {
                 rebuild();
+                processorRef.requestLayout(toProcessorRows(rows));
                 if (onReorderFinished)
                     onReorderFinished();
                 });

@@ -14,6 +14,7 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 
     // Gain Label - Austin
     gainLabel.setText("Gain", juce::dontSendNotification);
+    gainLabel.setName("NodeTitle");
     addAndMakeVisible(gainLabel);
 
     // Gain slider - Austin
@@ -37,10 +38,7 @@ GainPanel::GainPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state) : 
 	localState.addListener(this);   // listen to changes in local state
 }
 
-void GainPanel::paint(juce::Graphics& g)
-{
-    g.fillAll(Colors::background);
-    //g.setColour(Colors::accent);
+void GainPanel::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds(), 2);
 }
 
