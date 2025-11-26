@@ -6,18 +6,15 @@
 #include "Pitchblade/ui/CustomLookAndFeel.h"
 #include "BinaryData.h"
 
-TopBar::TopBar()
-{
-    //makes ui  visible
-    //addAndMakeVisible(pluginTitle);
-
+TopBar::TopBar() {
+	// load logo image 
     logo.setImage(juce::ImageFileFormat::loadFrom(
         BinaryData::pitchblade_logo_png,
         BinaryData::pitchblade_logo_pngSize
     ));
-
     logo.setInterceptsMouseClicks(false, false);
 
+	// set button styles
     addAndMakeVisible(logo);
     addAndMakeVisible(settingsButton);
     addAndMakeVisible(bypassButton);
@@ -31,6 +28,8 @@ TopBar::TopBar()
     lockBypassButton.getProperties().set("tooltipKey", "lockBypassButton");
 
 }
+
+// paint top bar with gradient
 void TopBar::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
     juce::ColourGradient gradient(
@@ -47,8 +46,7 @@ void TopBar::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds(), 2);
 }
 
-void TopBar::resized()
-{
+void TopBar::resized() {
     // laying out each component
     auto area = getLocalBounds();;
     auto logoArea = area.removeFromLeft(200);
@@ -61,7 +59,7 @@ void TopBar::resized()
     
 }
 
-// turn button pink if on
+// turn button pink if active
 void TopBar::setButtonActive(juce::TextButton& button, bool active) {
     const auto color = active ? Colors::accent : Colors::panel;
     button.setColour(juce::TextButton::buttonColourId, color);
