@@ -42,6 +42,8 @@ add_executable(runTests
     test_Equalizer.cpp
     test_Integration_Amplitude.cpp
     test_Integration_Performance.cpp
+    test_Integration_Formant.cpp
+    test_Integration_Equalizer.cpp
     test_Integration_PitchCorrector.cpp
     test_Integration_VisualizerPanel.cpp
  )
