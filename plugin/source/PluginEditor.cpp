@@ -1,26 +1,26 @@
-#include <juce_core/juce_core.h>  // Or just include juce/juce.h
+#include <juce_core/juce_core.h>  
 #include <JuceHeader.h>
+#include "BinaryData.h"
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/PluginEditor.h"
-#include "Pitchblade/ui/ColorPalette.h"
 
-// ui
+// ui - reyna
 #include "Pitchblade/ui/TopBar.h"
 #include "Pitchblade/ui/DaisyChain.h"
+#include "Pitchblade/ui/ColorPalette.h"
 #include "Pitchblade/ui/EffectPanel.h"
 #include "Pitchblade/ui/VisualizerPanel.h"
+#include "Pitchblade/ui/DaisyChainItem.h"
+
+#include "Pitchblade/panels/EffectNode.h"
+#include "Pitchblade/ui/TooltipManager.h"   //tooltips 
+
+// panels - Austin and reyna
 #include "Pitchblade/panels/SettingsPanel.h"
 #include "Pitchblade/panels/PresetsPanel.h"
 
-#include "Pitchblade/ui/DaisyChainItem.h"
-#include "Pitchblade/panels/EffectNode.h"
-
-//tooltips
-#include "BinaryData.h"
-#include "Pitchblade/ui/TooltipManager.h"
-
 //==============================================================================
-// helper struct to convert DaisyChain::Row to processing row format 
+// helper to convert DaisyChain Row to processing row procRow - reyna
 struct ProcRow { juce::String left, right; };
 static std::vector<ProcRow> toProcRows(const std::vector<DaisyChain::Row>& uiRows) {
     std::vector<ProcRow> out;
