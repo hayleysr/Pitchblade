@@ -1,11 +1,13 @@
 //reyna macabebe
+/* shared color palette for the entire UI using JUCE framework customLookandfeel */
+
 #pragma once
 #include <JuceHeader.h>
 
 // Color palette
 namespace Colors
 {
-    inline const auto background    = juce::Colour::fromString("ff363e52");      // background
+    inline const auto background    = juce::Colour::fromString("ff363e52");     // background
     inline const auto panel         = juce::Colour::fromString("ff19182b");     // panel bg
 
     inline const auto accent        = juce::Colour::fromString("fff551c1");     // outlines & active text
