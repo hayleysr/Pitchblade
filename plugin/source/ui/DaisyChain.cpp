@@ -44,6 +44,7 @@ static std::vector<AudioPluginAudioProcessor::Row> toProcessorRows(const std::ve
     return out;
 }
 
+// DaisyChain constructor
 DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_ptr<EffectNode>>& nodes) :processorRef(proc), effectNodes(nodes) {
 	// add + duplicate buttons
     addAndMakeVisible(addButton);
@@ -97,6 +98,7 @@ static int toModeIdFromNode(const std::shared_ptr<EffectNode>& n) {
 //helper to find name in rows - rowIndex, isRightCell, found
 static std::tuple<int, bool, bool> findRowAndSide(const std::vector<DaisyChain::Row>& rows, const juce::String& name) {
     for (int i = 0; i < (int)rows.size(); ++i) {
+		// check left and right
         if (rows[i].left == name)  return { i, false, true };
         if (rows[i].right == name) return { i, true , true };
     }
@@ -115,7 +117,7 @@ void DaisyChain::resetRowsToNodes() {
     }
 }
 
-
+// rebuilds the UI from current rows and effectNodes
 void DaisyChain::rebuild() {
     // clear UI rows
     for (auto* it : items) effectsContainer.removeChildComponent(it);
@@ -123,9 +125,10 @@ void DaisyChain::rebuild() {
 
 	juce::Array<int> rightToClear;  // indices of rows to clear right slot if invalid
 	// will not mutate rows, just read from it to build UI
+    
 	// create rows from effectnodes effect names and chain modes /////////////////////////////////////
     for (int i = 0; i < (int)rows.size(); ++i) {
-        const auto& rowData = rows[i];  // get name from current order list
+        const auto& rowData = rows[i];                      // get name from current order list
 
 		auto* row = new DaisyChainItem(rowData.left, i);    // create row with effect name
         effectsContainer.addAndMakeVisible(row);
@@ -173,11 +176,8 @@ void DaisyChain::rebuild() {
 		// set left node chain mode
         row->setChainModeId(leftModeId);
         row->updateModeVisual();    
-       /* if (auto nodeLeft = findNodeByName(rowData.left)) {
-            nodeLeft->chainMode = (ChainMode)leftModeId;
-        }*/
 
-        // Right node if present //////////////////////
+        // RIGHT node if present //////////////////////
         if (rowData.right.isNotEmpty()) {
 			auto nodeR = findNodeByName(rowData.right); // find right node by name
             if (!nodeR) { 
@@ -218,10 +218,9 @@ void DaisyChain::rebuild() {
                 }
             };
 
-            if (row->getName().isNotEmpty())     { handleMode(row->getName()); } // left
-            if (!row->rightEffectName.isEmpty()) { handleMode(row->rightEffectName); } // right
-			//processorRef.requestReorder(getCurrentOrder()); // notify processor of potential chain change
-            processorRef.requestLayout(toProcessorRows(rows));
+            if (row->getName().isNotEmpty())     { handleMode(row->getName()); }        // left
+            if (!row->rightEffectName.isEmpty()) { handleMode(row->rightEffectName); }  // right
+			processorRef.requestLayout(toProcessorRows(rows));                          // notify processor of layout change
         };
 
         row->onReorder = [this](int kind, juce::String dragName, int targetRow) { // reorder callback from drag n drop ui
@@ -244,6 +243,7 @@ void DaisyChain::rebuild() {
             rows[(size_t)idx].right.clear();
     }
 
+	// finalize
     resized();
     repaint();
 	if (globalBypassed) { setGlobalBypassVisual(true); } //  global bypass visual state
@@ -289,8 +289,7 @@ void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targe
     }
 
     //  -2 create double row
-    if (kind == -2)
-    {
+    if (kind == -2) {
         // inserting into right slot of targetRow if possible
         // else create a brand new row below targetRow
         const int safeRow = juce::jlimit(0, (int)rows.size() - 1, targetRow);
@@ -317,7 +316,9 @@ void DaisyChain::handleReorder(int kind, const juce::String& dragName, int targe
         });
 }
 
+// layout the daisy chain component
 void DaisyChain::resized() {
+	// main area with padding
     auto area = getLocalBounds().reduced(4);
     area.removeFromTop(10);
     area.removeFromRight(8);
@@ -356,8 +357,9 @@ void DaisyChain::resized() {
 	const int doubleH = 86;   // double down height
     const int width = scrollArea.getWidth() - 8;
 
+    // layout each item
     int y = 0;
-    for (int i = 0; i < items.size(); ++i) { 	// layout each item
+    for (int i = 0; i < items.size(); ++i) { 	
         auto* item = items[i];
         if (!item) continue;
 
@@ -376,6 +378,7 @@ void DaisyChain::resized() {
     effectsContainer.setBounds(0, 0, scrollArea.getWidth(), y);
 }
 
+// paint the daisy chain background and arrows
 void DaisyChain::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
     juce::ColourGradient gradient(
@@ -475,7 +478,7 @@ void DaisyChain::paint(juce::Graphics& g) {
     }
 }
 
-// flatten rows to old API
+// flatten current rows into single list of effect names
 std::vector<juce::String> DaisyChain::getCurrentOrder() const {
 	std::vector<juce::String> flat; // flattened list
     for (auto& r : rows) {
@@ -485,12 +488,12 @@ std::vector<juce::String> DaisyChain::getCurrentOrder() const {
     return flat;
 }
 
-
 // grey out individual bypass when global bypassed
 void DaisyChain::setGlobalBypassVisual(bool state) {
 	// now just store the state and apply to all items
     globalBypassed = state;
 
+	// apply to all items , skip nulls
     for (auto* row : items) {
         if (!row) continue;
 
@@ -534,6 +537,7 @@ void DaisyChain::setChainControlsEnabled(bool enabled) {
     duplicateButton.setEnabled(enabled);
     deleteButton.setEnabled(enabled);
     
+	// enable/disable all chain item interactions
     for (auto* item : items) {
         item->setInterceptsMouseClicks(enabled, enabled);
         item->grip.setInterceptsMouseClicks(enabled, enabled);
@@ -610,6 +614,7 @@ void DaisyChain::setReorderLocked(bool locked) {
 // menu to add new effect nodes
 void DaisyChain::showAddMenu() {
 	if (reorderLocked) return;  // prevent adding if locked
+
 	juce::PopupMenu menu;       // create menu manually add all effects
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
@@ -620,6 +625,7 @@ void DaisyChain::showAddMenu() {
     menu.addItem(7, "Pitch");
     menu.addItem(8, "Equalizer");
 
+	// set look and feel
     menu.setLookAndFeel(&getLookAndFeel());
     addButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&addButton), [this](int result) {
@@ -664,9 +670,10 @@ void DaisyChain::showAddMenu() {
 // menu to duplicate existing effect nodes
 void DaisyChain::showDuplicateMenu() {
     if (reorderLocked) return;  // prevent adding if locked
-	juce::PopupMenu menu; // create menu with existing effect names
-	{   // lock processor mutex for thread safety
-        //std::lock_guard<std::mutex> lg(processorRef.getMutex());
+
+    // create menu with existing effect names
+	juce::PopupMenu menu;
+	{   
         for (int i = 0; i < effectNodes.size(); ++i) {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
@@ -713,9 +720,10 @@ void DaisyChain::showDuplicateMenu() {
 // menu to delete existing effect nodes
 void DaisyChain::showDeleteMenu() {
     if (reorderLocked) return;  // prevent adding if locked
-	juce::PopupMenu menu;   // create menu with existing effect names
-    {   // lock processor mutex for thread safety
-        //std::lock_guard<std::mutex> lg(processorRef.getMutex());
+
+    // create menu with existing effect name
+	juce::PopupMenu menu;  
+    {   
         for (int i = 0; i < effectNodes.size(); ++i) {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
