@@ -60,6 +60,10 @@ public:
     void showDuplicateMenu();
     void showDeleteMenu();
 
+	// for single formant/pitch effects only
+    bool hasFormant() const;
+    bool hasPitch() const;
+
 	// lock reordering and drag/drop when viewing settings/presets
     void setReorderLocked(bool locked);
     bool isReorderLocked() const { return reorderLocked; }

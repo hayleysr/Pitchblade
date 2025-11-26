@@ -16,7 +16,7 @@ namespace Colors
     inline const auto accentPink    = juce::Colour::fromString("ffe966ed");     // light pink
     inline const auto accentPurple  = juce::Colour::fromString("ffae66ed");     // purple
     inline const auto accentBlue    = juce::Colour::fromString("ff668ced");     // blue
-    inline const auto accentTeal    = juce::Colour::fromString("ff49c5de");     // teal
+    inline const auto accentTeal    = juce::Colour::fromString("ff46bad4");     // teal
 
     inline const auto button        = juce::Colour::fromString("ff19182b");     // button bg
     inline const auto buttonText    = juce::Colours::white;                     // button text normal

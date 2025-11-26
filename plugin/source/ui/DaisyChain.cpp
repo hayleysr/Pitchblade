@@ -80,6 +80,24 @@ DaisyChain::DaisyChain(AudioPluginAudioProcessor& proc, std::vector<std::shared_
     }
 }
 
+// check if any row has a formant / pitch effect
+// only allowing one of each type in the chain. has audio bugs if multiple formant or pitch effects are present
+bool DaisyChain::hasFormant() const {
+    for (auto& r : rows) {
+        if (r.left.startsWith("Formant")) return true;
+        if (r.right.startsWith("Formant")) return true;
+    }
+    return false;
+}
+
+bool DaisyChain::hasPitch() const {
+    for (auto& r : rows) {
+        if (r.left.startsWith("Pitch")) return true;
+        if (r.right.startsWith("Pitch")) return true;
+    }
+    return false;
+}
+
 // helper to find node by name
 std::shared_ptr<EffectNode> DaisyChain::findNodeByName(const juce::String& name) const {
 	std::lock_guard<std::recursive_mutex> lg(processorRef.getMutex());    // lock for thread safety
@@ -615,55 +633,66 @@ void DaisyChain::setReorderLocked(bool locked) {
 void DaisyChain::showAddMenu() {
 	if (reorderLocked) return;  // prevent adding if locked
 
+	// check existing formant/pitch
+    const bool formantExists = hasFormant();
+    const bool pitchExists = hasPitch();
+
 	juce::PopupMenu menu;       // create menu manually add all effects
     menu.addItem(1, "Gain");
     menu.addItem(2, "Noise Gate");
     menu.addItem(3, "Compressor");
     menu.addItem(4, "De-Esser");
     menu.addItem(5, "De-Noiser");
-    menu.addItem(6, "Formant");
-    menu.addItem(7, "Pitch");
-    menu.addItem(8, "Equalizer");
+    menu.addItem(6, "Formant",  !formantExists);    // disable when one already exists
+    menu.addItem(7, "Pitch",    !pitchExists);
+    menu.addItem(8, "Equalizer");;
 
 	// set look and feel
     menu.setLookAndFeel(&getLookAndFeel());
     addButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
+
+	// show menu async
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&addButton), [this](int result) {
         addButton.setColour(juce::TextButton::buttonColourId, Colors::button);
 
-            if (result == 0) return;
-			// create new node based on selection
-            std::shared_ptr<EffectNode> newNode;
-            switch (result) {
-            case 1: newNode = std::make_shared<GainNode>(processorRef); break;
-            case 2: newNode = std::make_shared<NoiseGateNode>(processorRef); break;
-            case 3: newNode = std::make_shared<CompressorNode>(processorRef); break;
-            case 4: newNode = std::make_shared<DeEsserNode>(processorRef); break;
-            case 5: newNode = std::make_shared<PitchNode>(processorRef); break;
-            case 6: newNode = std::make_shared<FormantNode>(processorRef); break;
-            case 7: newNode = std::make_shared<DeNoiserNode>(processorRef); break;
-            case 8: newNode = std::make_shared<EqualizerNode>(processorRef); break;
-            }
+        if (result == 0) return;
+        if (result == 6 && hasFormant()) return;
+        if (result == 7 && hasPitch()) return;
 
-			// add to processor + ui lists
-            if (newNode) {
-                newNode->effectName = makeUniqueName(newNode->effectName, effectNodes);
-				// create and attach ValueTree to APVTS
-                effectNodes.push_back(newNode);
-				//updated to use rows instead of effectNames directly
-                Row r;
-                r.left = newNode->effectName;
-                rows.push_back(r);
+        // create new node based on selection
+        std::shared_ptr<EffectNode> newNode;
+        switch (result) {
+        case 1: newNode = std::make_shared<GainNode>(processorRef); break;
+        case 2: newNode = std::make_shared<NoiseGateNode>(processorRef); break;
+        case 3: newNode = std::make_shared<CompressorNode>(processorRef); break;
+        case 4: newNode = std::make_shared<DeEsserNode>(processorRef); break;
+        case 5: newNode = std::make_shared<DeNoiserNode>(processorRef); break;
+        case 6: newNode = std::make_shared<FormantNode>(processorRef); break;
+        case 7: newNode = std::make_shared<PitchNode>(processorRef); break;
+        case 8: newNode = std::make_shared<EqualizerNode>(processorRef); break;
+        }
+        if (!newNode) return;
 
-				// rebuild the chain
-                auto oldCb = onReorderFinished;
-                onReorderFinished = nullptr;
-                rebuild();
-                onReorderFinished = oldCb;
-                processorRef.requestLayout(toProcessorRows(rows));
+        // add to processor + ui lists
+        newNode->effectName = makeUniqueName(newNode->effectName, effectNodes);
 
-                if (onReorderFinished) onReorderFinished();
-            }
+        // create and attach ValueTree to APVTS
+        effectNodes.push_back(newNode);
+
+        //updated to use rows instead of effectNames directly
+        Row r;
+        r.left = newNode->effectName;
+        rows.push_back(r);
+
+        // rebuild the chain
+        auto oldCb = onReorderFinished;
+        onReorderFinished = nullptr;
+        rebuild();
+        onReorderFinished = oldCb;
+
+		// notify processor of layout change
+        processorRef.requestLayout(toProcessorRows(rows));
+        if (onReorderFinished) onReorderFinished();
         });
 }
 
@@ -671,21 +700,39 @@ void DaisyChain::showAddMenu() {
 void DaisyChain::showDuplicateMenu() {
     if (reorderLocked) return;  // prevent adding if locked
 
+    // check existing formant/pitch
+	const bool formantExists = hasFormant();    
+    const bool pitchExists = hasPitch();
+
     // create menu with existing effect names
 	juce::PopupMenu menu;
-	{   
-        for (int i = 0; i < effectNodes.size(); ++i) {
-            menu.addItem(i + 1, effectNodes[i]->effectName);
-        }
+    for (int i = 0; i < effectNodes.size(); ++i) {
+        const auto& name = effectNodes[i]->effectName;
+
+		// disable if formant/pitch already exists
+        bool disable = false;
+        if (name.startsWith("Formant") && formantExists) disable = true;
+        if (name.startsWith("Pitch") && pitchExists) disable = true;
+
+        menu.addItem(i + 1, name, !disable);
     }
+    
+	// set look and feel
     menu.setLookAndFeel(&getLookAndFeel());
     duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton), [this](int result)
-        {
+
+	// show menu async
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&duplicateButton), [this](int result) {
             duplicateButton.setColour(juce::TextButton::buttonColourId, Colors::button);
+
             if (result == 0) return;
             const int index = result - 1;
             if (index < 0 || index >= effectNodes.size()) return;
+
+			// check formant/pitch constraints
+            juce::String name = effectNodes[index]->effectName;
+            if (name.startsWith("Formant") && hasFormant()) return;
+            if (name.startsWith("Pitch") && hasPitch()) return;
 
             auto original = effectNodes[index];
             if (!original) return;
@@ -722,16 +769,18 @@ void DaisyChain::showDeleteMenu() {
     if (reorderLocked) return;  // prevent adding if locked
 
     // create menu with existing effect name
-	juce::PopupMenu menu;  
-    {   
+	juce::PopupMenu menu; {   
         for (int i = 0; i < effectNodes.size(); ++i) {
             menu.addItem(i + 1, effectNodes[i]->effectName);
         }
     }
+
+	// set look and feel
     menu.setLookAndFeel(&getLookAndFeel());
     deleteButton.setColour(juce::TextButton::buttonColourId, Colors::accent);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton), [this](int result)
-        {
+
+	// show menu async
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&deleteButton), [this](int result) {
             deleteButton.setColour(juce::TextButton::buttonColourId, Colors::button);
             if (result == 0) return; // user canceled
             const int index = result - 1;
