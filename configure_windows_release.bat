@@ -11,7 +11,7 @@ cmake "-S" "." "-B" "build" "-G" "Visual Studio 17 2022" "-A" "x64" "-T" "host=x
 
 ECHO "Building plugin..."
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake "--build" "build" --target Pitchblade_All
+cmake "--build" "build" --config Release --target Pitchblade_All
 
 REM --- Check if build was successful ---
 IF %ERRORLEVEL% NEQ 0 (
