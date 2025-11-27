@@ -40,11 +40,17 @@ To generate the project files and build the solution completely (Debug mode):
 .\configure_windows.bat
 ```
 
+To generate the project files and build the solution completely with an installer exe (Release mode):
+```bat
+.\configure_windows_release.bat
+```
+
+
 After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/. Alternatively, the installer script can be found in the root folder.
 
 ## Test Case Instructions
 
-After building, you can run the various test cases included in ./tests/ by running the provided helper script.
+After building, you can run the various test cases included in ./tests/ by running the provided helper script. However, these only work after being built in Debug mode, not Release mode.
 ```bat
 .\configure_windows_test.bat
 ```
