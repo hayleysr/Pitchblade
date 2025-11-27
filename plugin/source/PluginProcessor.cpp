@@ -460,14 +460,10 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     currentBlockSize = samplesPerBlock; // Austin
 
 	//intialize dsp processors
-    //noiseGateProcessor.prepare(sampleRate);                     //Sending the sample rate to the noise gate processor - austin
-    //compressorProcessor.prepare(sampleRate);                    //Austin
-    //deEsserProcessor.prepare(sampleRate, samplesPerBlock);      //Austin
-    //deNoiserProcessor.prepare(sampleRate);                      //Austin
-    formantDetector.prepare(sampleRate);   //Initialization for FormantDetector for real-time processing - huda
-    formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels());   //huda 
-    equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels());         //huda
-    pitchProcessor.prepare(sampleRate, samplesPerBlock);                                //hayley
+    formantDetector.prepare(sampleRate);                        //Initialization for FormantDetector for real-time processing - huda
+    pitchProcessor.prepare(sampleRate, samplesPerBlock);        //hayley
+    formantShifter.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda 
+    equalizer.prepare(sampleRate, samplesPerBlock, getTotalNumInputChannels()); //huda
 
 	// lock mutex for thread safety - reyna
     std::lock_guard<std::recursive_mutex> lock(audioMutex);

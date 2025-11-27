@@ -36,11 +36,6 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     thresholdSlider.setNumDecimalPlacesToDisplay(1);
     thresholdSlider.setTextValueSuffix(" dB");
     addAndMakeVisible(thresholdSlider);
-    
-    //// Threshold Label - Austin   
-    //thresholdLabel.setText("Threshold", juce::dontSendNotification);
-    //thresholdLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(thresholdLabel);
 
     ////////////////////
 
@@ -60,11 +55,6 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     attackSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(attackSlider);
 
-    //// Attack Label - Austin
-    //attackLabel.setText("Attack", juce::dontSendNotification);
-    //attackLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(attackLabel);
-
     ////////////////////
 
     // Release slider
@@ -82,11 +72,6 @@ NoiseGatePanel::NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree&
     releaseSlider.setNumDecimalPlacesToDisplay(1);
     releaseSlider.setTextValueSuffix(" ms");
     addAndMakeVisible(releaseSlider);
-
-    //// Release Label - Austin 
-    //releaseLabel.setText("Release", juce::dontSendNotification);
-    //releaseLabel.setJustificationType(juce::Justification::centred);
-    //addAndMakeVisible(releaseLabel);
 
     ///////////////////
 

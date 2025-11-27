@@ -26,6 +26,7 @@ Before building, ensure you have the following installed:
 * **CMake:** Version 3.22 or higher (Can be found at https://cmake.org/download/)
 * **C++ Compiler:** Must support **C++23** (e.g., Visual Studio 2022 v17.x on Windows).
 * **Git:** For version control.
+* **NSIS:** Version 3.11 for installation script creation (https://nsis.sourceforge.io/Main_Page)
 * *Note: JUCE and GoogleTest dependencies are automatically handled via the specific CMake configuration.*
 
 ## Build Instructions
@@ -39,7 +40,7 @@ To generate the project files and build the solution completely (Debug mode):
 .\configure_windows.bat
 ```
 
-After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/
+After compilation is complete, the compiled VST3 and Standalone executable can be found in ./build/plugin/Pitchblade_artefacts/. Alternatively, the installer script can be found in the root folder.
 
 ## Test Case Instructions
 
