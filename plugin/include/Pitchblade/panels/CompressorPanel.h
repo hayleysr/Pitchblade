@@ -89,16 +89,16 @@ private:
 class CompressorPanel : public juce::Component, public juce::ValueTree::Listener
 {
 public:
-    //explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
     ~CompressorPanel() override;
 
     void resized() override;
     void paint(juce::Graphics&) override;
+    juce::String panelTitle;
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
 
     //volume meter - reyna
-    explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr = nullptr); //reference to active compressor node 
+    explicit CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr, const juce::String& nodeTitle); //reference to active compressor node 
 
 private:
     // Reference back to main processor
@@ -114,17 +114,9 @@ private:
     juce::Label compressorLabel, thresholdLabel, ratioLabel, attackLabel, releaseLabel;
 
     //volume meter - reyna
-    //juce::Component volumeMeter;
     static void place(juce::Rectangle<int> area, juce::Slider& slider, juce::Label& label, bool useCustomLF);
     std::unique_ptr<SimpleVolumeBar> volumeMeter;
     CompressorNode* node = nullptr;  // store pointer to node instance
-
-    //Attachments to link stuff to APVTS parameters
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modeAttachment;
 
     juce::ValueTree localState;
 
@@ -159,29 +151,6 @@ public:
 
         //Listen for changes
         localState.addListener(this);
-
-        //Start timer
-        //startTimerHz(30);
-
-        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
-
-        switch(initialIndex){
-            case 0:
-                startTimerHz(5);
-                break;
-            case 1:
-                startTimerHz(15);
-                break;
-            case 2:
-                startTimerHz(30);
-                break;
-            case 3:
-                startTimerHz(60);
-                break;
-            default:
-                startTimerHz(30);
-                break;
-        }
     }
 
     ~CompressorVisualizer() override;
@@ -270,7 +239,7 @@ public:
 
     // return UI panel linked to node
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<CompressorPanel>(proc, getMutableNodeState(), this);
+        return std::make_unique<CompressorPanel>(proc, getMutableNodeState(), this, effectName);
     }
 
     // return visualizer 

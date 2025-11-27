@@ -9,8 +9,8 @@
 #include "BinaryData.h"
 
 //Set up of UI components
-CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr) : processor(proc), localState(state), node(nodePtr)
-{
+CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, CompressorNode* nodePtr, const juce::String& nodeTitle)
+    : processor(proc), localState(state), node(nodePtr), panelTitle(nodeTitle) {
     //label names for dials - reyna
     thresholdSlider.setName("Threshold");
     ratioSlider.setName("Ratio");
@@ -19,7 +19,7 @@ CompressorPanel::CompressorPanel(AudioPluginAudioProcessor& proc, juce::ValueTre
    
 
     // Label
-    compressorLabel.setText("Compressor", juce::dontSendNotification);
+    compressorLabel.setText(panelTitle, juce::dontSendNotification);
     addAndMakeVisible(compressorLabel);
     compressorLabel.setName("NodeTitle");
     
@@ -155,7 +155,6 @@ void CompressorPanel::resized() {
     meterArea.removeFromTop(20);         
     meterArea.removeFromBottom(10);
     meterArea.removeFromLeft(20);
-    //volumeMeter.setBounds(meterArea);
     volumeMeter->setBounds(meterArea);
 
     // left column - threshold and release

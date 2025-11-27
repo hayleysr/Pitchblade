@@ -12,13 +12,14 @@ public:
     void paint(juce::Graphics&) override;
 
     // overloaded constructor with local state
-    NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state);
+    NoiseGatePanel(AudioPluginAudioProcessor& proc, juce::ValueTree& state, const juce::String& nodeTitle);
 
     // destructor
     ~NoiseGatePanel() override;
 
     // valueTree listener callback
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
+    juce::String panelTitle;
 
 private:
     // Reference back to main processor
@@ -29,11 +30,6 @@ private:
 
     // Labels
     juce::Label noiseGateLabel, thresholdLabel, attackLabel, releaseLabel;
-
-	//// attachments to link sliders to the apvts parameters
- //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
- //   std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
-	//std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
 
     juce::ValueTree localState;
 
@@ -59,16 +55,6 @@ public:
 
         // Listen for changes to the threshold
         localState.addListener(this);
-
-        // Start timer
-        int initialIndex = *proc.apvts.getRawParameterValue("GLOBAL_FRAMERATE");
-        switch(initialIndex){
-            case 0: startTimerHz(5); break;
-            case 1: startTimerHz(15); break;
-            case 2: startTimerHz(30); break;
-            case 3: startTimerHz(60); break;
-            default: startTimerHz(30); break;
-        }
     }
 
     ~NoiseGateVisualizer() override;
@@ -144,7 +130,7 @@ public:
     }
 
     std::unique_ptr<juce::Component> createPanel(AudioPluginAudioProcessor& proc) override {
-        return std::make_unique<NoiseGatePanel>(proc, getMutableNodeState());
+        return std::make_unique<NoiseGatePanel>(proc, getMutableNodeState(), effectName);
     }
 
     // return visualizer 

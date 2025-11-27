@@ -1,10 +1,11 @@
 // huda
-// Some visualizer checks are marked GTEST_SKIP because the current API does not expose response data; audio-path assertions still run.
+// Equalizer integration tests (node, panel wiring, visualizer, unity behavior).
 #include <gtest/gtest.h>
 #include <JuceHeader.h>
 #include "Pitchblade/PluginProcessor.h"
 #include "Pitchblade/panels/EqualizerPanel.h"
 #include "Pitchblade/ui/EqualizerVisualizer.h"
+#include <limits>
 
 // Helper: find a node by display name
 static std::shared_ptr<EffectNode> findNode(AudioPluginAudioProcessor& processor,
@@ -102,7 +103,14 @@ TEST_F(EqualizerIntegrationTest, TC_95_EqualizerMidBoostRaisesRms)
     auto in = makeSine(0.2f, 1000.0, phase);
     auto processed = in;
     juce::MidiBuffer midi;
-    processor.processBlock(processed, midi);
+    // allow smoothing to ramp by running a few blocks
+    for (int i = 0; i < 4; ++i)
+    {
+        if (i > 0)
+            in = makeSine(0.2f, 1000.0, phase);
+        processed = in;
+        processor.processBlock(processed, midi);
+    }
     const float inRms = computeRms(in);
     const float outRms = computeRms(processed);
     ASSERT_GT(inRms, 0.0f);
@@ -121,7 +129,7 @@ TEST_F(EqualizerIntegrationTest, TC_96_EqualizerPanelLowBandUpdatesDsp)
     auto& state = node->getMutableNodeState();
 
     // Construct panel with the shared state.
-    EqualizerPanel panel(processor, state);
+    EqualizerPanel panel(processor, state, "Equalizer");
     panel.setSize(400, 200);
 
     // Drive parameters via ValueTree; listener will push to DSP.
@@ -139,7 +147,47 @@ TEST_F(EqualizerIntegrationTest, TC_96_EqualizerPanelLowBandUpdatesDsp)
 // ======= TC-97 =========
 TEST_F(EqualizerIntegrationTest, TC_97_VisualizerResponseReflectsEqSettings)
 {
-    GTEST_SKIP() << "EqualizerVisualizer does not expose response data; add an accessor to verify curve.";
+    // Configure EQ with a low boost, flat mid, high cut.
+    auto& eq = processor.getEqualizer();
+    eq.setLowFreq(100.0f);
+    eq.setLowGainDb(6.0f);
+    eq.setMidFreq(1000.0f);
+    eq.setMidGainDb(0.0f);
+    eq.setHighFreq(8000.0f);
+    eq.setHighGainDb(-6.0f);
+
+    EqualizerVisualizer viz(processor);
+    viz.setSize(400, 200);
+
+    // Force one update of the response curve.
+    viz.forceUpdateForTest();
+    auto points = viz.getLastResponsePoints();
+
+    ASSERT_FALSE(points.empty());
+
+    auto findNear = [&](float targetHz) -> float
+    {
+        float bestDb = 0.0f;
+        float bestDiff = std::numeric_limits<float>::max();
+        for (auto& p : points)
+        {
+            float diff = std::abs(p.x - targetHz);
+            if (diff < bestDiff)
+            {
+                bestDiff = diff;
+                bestDb = p.y;
+            }
+        }
+        return bestDb;
+    };
+
+    const float dbLow  = findNear(100.0f);
+    const float dbMid  = findNear(1000.0f);
+    const float dbHigh = findNear(8000.0f);
+
+    // Display dB is mapped to [-100..0]; more positive (toward 0) means boost.
+    EXPECT_GT(dbLow, dbMid);   // low boosted relative to mid
+    EXPECT_LT(dbHigh, dbMid);  // high cut relative to mid
 }
 
 // ======= TC-98 =========
