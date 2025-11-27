@@ -720,5 +720,4 @@ void AudioPluginAudioProcessorEditor::setAllEffectsBypassed(bool shouldBypass) {
 void AudioPluginAudioProcessorEditor::syncGlobalBypassButton() {
     const bool allBypassed = areAllEffectsBypassed();
     topBar.setButtonActive(topBar.bypassButton, allBypassed);
-    daisyChain.setGlobalBypassVisual(allBypassed);
 }
